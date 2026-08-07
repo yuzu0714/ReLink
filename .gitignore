@@ -11,3 +11,7 @@ venv/
 
 # macOS
 .DS_Store
+
+# ペットタグアプリのデータ（実行時に生成される個人情報を含むデータ）
+pets.db
+images/
