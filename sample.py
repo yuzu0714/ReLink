@@ -42,7 +42,7 @@ def encode_image(path: str) -> str:
 
 # コマンドライン引数: 第1引数=画像パス（省略可）, 第2引数=質問文（省略可）
 image_path = sys.argv[1] if len(sys.argv) > 1 else None
-question = sys.argv[2] if len(sys.argv) > 2 else "この画像について説明してください。"
+question = sys.argv[2] if len(sys.argv) > 2 else "ペットの画像を・動物の種類・犬種や猫種・毛色・首輪の特徴（色や柄）など、特徴を簡潔に説明してください。"
 
 if image_path:
     if not os.path.isfile(image_path):
