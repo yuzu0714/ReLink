@@ -1,5 +1,5 @@
-# 使い方: python3 list_pets.py
-# pets.db に登録されているペット一覧を表示する確認用スクリプトです。
+# 使い方: python3 list.py
+# pets.db に登録されているペット一覧（各ペットに紐づく画像も含む）を表示する確認用スクリプト
 
 # /// script
 # requires-python = ">=3.10"
@@ -18,21 +18,36 @@ def main():
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT * FROM pets ORDER BY id").fetchall()
-    conn.close()
 
-    if not rows:
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(pets)").fetchall()]
+    has_edited_col = "edited_at" in cols
+
+    pets = conn.execute("SELECT * FROM pets ORDER BY id").fetchall()
+
+    if not pets:
         print("登録されているペットはまだありません。")
+        conn.close()
         return
 
-    for row in rows:
-        collar = row["collar_features"] if row["has_collar"] else "なし"
-        status_label = "保護" if row["status"] == "protected" else "迷子"
+    for pet in pets:
+        images = conn.execute(
+            "SELECT image_path FROM pet_images WHERE pet_id = ? ORDER BY id",
+            (pet["id"],),
+        ).fetchall()
+        collar = pet["collar_features"] if pet["has_collar"] else "なし"
+        status_label = "保護" if pet["status"] == "protected" else "迷子"
+        edited_mark = ""
+        if has_edited_col and pet["edited_at"]:
+            edited_mark = f" [手動修正済み: {pet['edited_at']}]"
         print(
-            f"[{row['id']}] {status_label} / 種類={row['animal_type']} / "
-            f"品種={row['breed']} / 毛色={row['coat_color']} / 首輪={collar} / "
-            f"画像={row['image_path']} / 登録日時={row['created_at']}"
+            f"[{pet['id']}] {status_label} / 種類={pet['animal_type']} / "
+            f"品種={pet['breed']} / 毛色={pet['coat_color']} / 首輪={collar} / "
+            f"登録日時={pet['created_at']} / 画像枚数={len(images)}{edited_mark}"
         )
+        for img in images:
+            print(f"    - {img['image_path']}")
+
+    conn.close()
 
 
 if __name__ == "__main__":
