@@ -6,8 +6,93 @@ const S = {
   cancelMatch: false,
 };
 
+const isLoginPage = document.body && document.body.dataset.page === 'login';
 const screen = document.getElementById('screen');
 let templates = {};
+
+function initLoginPage(){
+  const roleButtons = Array.from(document.querySelectorAll('.role'));
+  const roleChip = document.getElementById('roleChip');
+  const loginButton = document.getElementById('loginButton');
+  let selectedUrl = null;
+
+  const roleLabels = {
+    owner: '飼い主',
+    finder: '発見者',
+    shelter: '保護団体'
+  };
+
+  function selectRole(button) {
+    roleButtons.forEach((item) => item.classList.remove('on'));
+    button.classList.add('on');
+    selectedUrl = button.getAttribute('data-url');
+    roleChip.textContent = `選択中：${roleLabels[button.getAttribute('data-role')]}`;
+  }
+
+  roleButtons.forEach((button) => {
+    button.addEventListener('click', () => selectRole(button));
+  });
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // 画面全体の勝手なリロードを防止
+      if (!selectedUrl) {
+        alert('利用者の種類（飼い主・発見者・保護団体）を選択してください。');
+        return; 
+      }
+      // 1. 入力値と選択ロールの取得
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      const selectedRole = document.querySelector('.role.on')?.getAttribute('data-role');
+
+      // 2. ボタンを連打防止＆ローディング表示に変更
+      loginButton.disabled = true;
+
+      try {
+        // 3. バックエンドAPI呼び出し（※現在はデモ用関数を実行）
+        const result = await apiLogin(email, password, selectedRole);
+
+        if (result.success) {
+          // ログイン成功したら指定の画面へ移動
+          window.location.href = selectedUrl;
+        }
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        // 4. ボタンの状態を元に戻す
+        loginButton.disabled = false;
+      }
+    });
+  }
+}
+
+async function apiLogin(email, password, role) {
+  // 【デモ用】0.6秒だけ通信しているフリ（待ち時間）をする
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  /* ----------------------------------------------------
+     本番コード例
+     ----------------------------------------------------
+     const response = await fetch('/api/login', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ email, password, role })
+     });
+     if (!response.ok) throw new Error('メールアドレスまたはパスワードが違います');
+     return await response.json();
+  ---------------------------------------------------- */
+
+  // 正解として認めるメールアドレスとパスワードを定義(デモ用)
+  const CORRECT_EMAIL = "demo@relink.jp";
+  const CORRECT_PASS  = "demodemo";
+
+  // 入力された値が合っているか判定
+  if (email === CORRECT_EMAIL && password === CORRECT_PASS) {
+    return { success: true };
+  } else {
+    throw new Error("メールアドレスまたはパスワードが正しくありません。");
+  }
+}
 
 const roleLabel = {owner:'飼い主', finder:'発見者', shelter:'保護団体'};
 const petColors = ['#c8935f','#e8c9a0','#7a5230','#3d3d3d','#e5e5e5','#f0f0f0'];
@@ -277,9 +362,13 @@ function cancelMatch(){
   go('register');
 }
 
-loadTemplates()
-  .then(() => { go('login'); })
-  .catch((error) => {
-    console.error(error);
-    screen.innerHTML = '<div class="pad"><p>テンプレートの読み込みに失敗しました。</p></div>';
-  });
+if (isLoginPage) {
+  initLoginPage();
+} else if (screen) {
+  loadTemplates()
+    .then(() => { go('login'); })
+    .catch((error) => {
+      console.error(error);
+      screen.innerHTML = '<div class="pad"><p>テンプレートの読み込みに失敗しました。</p></div>';
+    });
+}
