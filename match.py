@@ -205,12 +205,19 @@ def main():
 
     results.sort(key=lambda r: r[0], reverse=True)
 
-    print(f"\n--- 候補一覧（保護ペット {len(protected_pets)}件中 {len(results)}件が候補） ---")
-    if not results:
-        print("動物の種類が一致する候補が見つかりませんでした。")
+    MIN_SCORE = 0.8  # 類似度80%以上のみを候補とする
+    MAX_RESULTS = 5  # 上位5件まで表示する
+    filtered_results = [r for r in results if r[0] >= MIN_SCORE][:MAX_RESULTS]
+
+    print(
+        f"\n--- 候補一覧（保護ペット {len(protected_pets)}件中、"
+        f"類似度{int(MIN_SCORE * 100)}%以上の上位{MAX_RESULTS}件まで表示） ---"
+    )
+    if not filtered_results:
+        print(f"類似度{int(MIN_SCORE * 100)}%以上の候補は見つかりませんでした。")
         return
 
-    for score, pet, images in results:
+    for score, pet, images in filtered_results:
         collar = pet["collar_features"] if pet["has_collar"] else "なし"
         print(
             f"\n[候補] ペットID={pet['id']}  類似度スコア={score:.2f}\n"
