@@ -2,8 +2,8 @@
 #   1. pip install openai python-dotenv
 #   2. .env を作り、SAKURA_AI_TOKEN を記入
 # 使い方:
-#   python3 match.py 迷子のペットの写真1 [写真2 写真3 ...]
-#   例: python3 match.py lost_dog.jpg
+#   python3 match.py 迷子のペットの写真（複数枚可能）
+#   例: python3 match.py lost_dog.jpg lost_dog_2.jpg
 #
 # 迷子のペットの写真をAIで解析し、pets.db に登録されている「保護(protected)」
 # ペットの一覧と特徴を比較して、似ている候補をペットIDのランキングで表示します。
@@ -13,6 +13,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["openai", "python-dotenv"]
 # ///
+import argparse
 import base64
 import difflib
 import json
@@ -156,10 +157,24 @@ def score_pet(lost_tags: dict, pet_row) -> float:
 
 
 def main():
-    if len(sys.argv) < 2:
-        sys.exit("使い方: python3 match.py 写真1 [写真2 写真3 ...]")
+    parser = argparse.ArgumentParser(description="迷子ペットの写真から、保護ペット一覧の中の似ている候補を探します。")
+    parser.add_argument("images", nargs="+", help="迷子ペットの画像ファイルのパス（複数指定可）")
+    parser.add_argument(
+        "--min-score",
+        type=float,
+        default=0.3,
+        help="この類似度未満の候補は表示しない（0.0〜1.0、デフォルト0.8）。"
+        "候補が出ない場合は --min-score 0 で全件のスコアを確認できます。",
+    )
+    parser.add_argument(
+        "--top",
+        type=int,
+        default=5,
+        help="表示する候補の最大件数（デフォルト5）",
+    )
+    args = parser.parse_args()
 
-    image_paths = sys.argv[1:]
+    image_paths = args.images
     for path in image_paths:
         if not os.path.isfile(path):
             sys.exit(f"画像ファイルが見つかりません: {path}")
@@ -205,16 +220,17 @@ def main():
 
     results.sort(key=lambda r: r[0], reverse=True)
 
-    MIN_SCORE = 0.8  # 類似度80%以上のみを候補とする
-    MAX_RESULTS = 5  # 上位5件まで表示する
-    filtered_results = [r for r in results if r[0] >= MIN_SCORE][:MAX_RESULTS]
+    min_score = args.min_score
+    top_n = args.top
+    filtered_results = [r for r in results if r[0] >= min_score][:top_n]
 
     print(
         f"\n--- 候補一覧（保護ペット {len(protected_pets)}件中、"
-        f"類似度{int(MIN_SCORE * 100)}%以上の上位{MAX_RESULTS}件まで表示） ---"
+        f"類似度{int(min_score * 100)}%以上の上位{top_n}件まで表示） ---"
     )
     if not filtered_results:
-        print(f"類似度{int(MIN_SCORE * 100)}%以上の候補は見つかりませんでした。")
+        print(f"類似度{int(min_score * 100)}%以上の候補は見つかりませんでした。")
+        print("ヒント: python3 match.py 写真.jpg --min-score 0 --top 20 を試すと、全候補のスコアを確認できます。")
         return
 
     for score, pet, images in filtered_results:
