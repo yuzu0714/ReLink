@@ -4,11 +4,13 @@
   z-index: 30;
   background: var(--navy);
   color: #fff;
-  padding: 34px 18px 14px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
 }
+
 
 .appbar .back {
   background: rgba(255, 255, 255, 0.12);
@@ -45,7 +47,9 @@
 }
 
 .pad {
-  padding: 18px;
+  padding: 18px 16px;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .stack > * + * {

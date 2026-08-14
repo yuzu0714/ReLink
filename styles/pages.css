@@ -82,3 +82,103 @@
   padding: 14px;
   line-height: 1.6;
 }
+
+.roles {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.role {
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.role:hover {
+  border-color: var(--cyan-soft);
+}
+
+.role.on {
+  border-color: var(--navy);
+  background: #f2f4ff;
+}
+
+.role .emo {
+  font-size: 26px;
+}
+
+.role .rt {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.role .rd {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.role .tick {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+}
+
+.role.on .tick {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+
+.field {
+  display: block;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fbfcff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+}
+
+.footnote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 14px;
+  line-height: 1.6;
+}
+
