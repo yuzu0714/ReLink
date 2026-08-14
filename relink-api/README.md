@@ -1,61 +1,73 @@
-# ReLINK
+# ReLINK バックエンド開発環境セッティング手順
 
-災害時ペット保護・マッチングシステム「ReLINK」のリポジトリです。
+このドキュメントは、ReLINKのバックエンド(Kotlin webAPIサーバー)開発に新しく参加するメンバー向けの環境構築手順です。上から順に進めれば、ローカル環境でサーバーを起動し、データベースへの接続確認まで完了します。
 
-マイクロチップの有無に依存せず、AIによる画像照合を用いて、災害時にはぐれたペットと飼い主の再会を支援することを目的としています。
+---
 
-## システム構成
+## 1. JDKのインストール
 
-本システムは以下の3要素で構成されています。
+- バージョンは **JDK 25(LTS)** を使用する。
+- JDK 21は1つ前のLTS、JDK 26はLTSではない短命リリースのため、新規に環境構築する場合はJDK 25を選ぶこと。
+- 通常のインストーラ形式(.msi/.pkg)でよい。複数バージョンの共存が必要な場合のみ、圧縮アーカイブ形式やSDKMAN等のバージョン管理ツールを検討する。
 
-- **webAPIサーバー**:Kotlin(Ktor)で実装。ペット情報の登録・照合結果の取得・認証・通知処理などを担当。
-- **AIサーバー**:Python製。ペット画像の解析・個体照合を担当。
-- **データベース**:Supabase(PostgreSQL)。個体識別番号・位置情報・飼い主情報・登録用写真などを管理。
+## 2. VS Codeの拡張機能インストール
 
-外部連携として、位置情報・距離計算にGoogle Maps APIを使用しています。
+以下3つを最低限インストールする。
 
-## 開発環境
-
-| 項目 | 内容 |
+| 拡張機能 | 役割 |
 |---|---|
-| JDK | 25(LTS) |
-| ビルドツール | Gradle(Kotlin DSL) |
-| Webフレームワーク | Ktor |
-| DB | Supabase(PostgreSQL) |
-| ORM | Exposed |
-| エディタ | Visual Studio Code |
+| Kotlin by JetBrains | コード補完・診断など、Kotlinのコア機能 |
+| Extension Pack for Java | デバッガー(ブレークポイント等)。KotlinはJVM言語のためJavaのデバッガーがそのまま使える |
+| Gradle for Java | Gradleタスク(ビルド・実行)をVS Code上から実行する |
 
-### VS Code 拡張機能(必須)
+補足として、`.env`ファイルのシンタックスハイライト用にDotENV、Supabase(PostgreSQL)へVS Code上から接続したい場合はSQLTools系拡張機能を追加してもよい(任意)。
 
-- Kotlin by JetBrains
-- Extension Pack for Java(デバッグに必要)
-- Gradle for Java(ビルド実行に必要)
+## 3. プロジェクトの取得
 
-## セットアップ手順
+### 新規メンバーの場合
 
-新しく開発に参加する場合は、以下の手順で環境を整えてください。
-
-### 1. ローカル環境の準備
-
-1. JDK 25をインストールする
-2. VS Codeに上記3つの拡張機能をインストールする
-
-### 2. リポジトリの取得
-
-GitHubリポジトリへのアクセス権を管理者に依頼し、招待を受けたら以下でクローンする。
+1. GitHubリポジトリ「ReLINK」(大元のリポジトリ、バックエンド以外のファイルも含む)へのアクセス権を管理者に依頼し、招待を受ける。
+2. 以下でクローンする。
 
 ```bash
-git clone <リポジトリURL>
-cd relink-api
+git clone <ReLINKリポジトリのURL>
+cd ReLINK/relink-api
 ```
 
-### 3. Supabaseへのアクセス権を取得する
+Kotlinプロジェクト(`relink-api`)は、大元の「ReLINK」リポジトリのサブフォルダとして管理されている。以降の手順(依存関係の確認・`.env`の設置・起動確認など)は、すべて`ReLINK/relink-api`フォルダ内で行う。
 
-**重要:** データベース(Supabase)へのアクセス権は、リポジトリとは別に管理者からの招待が必要です。必ず開発開始前に、Supabase組織(Nao-5115's Org)への招待をチームの管理者に依頼してください。
+### プロジェクトを新規生成する場合(参考)(今回は使わない)
 
-### 4. 環境変数の設定
+[start.ktor.io](https://start.ktor.io) で生成する場合は、以下の設定で作成する。
 
-プロジェクトルート(`gradlew.bat`と同じ階層)に`.env`ファイルを作成し、以下の内容を記載する。値は管理者から個別に(チャットへの直接貼り付けは避け、安全な方法で)受け取ること。
+| 項目 | 設定値 |
+|---|---|
+| Build system | **Gradle Kotlin DSL**(「Amper」等の別ビルドシステムを誤って選ばないよう注意) |
+| Engine | Netty |
+| Configuration | **YAML**(再コンパイル不要で設定変更でき、運用時に有利) |
+
+選択するプラグイン:
+
+- Content Negotiation
+- kotlinx.serialization Json
+- CORS
+- Authentication / Authentication JWT
+- Status Pages
+- Call Logging
+- Call ID
+
+※ Routing機能はKtorのコアに標準搭載されているため、プラグインとして選択する必要はない。検索すると出てくる「Resources」(型安全ルーティング)や「kotlinx.rpc」(RPC方式の通信ライブラリ)は本プロジェクトの構成とは異なるため選択しないこと。
+
+## 4. Supabase(データベース)へのアクセス権取得
+
+**重要:** データベースへのアクセス権は、GitHubリポジトリとは別に、Supabase組織への招待が必要です。
+
+1. 管理者に依頼し、Supabase組織(Nao-5115's Org)のメンバーとして招待を受ける。
+2. 招待を受けたら、自分のアカウントで「ReLINK」プロジェクトにアクセスできることを確認する。
+
+## 5. 環境変数(.env)の設定
+
+プロジェクトルート(`gradlew.bat`と同じ階層)に`.env`ファイルを作成する。
 
 ```
 DATABASE_URL=jdbc:postgresql://<ホスト>:5432/postgres
@@ -63,11 +75,16 @@ DATABASE_USER=postgres
 DATABASE_PASSWORD=<データベースパスワード>
 ```
 
-`.env`は`.gitignore`に含まれておりGit管理対象外です。リポジトリには含まれないため、必ず個別に取得してください。
+接続情報の取得場所は以下の通り。
 
-### 5. 依存関係の確認
+- 接続文字列・ホスト名:Supabase管理画面右上の「Connect」ボタン →「直接」タブ
+- データベースパスワード:プロジェクト作成時に設定したもの。不明な場合は同画面の「データベースパスワードをリセットします」から再設定可能
 
-`build.gradle.kts`に以下が含まれていることを確認する(既存プロジェクトでは設定済み)。
+`.env`は`.gitignore`により管理対象外となっているため、Gitには含まれない。値は管理者から個別に、チャット等への直接貼り付けを避けた安全な方法で受け取ること。
+
+## 6. Gradle依存関係の確認
+
+`build.gradle.kts`の`dependencies { }`内に、以下が含まれていることを確認する(新規参加者は基本的に追加不要、リポジトリに含まれているはず)。
 
 ```kotlin
 implementation("org.jetbrains.exposed:exposed-core:0.55.0")
@@ -77,102 +94,60 @@ implementation("org.postgresql:postgresql:42.7.4")
 implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 ```
 
-### 6. 起動確認
+## 7. 起動確認
+
+ターミナルでプロジェクトルートに移動し、以下を実行する。
 
 ```powershell
-# Windows
+# Windows(PowerShell)
 .\gradlew.bat run
 
 # Mac/Linux
 ./gradlew run
 ```
 
-起動後、ブラウザで以下にアクセスし、データベース接続を確認する。
+起動後、ブラウザで以下にアクセスする。
 
 ```
 http://localhost:8080/db-test
 ```
 
-「DB接続成功!現在時刻: ...」と表示されれば、環境構築は完了です。
+「DB接続成功!現在時刻: ...」と表示されれば、環境構築は完了。
 
-## プロジェクト構成
+---
+
+## つまずきやすいポイント(トラブルシューティング)
+
+| 症状 | 原因・対処 |
+|---|---|
+| `gradlew.bat` is not recognized | PowerShellでは同一フォルダ内のファイル実行時に `.\` を先頭に付ける必要がある。`.\gradlew.bat run` とする |
+| `kotlin.bat` しか見当たらない、`gradlew.bat` が無い | プロジェクト生成時のBuild systemが「Gradle」以外(Amper等)になっている可能性が高い。start.ktor.ioでBuild systemを明示的に「Gradle Kotlin DSL」に指定して再生成する |
+| `build.gradle.kts`で `Expecting an element` エラー | Kotlinスクリプト内のコメントは `#` ではなく `//` を使う必要がある |
+| `Suspension fun` コンパイルエラー | `transaction { }`ブロック内でKtorのsuspend関数(`call.respondText`等)を直接呼んでいる。`transaction { }`は結果を返す処理のみに留め、レスポンス送信はブロックの外で行う |
+| `Application.kt` が見当たらない | プラグインを複数選択した場合、機能ごとに`HTTP.kt`・`Routing.kt`等へ分割生成される。起動処理は`Main.kt`、モジュール読み込み一覧は`src/main/resources/application.yaml`内の`modules`に記載されている |
+| 新しい設定ファイル(例:`Database.kt`)を追加したのに反映されない | `application.yaml`の`modules`リストに、`com.<ファイル名>Kt.<関数名>`の形式で追記が必要 |
+
+---
+
+## 参考:現在のプロジェクト構成
 
 ```
-relink-api/
-├── src/main/kotlin/com/
-│   ├── Main.kt              # エントリーポイント
-│   ├── HTTP.kt              # CORS等HTTP関連設定
-│   ├── Monitoring.kt        # Call Logging / Call ID
-│   ├── Routing.kt           # ルーティング定義
-│   ├── Security.kt          # 認証・JWT設定
-│   ├── Serialization.kt     # JSONシリアライズ設定
-│   ├── StatusPages.kt       # エラーハンドリング設定
-│   └── Database.kt          # DB接続設定
-├── src/main/resources/
-│   └── application.yaml     # サーバー設定(モジュール読み込み含む)
-├── build.gradle.kts
-└── .env                     # 環境変数(Git管理外)
-```
-
-本プロジェクトは`application.yaml`内の`modules`リストに、各機能ファイルの設定関数(`configureXxx`)を列挙する構成を採用しています。新しい機能ファイルを追加した場合は、`application.yaml`への追記を忘れないようにしてください。
-
-## データベース構成
-
-現在、以下の3テーブルで構成されています(詳細はSupabaseのSchema Visualizerを参照)。
-
-- `lostpet_register`:飼い主による迷子ペット登録
-- `foundpet_register`:発見者による発見ペット登録
-- `rescuedpet_register`:保護団体による保護ペット管理
-
-いずれもRow Level Security(RLS)を有効化しており、Kotlinサーバーは`service_role`キーによる直接接続でアクセスします。SupabaseのData API(自動生成REST API)は使用しない方針です。
-
-## 開発体制
-
-- Web APIサーバー・データベース・外部API連携:バックエンド担当
-- AIサーバー(画像照合):AI担当
-
-AIサーバーとの連携仕様(エンドポイント・リクエスト/レスポンス形式)は別途チーム内で合意の上、随時本READMEまたは別ドキュメントに追記予定です。
-
-
-
-
-
-
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
-
-Here are some useful links to get you started:
- * [Ktor Documentation](https://ktor.io/docs/home.html)
- * [Ktor GitHub page](https://github.com/ktorio/ktor)
- * [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). [Request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up).
-
-
-## Features
-Here's a list of features included in this project:
-
-| Name | Description |
-|------|-------------|
-| [Call Logging](https://start.ktor.io/p/io.ktor/server-call-logging) | Logs client requests |
-| [Call ID](https://start.ktor.io/p/io.ktor/server-callid) | Allows to identify a request/call. |
-| [Status Pages](https://start.ktor.io/p/io.ktor/server-status-pages) | Provides exception handling for routes |
-| [Authentication](https://start.ktor.io/p/io.ktor/server-auth) | Provides extension point for handling the Authorization header |
-| [Authentication JWT](https://start.ktor.io/p/io.ktor/server-auth-jwt) | Handles JSON Web Token (JWT) bearer authentication scheme |
-| [CORS](https://start.ktor.io/p/io.ktor/server-cors) | Enables Cross-Origin Resource Sharing (CORS) |
-| [Content Negotiation](https://start.ktor.io/p/io.ktor/server-content-negotiation) | Provides automatic content conversion according to Content-Type and Accept headers |
-| [kotlinx.serialization](https://start.ktor.io/p/io.ktor/server-kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library |
-
-
-## Building & Running
-To build or run the project, use one of the following tasks:
-
-
-| Task | Description |
-|------|-------------|
-| `./gradlew test`    | Run the tests     |
-| `./gradlew build`   | Build the project |
-| `./gradlew run`     | Run the server    |
-
-If the server starts successfully, you'll see the following output:
-```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
+ReLINK/                        # 大元のリポジトリ
+├── README.md
+├── .gitignore
+├── relink-demo.html
+└── relink-api/                 # ← Kotlin webAPIサーバー(本手順の対象)
+    ├── src/main/kotlin/com/
+    │   ├── Main.kt              # エントリーポイント
+    │   ├── HTTP.kt              # CORS等HTTP関連設定
+    │   ├── Monitoring.kt        # Call Logging / Call ID
+    │   ├── Routing.kt           # ルーティング定義
+    │   ├── Security.kt          # 認証・JWT設定
+    │   ├── Serialization.kt     # JSONシリアライズ設定
+    │   ├── StatusPages.kt       # エラーハンドリング設定
+    │   └── Database.kt          # DB接続設定
+    ├── src/main/resources/
+    │   └── application.yaml     # サーバー設定(モジュール読み込み含む)
+    ├── build.gradle.kts
+    └── .env                     # 環境変数(Git管理外)
 ```
