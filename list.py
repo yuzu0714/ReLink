@@ -21,6 +21,7 @@ def main():
 
     cols = [row[1] for row in conn.execute("PRAGMA table_info(pets)").fetchall()]
     has_edited_col = "edited_at" in cols
+    has_found_place_col = "found_place" in cols
 
     pets = conn.execute("SELECT * FROM pets ORDER BY id").fetchall()
 
@@ -39,10 +40,11 @@ def main():
         edited_mark = ""
         if has_edited_col and pet["edited_at"]:
             edited_mark = f" [手動修正済み: {pet['edited_at']}]"
+        place = pet["found_place"] if has_found_place_col and pet["found_place"] else "未入力"
         print(
             f"[{pet['id']}] {status_label} / 種類={pet['animal_type']} / "
             f"品種={pet['breed']} / 毛色={pet['coat_color']} / 首輪={collar} / "
-            f"登録日時={pet['created_at']} / 画像枚数={len(images)}{edited_mark}"
+            f"場所={place} / 登録日時={pet['created_at']} / 画像枚数={len(images)}{edited_mark}"
         )
         for img in images:
             print(f"    - {img['image_path']}")

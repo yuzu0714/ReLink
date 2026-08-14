@@ -139,7 +139,8 @@ def create_tables(conn):
             collar_features TEXT,
             raw_response TEXT,
             created_at TEXT NOT NULL,
-            edited_at TEXT
+            edited_at TEXT,
+            found_place TEXT
         )
         """
     )
@@ -206,11 +207,20 @@ def ensure_edited_at_column(conn):
         conn.commit()
 
 
+def ensure_found_place_column(conn):
+    """found_place列がまだ無い既存DB（このカラムを追加する前に作られたもの）に列を追加する。"""
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(pets)").fetchall()]
+    if "found_place" not in cols:
+        conn.execute("ALTER TABLE pets ADD COLUMN found_place TEXT")
+        conn.commit()
+
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     create_tables(conn)
     migrate_legacy_schema(conn)
     ensure_edited_at_column(conn)
+    ensure_found_place_column(conn)
     return conn
 
 
@@ -233,6 +243,11 @@ def main():
         default="protected",
         help="protected: 保護したペット / lost: 迷子のペット（デフォルト: protected）",
     )
+    parser.add_argument(
+        "--found-place",
+        default=None,
+        help="保護された（または見つかった）地域・場所（例: \"徳島県阿南市\"）。省略可。",
+    )
     args = parser.parse_args()
 
     for path in args.images:
@@ -245,8 +260,8 @@ def main():
     conn = init_db()
     cur = conn.execute(
         """
-        INSERT INTO pets (status, animal_type, breed, coat_color, has_collar, collar_features, raw_response, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO pets (status, animal_type, breed, coat_color, has_collar, collar_features, raw_response, created_at, found_place)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             args.status,
@@ -257,6 +272,7 @@ def main():
             tags.get("collar_features"),
             raw_text,
             datetime.now().isoformat(timespec="seconds"),
+            args.found_place,
         ),
     )
     pet_id = cur.lastrowid
@@ -276,6 +292,8 @@ def main():
     print("登録が完了しました。")
     print(f"  ペットID: {pet_id}")
     print(f"  区分: {'保護 (protected)' if args.status == 'protected' else '迷子 (lost)'}")
+    if args.found_place:
+        print(f"  場所: {args.found_place}")
     print(f"  種類: {tags.get('animal_type')}")
     print(f"  犬種/猫種: {tags.get('breed')}")
     print(f"  毛色: {tags.get('coat_color')}")

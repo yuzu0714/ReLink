@@ -25,6 +25,13 @@ def ensure_edited_at_column(conn):
         conn.commit()
 
 
+def ensure_found_place_column(conn):
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(pets)").fetchall()]
+    if "found_place" not in cols:
+        conn.execute("ALTER TABLE pets ADD COLUMN found_place TEXT")
+        conn.commit()
+
+
 def ask(label: str, current, hint: str = "") -> str:
     current_display = current if current not in (None, "") else "(未設定)"
     new_value = input(f"{label} [現在: {current_display}]{hint}: ").strip()
@@ -46,6 +53,7 @@ def main():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     ensure_edited_at_column(conn)
+    ensure_found_place_column(conn)
 
     pet = conn.execute("SELECT * FROM pets WHERE id = ?", (pet_id,)).fetchone()
     if pet is None:
@@ -58,6 +66,7 @@ def main():
 
     print(f"--- ペットID {pet_id} の現在の登録内容 ---")
     print(f"区分: {'保護' if pet['status'] == 'protected' else '迷子'}")
+    print(f"場所: {pet['found_place'] or '未入力'}")
     print(f"画像: {', '.join(img['image_path'] for img in images) if images else '(なし)'}")
     print()
     print("修正する項目だけ新しい値を入力してEnter、そのままでよければ何も入力せずEnterを押してください。")
@@ -66,6 +75,7 @@ def main():
     animal_type = ask("動物の種類（犬・猫など）", pet["animal_type"])
     breed = ask("犬種・猫種", pet["breed"])
     coat_color = ask("毛色", pet["coat_color"])
+    found_place = ask("保護された（見つかった）場所", pet["found_place"])
 
     collar_input = ask(
         "首輪の有無",
@@ -82,7 +92,7 @@ def main():
     conn.execute(
         """
         UPDATE pets
-        SET animal_type = ?, breed = ?, coat_color = ?, has_collar = ?, collar_features = ?, edited_at = ?
+        SET animal_type = ?, breed = ?, coat_color = ?, has_collar = ?, collar_features = ?, found_place = ?, edited_at = ?
         WHERE id = ?
         """,
         (
@@ -91,6 +101,7 @@ def main():
             coat_color,
             has_collar,
             collar_features,
+            found_place,
             datetime.now().isoformat(timespec="seconds"),
             pet_id,
         ),
@@ -106,6 +117,7 @@ def main():
         print(f"  首輪: あり - {collar_features}")
     else:
         print("  首輪: なし")
+    print(f"  場所: {found_place or '未入力'}")
 
 
 if __name__ == "__main__":
