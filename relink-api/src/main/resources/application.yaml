@@ -4,7 +4,7 @@ ktor:
   application:
     modules:
       - com.SerializationKt.configureSerialization
-      - com.HttpKt.configureHttp
+      - com.HttpKt.configureHTTP
       - com.MonitoringKt.configureMonitoring
       - com.DatabaseKt.configureDatabases
       - com.SecurityKt.configureSecurity

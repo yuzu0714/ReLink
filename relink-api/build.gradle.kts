@@ -15,6 +15,7 @@ application {
 kotlin {
     jvmToolchain(21)
 }
+
 dependencies {
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.auth)
@@ -37,4 +38,10 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.55.0")
     implementation("org.postgresql:postgresql:42.7.4")
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+}
+
+tasks.test {
+    //先に開発を進めるためにこの部分でfailOnNoDiscoveredTestsを無効にしているよ
+    useJUnitPlatform()
+    failOnNoDiscoveredTests = false   // ← この1行を追加
 }
