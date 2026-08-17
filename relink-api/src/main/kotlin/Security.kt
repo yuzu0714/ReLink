@@ -7,16 +7,22 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import java.util.*
+import com.services.StorageService 
 
 // --- 設定値 ---
-// System.getenv()だとOSの環境変数しか見れず.envファイルを読んでくれないため、
-// Database.ktと同じdotenv-kotlinライブラリを使う方式に修正
-// dotenv という名前だとDatabase.kt内のローカル変数と紛らわしいので、securityDotenvという名前にした
 val securityDotenv = dotenv()
 val jwtSecret = securityDotenv["JWT_SECRET"] ?: error("JWT_SECRET が設定されていません")
 const val jwtIssuer = "relink-api"        // トークンの発行者名(誰が発行したか識別する用)
 const val jwtAudience = "relink-users"    // トークンの利用対象者(誰向けか識別する用)
 const val jwtRealm = "ReLINK API"         // 認証失敗時にレスポンスヘッダーへ含まれる領域名
+
+// ↓↓↓ 追加:画像アップロード(Supabase Storage)用のサービスをここで初期化
+// dotenvの読み込みは上の securityDotenv をそのまま再利用する
+// (dotenv()を複数箇所で呼ぶと二重初期化になるため、既存のものに相乗り)
+val storageService = StorageService(
+    supabaseUrl = securityDotenv["SUPABASE_URL"] ?: error("SUPABASE_URL が設定されていません"),
+    serviceRoleKey = securityDotenv["SUPABASE_SERVICE_ROLE_KEY"] ?: error("SUPABASE_SERVICE_ROLE_KEY が設定されていません")
+)
 
 
 // --- トークン発行関数 ---

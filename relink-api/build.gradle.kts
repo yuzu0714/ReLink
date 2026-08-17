@@ -32,6 +32,9 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
+     // ↓↓↓ 追加:画像アップロードでSupabase Storage APIを叩くためのHTTPクライアント ↓↓↓
+    implementation(ktorLibs.client.core)
+    implementation(ktorLibs.client.cio)
     //追加分
     implementation("org.jetbrains.exposed:exposed-core:0.55.0")
     implementation("org.jetbrains.exposed:exposed-dao:0.55.0")
