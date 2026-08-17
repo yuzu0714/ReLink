@@ -14,7 +14,7 @@
       <div class="notch"></div>
       <div class="screen">
         <div class="appbar">
-          <a class="back" href="home.html">‹</a>
+          <a class="back" href="login.html">‹</a>
           <h1>保護団体向け</h1>
           <div class="spacer"></div>
           <span class="role-chip">Shelter</span>
@@ -35,6 +35,13 @@
                 <div class="desc">保護中のペットを確認して照合を進めます。</div>
               </div>
             </div>
+            <div class="role-item" style="cursor:pointer" onclick="go('register')">
+              <div class="emo">📷</div>
+              <div>
+                <div class="title">新規保護を登録</div>
+                <div class="desc">保護したペットを撮影して登録します。</div>
+              </div>
+            </div>
             <div class="role-item">
               <div class="emo">🔔</div>
               <div>
@@ -44,10 +51,20 @@
             </div>
           </div>
 
-          <a class="btn btn-primary" href="home.html">ホームへ戻る</a>
+          <div class="stack">
+            <a class="btn btn-primary" href="login.html">ログアウト</a>
+            <button class="btn btn-ghost" type="button" onclick="switchRole()">役割を切り替える</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  <script>
+    function switchRole() {
+      sessionStorage.removeItem('selectedRole');
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
 </body>
 </html>
