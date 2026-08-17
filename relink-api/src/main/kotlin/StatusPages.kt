@@ -1,5 +1,6 @@
 package com
 
+import com.exceptions.ForbiddenException
 import com.models.ErrorResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -8,6 +9,13 @@ import io.ktor.server.response.*
 
 fun Application.configureStatusPages() {
     install(StatusPages) {
+        // ↓↓↓ 追加:権限不足エラー(403)
+        exception<ForbiddenException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Forbidden,
+                ErrorResponse("FORBIDDEN", cause.message ?: "この操作を行う権限がありません")
+            )
+        }
         // ① 想定内のエラー：リクエストの中身が悪い
         exception<IllegalArgumentException> { call, cause ->
             call.respond(

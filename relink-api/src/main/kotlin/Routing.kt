@@ -13,6 +13,12 @@ import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
 import com.services.StorageService 
+import com.exceptions.ForbiddenException
+
+// 追加:ペット登録API本体で使うDTOとリポジトリ
+import com.models.LostPetRegisterRequest
+import com.models.LostPetRegisterResponse
+import com.repositories.LostPetRepository
 
 fun Application.configureRouting() {
     routing {
@@ -50,6 +56,21 @@ fun Application.configureRouting() {
 
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
+            }
+
+            // authenticate{} 直下の兄弟ルートとして外に出した
+            post("/pets/lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "owner") {
+                    throw ForbiddenException("この操作にはowner権限が必要です")
+                }
+
+                val request = call.receive<LostPetRegisterRequest>()
+                val insertedId = LostPetRepository.insert(request)
+
+                call.respond(HttpStatusCode.Created, LostPetRegisterResponse(id = insertedId))
             }
         }
     }

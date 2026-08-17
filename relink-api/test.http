@@ -1,16 +1,32 @@
-### テスト用のhttpファイルだよ
-### まずログインしてトークンを取得(Day1で作ったやつ)
+### owner権限でログイン
 POST http://localhost:8080/auth/test-login?role=owner
 
-### ↑のレスポンスに含まれるトークンをコピーして、下の {{token}} 部分に貼る
-### 画像アップロードのテスト
-POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc1NzQyODR9.wnz-Izb6dZ7Uiyeri3jFLOPu2xy2I7dXACJZM_83lqQ
-Content-Type: multipart/form-data; boundary=WebAppBoundary
+### ↑のトークンを使って、ペット登録APIをテスト
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc2MTQyMjJ9.7-oiwNgMyWFsnrkryWHeAWdKIffLsiE98yG42C-ogvo
+Content-Type: application/json
 
---WebAppBoundary
-Content-Disposition: form-data; name="file"; filename="test.jpg"
-Content-Type: image/jpeg
+{
+  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/xxxx.jpg",
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "赤い革の首輪。左後ろ足を少し引きずる。",
+  "lostPlace": "石川県 輪島市 ○○町"
+}
 
-< ./test-assets/test.jpg
---WebAppBoundary--
+### finder権限でログインしてから同じエンドポイントを叩く(403が返るか確認)
+POST http://localhost:8080/auth/test-login?role=finder
+
+###
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NjE0MjQ0fQ.lyq2Q7JSdBJWfn4IqWaViBxLLc4xX3Au8a-b6ofb5-Q
+Content-Type: application/json
+
+{
+  "photoUrl": "test",
+  "phoneNumber": "test",
+  "specie": "test",
+  "color": "test",
+  "lostPlace": "test"
+}
