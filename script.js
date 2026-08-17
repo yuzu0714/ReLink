@@ -110,7 +110,8 @@ register(){
       <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
     </div>
 
-    <div class="imgbox" onclick="addPhoto()">
+    <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+    <div class="imgbox" onclick="document.getElementById('fileInput').click()">
       <div class="big">📸</div>
       <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
     </div>
@@ -118,16 +119,17 @@ register(){
 
     ${finder ? `
     <div class="field"><label>発見場所</label>
-      <input class="input" value="石川県 輪島市 ○○町" placeholder="市区町村"></div>
+      <input class="input" value="" placeholder="市区町村"></div>
     <div class="field"><label>発見日時</label>
-      <input class="input" type="datetime-local" value="2026-07-07T09:30"></div>
+      <input class="input" type="datetime-local" value=""></div>
     ` : `
     <div class="field"><label>連絡先電話番号</label>
-      <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
+      <input class="input" type="tel" value="" placeholder="090-0000-0000"></div>
     `}
 
     <div class="field"><label>種類・犬種</label>
       <select class="input">
+        <option value="" disabled selected>選択してください</option>
         <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
         <option>猫（雑種）</option><option>その他</option>
       </select></div>
@@ -138,7 +140,7 @@ register(){
       </div></div>
 
     <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
-      <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。">赤い革の首輪。左後ろ足を少し引きずる。</textarea></div>
+      <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
 
     <button class="btn btn-magenta" onclick="go('matching')">
       🐾 AIマッチングを開始
@@ -307,15 +309,22 @@ function shake(){
 
 /* register helpers */
 function renderThumbs(){
-  return S.regPhotos.map((c,i)=>`
-    <div class="thumb" style="background:${petSwatch(c)}">🐕
+  return S.regPhotos.map((url,i)=>`
+    <div class="thumb" style="background-image:url('${url}');background-size:cover;background-position:center;">
       <div class="x" onclick="event.stopPropagation();rmPhoto(${i})">×</div>
     </div>`).join('');
 }
-function addPhoto(){
-  S.regPhotos.push(S.regPhotos.length);
-  const t=document.getElementById('thumbs');
-  if(t) t.innerHTML=renderThumbs();
+function handleFileSelect(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    S.regPhotos.push(e.target.result);
+    const t = document.getElementById('thumbs');
+    if(t) t.innerHTML = renderThumbs();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 function rmPhoto(i){
   S.regPhotos.splice(i,1);
