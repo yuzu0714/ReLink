@@ -1,0 +1,10 @@
+### テスト用のhttpファイルだよ
+### トークン発行
+POST http://localhost:8080/auth/test-login?role=finder
+
+### ↓トークン検証(上を実行した結果のtokenをコピペしてね)
+GET http://localhost:8080/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NTM4OTYwfQ.aywJirGI7viDfhwTOtkxjIw4xknJmwr2AXuWNUMcZyc
+
+### 認証なしでアクセス(401が返るはず)
+GET http://localhost:8080/auth/me
