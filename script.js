@@ -2,7 +2,7 @@
 const S = {
   role: null,            // 'owner' | 'finder' | 'shelter'
   regPhotos: [],
-  regColor: null,
+  regColors: [],
   cancelMatch: false,
 };
 
@@ -136,7 +136,7 @@ register(){
 
     <div class="field"><label>毛色（複数選択可）</label>
       <div class="swatches" id="swatches">
-        ${petColors.map((c,i)=>`<div class="sw ${S.regColor===i?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
+        ${petColors.map((c,i)=>`<div class="sw ${S.regColors.includes(i)?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
       </div></div>
 
     <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
@@ -332,8 +332,18 @@ function rmPhoto(i){
   if(t) t.innerHTML=renderThumbs();
 }
 function pickColor(i){
-  S.regColor=i;
-  document.querySelectorAll('#swatches .sw').forEach((el,idx)=>el.classList.toggle('on',idx===i));
+  const index = S.regColors.indexOf(i);
+  if (index > -1) {
+    // すでに選択されている場合は削除（キャンセル）
+    S.regColors.splice(index, 1);
+  } else {
+    // 選択されていない場合は追加
+    S.regColors.push(i);
+  }
+  // 表示の更新（選択中の色にだけ 'on' クラスを付与）
+  document.querySelectorAll('#swatches .sw').forEach((el, idx) => {
+    el.classList.toggle('on', S.regColors.includes(idx));
+  });
 }
 
 /* matching animation */
