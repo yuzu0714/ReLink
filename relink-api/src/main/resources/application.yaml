@@ -3,10 +3,11 @@ ktor:
     port: 8080
   application:
     modules:
+      - com.SerializationKt.configureSerialization
       - com.HttpKt.configureHttp
       - com.MonitoringKt.configureMonitoring
-      - com.SerializationKt.configureSerialization
+      - com.DatabaseKt.configureDatabases
       - com.SecurityKt.configureSecurity
       - com.StatusPagesKt.configureStatusPages
       - com.RoutingKt.configureRouting
-      - com.DatabaseKt.configureDatabases
+
