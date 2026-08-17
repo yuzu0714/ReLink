@@ -366,7 +366,11 @@ if (isLoginPage) {
   initLoginPage();
 } else if (screen) {
   loadTemplates()
-    .then(() => { go('login'); })
+    .then(() => {
+      const pageRole = document.body.dataset.page || sessionStorage.getItem('selectedRole') || 'owner';
+      S.role = pageRole;
+      go(pageRole); 
+      })
     .catch((error) => {
       console.error(error);
       screen.innerHTML = '<div class="pad"><p>テンプレートの読み込みに失敗しました。</p></div>';
