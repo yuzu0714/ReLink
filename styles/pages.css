@@ -182,3 +182,7 @@
   line-height: 1.6;
 }
 
+.role-item[style*="cursor:pointer"]:hover {
+  border-color: var(--cyan-soft);
+  background: #fcfdfe;
+}

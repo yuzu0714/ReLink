@@ -160,7 +160,15 @@
             </div>
           </div>
 
-          <a class="btn btn-primary" href="login.html">ホームへ戻る</a>
+          <div class="stack">
+            <a class="btn btn-primary" href="login.html">
+              ログアウト
+            </a>
+
+            <button class="btn btn-ghost" onclick="switchRole()">
+              役割を切り替える
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -385,6 +393,10 @@ function cancelMatch(){
   S.cancelMatch=true;
   if(matchTimer)clearInterval(matchTimer);
   go('register');
+}
+function switchRole() {
+  sessionStorage.removeItem('selectedRole');
+  window.location.href = 'login.html';
 }
 
 // 初期表示は既存の finder ページのままにする（ボタンで遷移）
