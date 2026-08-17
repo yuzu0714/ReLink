@@ -1,21 +1,27 @@
-# 実行前に、準備として以下の2つを行ってください:
-#   1. pip install openai python-dotenv
+# 実行前に、準備として以下を行ってください:
+#   1. pip install openai python-dotenv requests
 #   2. .env を作り、SAKURA_AI_TOKEN を記入
+#   3. SupabaseにもDB登録したい場合は、.env に SUPABASE_URL と SUPABASE_KEY（secret key）を追記する。
+
 # 使い方:
-#   python3 tag.py 写真1 [写真2 写真3 ...] [--status protected|lost]
-#   例（1枚）: python3 tag.py dog.jpg --status protected
-#   例（複数枚）: python3 tag.py front.jpg side.jpg collar.jpg --status protected
+#   python3 tag.py 写真1 [写真2 写真3 ...] [--status protected|lost] [--found-place 場所] [--phone 電話番号]
+#   例（保護ペット）: python3 tag.py dog.jpg --status protected --found-place "徳島県阿南市"
+#   例（迷子ペット）: python3 tag.py dog.jpg --status lost --found-place "徳島県阿南市" --phone "090-xxxx-xxxx"
 #   複数枚指定すると、AIが同じ1匹のペットの写真としてまとめて解析し、
 #   1匹分のタグを抽出します（角度が増えるほど精度が上がりやすくなります）。
 #
-# 実行すると:
-#   1. AI(Kimi-K2.6)が画像（複数可）を解析し、動物の種類・犬種猫種・毛色・首輪の特徴を抽出します。
-#   2. すべての画像を images/protected/ または images/lost/ フォルダにコピーして保存します。
-#   3. 抽出結果と画像パスを pets.db (SQLite) に保存します（1匹=pets 1行 + 画像は pet_images に複数行）。
+# 実行すると: AIが画像（複数可）を解析し、動物の種類・犬種猫種・毛色・首輪の特徴を抽出します。
+#
+# 補足: SupabaseとのやりとりはPython公式SDK（supabaseパッケージ）を使わず、requestsで直接
+# REST APIを呼んでいます。理由は、supabaseパッケージがSupabaseの新方式APIキー（sb_secret_...）を
+# 使った際に、内部で Authorization: Bearer <secret key> というヘッダーも一緒に送ってしまい、
+# Supabase側がそれをJWTとしてパースしようとして失敗 → 匿名ユーザー扱いになりRLS(Row Level
+# Security)に弾かれる、という既知の不具合があるためです。Supabase公式も「新方式のキーは
+# apikeyヘッダーのみで送り、Authorizationヘッダーには入れない」よう案内しています。
 
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["openai", "python-dotenv"]
+# dependencies = ["openai", "python-dotenv", "requests"]
 # ///
 import argparse
 import base64
@@ -28,6 +34,7 @@ import sys
 import uuid
 from datetime import datetime
 
+import requests
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
 
@@ -45,6 +52,12 @@ client = OpenAI(
     api_key=token,
     base_url="https://api.ai.sakura.ad.jp/v1",
 )
+
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "pet-photos")
+
+SUPABASE_ENABLED = bool(SUPABASE_URL and SUPABASE_KEY)
 
 SYSTEM_PROMPT = """あなたはペットの写真を分析して特徴をJSON形式で出力するアシスタントです。
 写真が複数枚渡された場合は、それらすべてが同じ1匹のペットを別の角度から撮影したものとして扱い、
@@ -234,6 +247,88 @@ def save_image(image_path: str, status: str) -> str:
     return os.path.relpath(dest_path, BASE_DIR)
 
 
+def upload_photo_to_supabase(image_path: str, status: str) -> str:
+    """代表写真（1枚目）をSupabase Storageにアップロードし、公開URLを返す。
+    foundpet_register/lostpet_registerはphoto_url列が1つしかないため、
+    複数枚のうち1枚目だけを代表としてアップロードする。
+
+    supabaseパッケージ（公式SDK）は使わず、requestsで直接REST APIを呼ぶ。
+    Authorizationヘッダーは付けず、apikeyヘッダーのみで認証する
+    （Supabase新方式キーでの既知の不具合を避けるため。ファイル冒頭のコメント参照）。"""
+    ext = os.path.splitext(image_path)[1] or ".jpg"
+    mime_type, _ = mimetypes.guess_type(image_path)
+    mime_type = mime_type or "image/jpeg"
+    dest_path = f"{status}/{uuid.uuid4().hex}{ext}"
+
+    with open(image_path, "rb") as f:
+        file_bytes = f.read()
+
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{dest_path}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": mime_type,
+        "x-upsert": "true",
+    }
+    response = requests.post(upload_url, headers=headers, data=file_bytes, timeout=30)
+    if response.status_code >= 300:
+        raise RuntimeError(
+            f"アップロード失敗 (status={response.status_code}): {response.text}"
+        )
+
+    return f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{dest_path}"
+
+
+def build_other_text(tags: dict) -> str:
+    """Supabase側の"other"列（自由記述）用に、犬種猫種と首輪情報をまとめた文章を作る。"""
+    breed = tags.get("breed") or "不明"
+    if tags.get("has_collar"):
+        collar_text = f"首輪あり（{tags.get('collar_features') or '詳細不明'}）"
+    else:
+        collar_text = "首輪なし"
+    return f"犬種/猫種: {breed} / {collar_text}"
+
+
+def save_to_supabase(status: str, tags: dict, photo_url: str, place, phone) -> None:
+    """foundpet_register（保護）またはlostpet_register（迷子）に1行登録する。
+    失敗してもローカルのpets.dbへの登録は既に完了しているため、例外は投げずに警告表示のみ行う。"""
+    other_text = build_other_text(tags)
+
+    try:
+        if status == "protected":
+            table = "foundpet_register"
+            payload = {
+                "photo_url": photo_url,
+                "found_place": place,
+                "found_date": datetime.now().isoformat(),
+                "specie": tags.get("animal_type"),
+                "color": tags.get("coat_color"),
+                "other": other_text,
+            }
+        else:
+            table = "lostpet_register"
+            payload = {
+                "photo_url": photo_url,
+                "phone_number": phone,
+                "specie": tags.get("animal_type"),
+                "color": tags.get("coat_color"),
+                "other": other_text,
+                "lost_place": place,
+            }
+
+        insert_url = f"{SUPABASE_URL}/rest/v1/{table}"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+        response = requests.post(insert_url, headers=headers, json=payload, timeout=30)
+        if response.status_code >= 300:
+            raise RuntimeError(f"登録失敗 (status={response.status_code}): {response.text}")
+        print(f"Supabaseの{table}にも登録しました。")
+    except Exception as e:
+        print(f"警告: Supabaseへの保存に失敗しました（ローカルのpets.dbへの登録は完了しています）: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="ペット写真（複数可）からタグを抽出してDBに保存します。")
     parser.add_argument("images", nargs="+", help="画像ファイルのパス（スペース区切りで複数指定可）")
@@ -246,7 +341,12 @@ def main():
     parser.add_argument(
         "--found-place",
         default=None,
-        help="保護された（または見つかった）地域・場所（例: \"徳島県阿南市\"）。省略可。",
+        help="保護された場所、または迷子になった場所（例: \"徳島県阿南市\"）。省略可。",
+    )
+    parser.add_argument(
+        "--phone",
+        default=None,
+        help="--status lost の場合にSupabaseのlostpet_registerへ保存する飼い主の電話番号。",
     )
     args = parser.parse_args()
 
@@ -304,6 +404,34 @@ def main():
     print(f"  保存した画像: {len(saved_paths)}枚")
     for saved_path in saved_paths:
         print(f"    - {saved_path}")
+
+    if not SUPABASE_ENABLED:
+        print(
+            "（Supabase未設定のため、Supabaseへの登録はスキップしました。"
+            ".env に SUPABASE_URL と SUPABASE_KEY を設定すると連携されます）"
+        )
+    elif args.status == "lost" and not args.phone:
+        print(
+            "警告: --status lost で Supabase にも登録するには --phone（飼い主の電話番号）が必要です。"
+            "今回はSupabaseへの登録をスキップしました。"
+        )
+    else:
+        # 写真のアップロードとテキスト情報の登録は互いに独立させる。
+        # 写真アップロードが失敗しても、種類・毛色・電話番号などの情報は
+        # 別途Supabaseに登録できるようにする（photo_urlは失敗時にNoneのまま送る）。
+        photo_url = None
+        try:
+            print("Supabaseに代表写真をアップロード中...")
+            photo_url = upload_photo_to_supabase(args.images[0], args.status)
+        except Exception as e:
+            print(
+                f"警告: Supabaseへの写真アップロードに失敗しました。"
+                f"写真なしでその他の情報だけをSupabaseに登録します: {e}\n"
+                f"ヒント: Supabaseの「Storage」に \"{SUPABASE_BUCKET}\" という名前の"
+                f"公開(Public)バケットが作成されているか確認してください。"
+            )
+
+        save_to_supabase(args.status, tags, photo_url, args.found_place, args.phone)
 
 
 if __name__ == "__main__":

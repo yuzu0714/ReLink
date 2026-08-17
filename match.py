@@ -6,8 +6,8 @@
 #   例: python3 match.py lost_dog.jpg lost_dog_2.jpg
 #
 # 迷子のペットの写真をAIで解析し、pets.db に登録されている「保護(protected)」
-# ペットの一覧と特徴を比較して、似ている候補をペットIDのランキングで表示します。
-# （このスクリプトはDBに何も登録しません。あくまで候補を調べるだけです）
+# ペットの中から、動物の種類・犬種猫種・毛色が一致する候補を一覧表示します。
+# （スコアによるランキングではなく、一致するものだけを表示するシンプルな方式です）
 
 # /// script
 # requires-python = ">=3.10"
@@ -15,7 +15,6 @@
 # ///
 import argparse
 import base64
-import difflib
 import json
 import mimetypes
 import os
@@ -117,61 +116,40 @@ def extract_tags(image_paths: list):
     return data
 
 
-def text_similarity(a, b) -> float:
-    """簡易的な文字列の類似度（0.0〜1.0）。どちらかが空なら0.5（判断材料なし）を返す。"""
+def values_match(a, b) -> bool:
+    """ゆるやかな一致判定。前後の空白を除いたうえで、
+    完全一致、またはどちらかがもう一方を文字列として含んでいれば一致とみなす。
+    どちらかが空・不明の場合は「一致」とはみなさない（判断材料が無いため）。"""
     a = (a or "").strip()
     b = (b or "").strip()
-    if not a or not b or a == "不明" or b == "不明":
-        return 0.5
+    if not a or not b or a in ("不明", "") or b in ("不明", ""):
+        return False
     if a == b:
-        return 1.0
-    return difflib.SequenceMatcher(None, a, b).ratio()
+        return True
+    return a in b or b in a
 
 
-def score_pet(lost_tags: dict, pet_row) -> float:
+def is_candidate(lost_tags: dict, pet_row) -> bool:
     lost_type = (lost_tags.get("animal_type") or "").strip()
     pet_type = (pet_row["animal_type"] or "").strip()
 
     # 動物の種類が両方はっきり分かっていて、かつ違う場合は候補から除外する
     if lost_type and pet_type and lost_type not in ("不明", "") and pet_type not in ("不明", ""):
         if lost_type != pet_type:
-            return -1.0  # 除外マーカー
+            return False
 
-    breed_score = text_similarity(lost_tags.get("breed"), pet_row["breed"])
-    color_score = text_similarity(lost_tags.get("coat_color"), pet_row["coat_color"])
+    breed_ok = values_match(lost_tags.get("breed"), pet_row["breed"])
+    color_ok = values_match(lost_tags.get("coat_color"), pet_row["coat_color"])
 
-    lost_has_collar = bool(lost_tags.get("has_collar"))
-    pet_has_collar = bool(pet_row["has_collar"])
-    collar_bool_score = 1.0 if lost_has_collar == pet_has_collar else 0.3
-
-    collar_text_score = text_similarity(lost_tags.get("collar_features"), pet_row["collar_features"])
-
-    # 重み付け合計（毛色・犬種を重視、首輪は情報として弱め）
-    total = (
-        breed_score * 0.35
-        + color_score * 0.35
-        + collar_bool_score * 0.10
-        + collar_text_score * 0.20
-    )
-    return total
+    # 犬種・猫種と毛色の両方が一致するものだけを候補とする
+    return breed_ok and color_ok
 
 
 def main():
-    parser = argparse.ArgumentParser(description="迷子ペットの写真から、保護ペット一覧の中の似ている候補を探します。")
+    parser = argparse.ArgumentParser(
+        description="迷子ペットの写真から、犬種・猫種と毛色が一致する保護ペットを探します。"
+    )
     parser.add_argument("images", nargs="+", help="迷子ペットの画像ファイルのパス（複数指定可）")
-    parser.add_argument(
-        "--min-score",
-        type=float,
-        default=0.3,
-        help="この類似度未満の候補は表示しない（0.0〜1.0、デフォルト0.8）。"
-        "候補が出ない場合は --min-score 0 で全件のスコアを確認できます。",
-    )
-    parser.add_argument(
-        "--top",
-        type=int,
-        default=5,
-        help="表示する候補の最大件数（デフォルト5）",
-    )
     args = parser.parse_args()
 
     image_paths = args.images
@@ -205,45 +183,39 @@ def main():
         conn.close()
         return
 
-    results = []
+    candidates = []
     for pet in protected_pets:
-        score = score_pet(lost_tags, pet)
-        if score < 0:
-            continue  # 動物の種類が明確に異なる
-        images = conn.execute(
-            "SELECT image_path FROM pet_images WHERE pet_id = ? ORDER BY id",
-            (pet["id"],),
-        ).fetchall()
-        results.append((score, pet, images))
+        if is_candidate(lost_tags, pet):
+            images = conn.execute(
+                "SELECT image_path FROM pet_images WHERE pet_id = ? ORDER BY id",
+                (pet["id"],),
+            ).fetchall()
+            candidates.append((pet, images))
 
     conn.close()
 
-    results.sort(key=lambda r: r[0], reverse=True)
-
-    min_score = args.min_score
-    top_n = args.top
-    filtered_results = [r for r in results if r[0] >= min_score][:top_n]
-
     print(
         f"\n--- 候補一覧（保護ペット {len(protected_pets)}件中、"
-        f"類似度{int(min_score * 100)}%以上の上位{top_n}件まで表示） ---"
+        f"犬種・毛色が一致した{len(candidates)}件） ---"
     )
-    if not filtered_results:
-        print(f"類似度{int(min_score * 100)}%以上の候補は見つかりませんでした。")
-        print("ヒント: python3 match.py 写真.jpg --min-score 0 --top 20 を試すと、全候補のスコアを確認できます。")
+    if not candidates:
+        print("犬種・毛色が一致する候補は見つかりませんでした。")
         return
 
-    for score, pet, images in filtered_results:
+    for pet, images in candidates:
         collar = pet["collar_features"] if pet["has_collar"] else "なし"
+        pet_cols = pet.keys()
+        place = pet["found_place"] if "found_place" in pet_cols and pet["found_place"] else "未入力"
         print(
-            f"\n[候補] ペットID={pet['id']}  類似度スコア={score:.2f}\n"
-            f"  種類={pet['animal_type']} / 品種={pet['breed']} / 毛色={pet['coat_color']} / 首輪={collar}"
+            f"\n[候補] ペットID={pet['id']}\n"
+            f"  種類={pet['animal_type']} / 品種={pet['breed']} / 毛色={pet['coat_color']} / "
+            f"首輪={collar} / 場所={place}"
         )
         for img in images:
             print(f"    画像: {img['image_path']}")
 
     print(
-        "\n※ スコアはあくまで目安です。上位の候補から実際の写真を見比べて、"
+        "\n※ 犬種・毛色の一致だけを見ています。上位の候補から実際の写真を見比べて、"
         "最終的な判断は人の目で行ってください。"
     )
 
