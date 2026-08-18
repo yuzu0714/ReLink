@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ReLINK — 保護ペット一覧</title>
+
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+
+<body>
+
+  <div class="stage">
+    <div class="phone">
+
+      <div class="notch"></div>
+
+      <div class="screen">
+
+        <!-- アプリバー -->
+        <div class="appbar">
+          <a class="back" href="shelter.html">‹</a>
+
+          <h1>保護ペット一覧</h1>
+
+          <div class="spacer"></div>
+
+          <span class="role-chip">保護団体</span>
+        </div>
+
+
+        <!-- メインコンテンツ -->
+        <div class="pad stack fade">
+
+          <!-- 件数 -->
+          <div class="lede" style="margin-top:2px">
+            現在の保護：
+            <b style="color:var(--navy)">12頭</b>
+            ／
+            照合待ち：
+            <b style="color:var(--magenta)">3頭</b>
+          </div>
+
+
+          <!-- 保護ペット #A21 -->
+          <div class="match-card" onclick="location.href='pet-detail.html'">
+
+            <div class="ph" style="background:#c8935f">
+              🐕
+            </div>
+
+            <div style="min-width:0">
+              <div class="name">
+                保護 #A21
+              </div>
+
+              <div class="meta">
+                柴犬 / ○○保健所 / 照合待ち 2件
+              </div>
+            </div>
+
+            <span class="pill">
+              照合中
+            </span>
+
+          </div>
+
+
+          <!-- 保護ペット #A20 -->
+          <div class="match-card" onclick="location.href='pet-detail.html'">
+
+            <div class="ph" style="background:#3d3d3d">
+              🐕
+            </div>
+
+            <div style="min-width:0">
+              <div class="name">
+                保護 #A20
+              </div>
+
+              <div class="meta">
+                トイプードル / 発見者から受入
+              </div>
+            </div>
+
+            <span class="pill mag">
+              新規
+            </span>
+
+          </div>
+
+
+          <!-- 保護ペット #A18 -->
+          <div class="match-card" onclick="location.href='pet-detail.html'">
+
+            <div class="ph" style="background:#7a5230">
+              🐕
+            </div>
+
+            <div style="min-width:0">
+              <div class="name">
+                保護 #A18
+              </div>
+
+              <div class="meta">
+                雑種 / 飼い主候補 95%
+              </div>
+            </div>
+
+            <span class="pill mag">
+              一致
+            </span>
+
+          </div>
+
+
+          <!-- 保護ペット #A15 -->
+          <div class="match-card" onclick="location.href='pet-detail.html'">
+
+            <div class="ph" style="background:#f0f0f0">
+              🐕
+            </div>
+
+            <div style="min-width:0">
+              <div class="name">
+                保護 #A15
+              </div>
+
+              <div class="meta">
+                柴系 / 引き渡し済み
+              </div>
+            </div>
+
+            <span class="pill">
+              完了
+            </span>
+
+          </div>
+
+
+          <!-- 新しい保護を登録 -->
+          <a
+            class="btn btn-primary"
+            href="register.html"
+          >
+            ＋ 新しい保護を登録
+          </a>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
