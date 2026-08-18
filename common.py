@@ -1,9 +1,13 @@
 # tag.py と match_api.py で共通して使う処理をまとめたモジュール。
-# AIによる特徴抽出、Supabaseとのやりとり（REST API経由）はここに集約する。
+# AIによる特徴抽出はここに集約し、tag.py・match_api.py共通で使う。
+# Supabaseとのやりとり（REST API経由）もここにまとめているが、
+# 実際にSupabaseへアクセスするのはtag.pyのみ（match_api.pyは特徴抽出のみを行い、
+# Supabaseへの直接アクセスは行わない）。
 #
 # 事前準備:
 #   pip install openai python-dotenv requests
-#   .env に SAKURA_AI_TOKEN / SUPABASE_URL / SUPABASE_KEY を設定する。
+#   .env に SAKURA_AI_TOKEN を設定する。
+#   （tag.pyを使う場合はさらに SUPABASE_URL / SUPABASE_KEY も設定する。match_api.pyには不要）
 #
 # 補足: SupabaseとのやりとりはPython公式SDK（supabaseパッケージ）を使わず、requestsで直接
 # REST APIを呼んでいる。理由は、supabaseパッケージがSupabaseの新方式APIキー（sb_secret_...）を
@@ -181,16 +185,6 @@ def upload_photo_to_supabase(image_path: str, status: str) -> str:
     return upload_photo_bytes_to_supabase(file_bytes, image_path, status)
 
 
-def supabase_select(table: str, params: dict = None) -> list:
-    """SupabaseのテーブルからGETで行を取得する（PostgREST経由）。"""
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    headers = {"apikey": SUPABASE_KEY}
-    response = requests.get(url, headers=headers, params=params or {"select": "*"}, timeout=30)
-    if response.status_code >= 300:
-        raise RuntimeError(f"取得失敗 (status={response.status_code}): {response.text}")
-    return response.json()
-
-
 def supabase_insert(table: str, payload: dict) -> None:
     insert_url = f"{SUPABASE_URL}/rest/v1/{table}"
     headers = {
@@ -208,16 +202,3 @@ def build_other_text(tags: dict) -> str:
     if tags.get("has_collar"):
         return f"首輪あり（{tags.get('collar_features') or '詳細不明'}）"
     return "首輪なし"
-
-
-def values_match(a, b) -> bool:
-    """ゆるやかな一致判定。前後の空白を除いたうえで、
-    完全一致、またはどちらかがもう一方を文字列として含んでいれば一致とみなす。
-    どちらかが空・不明の場合は「一致」とはみなさない（判断材料が無いため）。"""
-    a = (a or "").strip()
-    b = (b or "").strip()
-    if not a or not b or a in ("不明", "") or b in ("不明", ""):
-        return False
-    if a == b:
-        return True
-    return a in b or b in a
