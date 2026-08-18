@@ -3,7 +3,7 @@ POST http://localhost:8080/auth/test-login?role=owner
 
 ### ↑のトークンを使って、ペット登録APIをテスト
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc2MTQyMjJ9.7-oiwNgMyWFsnrkryWHeAWdKIffLsiE98yG42C-ogvo
+Authorization: Bearer (Token)
 Content-Type: application/json
 
 {
@@ -20,7 +20,7 @@ POST http://localhost:8080/auth/test-login?role=finder
 
 ###
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NjE0MjQ0fQ.lyq2Q7JSdBJWfn4IqWaViBxLLc4xX3Au8a-b6ofb5-Q
+Authorization: Bearer (Token)
 Content-Type: application/json
 
 {
