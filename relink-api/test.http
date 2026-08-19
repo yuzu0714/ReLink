@@ -5,7 +5,7 @@ POST http://localhost:8080/auth/test-login?role=finder
 
 ### ② 発見API:正常系(201が返るはず)
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NzI2NDE5fQ.oTeMJ-3yUx3KNzlCtPscyc24Ld3b3LX-e7pX9BXrMzI
+Authorization: Bearer (finderToken)
 Content-Type: application/json
 
 {
@@ -22,7 +22,7 @@ POST http://localhost:8080/auth/test-login?role=owner
 
 ###
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc3MjY0NDF9.fwY6UMeDWk5xBQpsUjPNVxo7VBMrqBkAp_3iHa3Xru4
+Authorization: Bearer (ownerToken)
 Content-Type: application/json
 
 {
@@ -35,7 +35,7 @@ Content-Type: application/json
 
 ### ④ 発見API:foundDateの形式がおかしい場合(400が返るはず ← 今回直した①の確認ポイント!)
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NzI2NDE5fQ.oTeMJ-3yUx3KNzlCtPscyc24Ld3b3LX-e7pX9BXrMzI
+Authorization: Bearer (finderToken)
 Content-Type: application/json
 
 {
@@ -51,7 +51,7 @@ POST http://localhost:8080/auth/test-login?role=shelter
 
 ### ⑥ 保護API:正常系(201が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4NzcyNjQ5Nn0.SQaExwq-4LMtO-4a8UsbWwCRNQRcVj6Tf7vbUNfL-fU
+Authorization: Bearer (shelterToken)
 Content-Type: application/json
 
 {
@@ -65,7 +65,7 @@ Content-Type: application/json
 
 ### ⑦ 保護API:finder権限で叩いてみる(403が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3NzI2NDE5fQ.oTeMJ-3yUx3KNzlCtPscyc24Ld3b3LX-e7pX9BXrMzI
+Authorization: Bearer (finderToken)
 Content-Type: application/json
 
 {
