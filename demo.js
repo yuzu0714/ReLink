@@ -376,3 +376,107 @@ if (isLoginPage) {
       screen.innerHTML = '<div class="pad"><p>テンプレートの読み込みに失敗しました。</p></div>';
     });
 }
+
+// 保護ペットの情報
+const petData = {
+
+  id: "A21",
+
+  name: "保護 #A21",
+
+  status: "照合中",
+
+  breed: "柴犬 / オス",
+
+  color: "薄い茶色・白",
+
+  collar: "赤い革製",
+
+  location: "○○市○○町",
+
+  date: "2026/07/06"
+
+};
+
+
+
+// 保護ペット詳細画面
+const petName = document.getElementById("petName");
+
+if (petName) {
+
+  // 名前
+  petName.textContent = petData.name;
+
+  // 状態
+  const petStatus =
+    document.getElementById("petStatus");
+
+  petStatus.textContent = petData.status;
+
+
+  // 種類
+  document.getElementById("petBreed").textContent =
+    petData.breed;
+
+
+  // 毛色
+  document.getElementById("petColor").textContent =
+    petData.color;
+
+
+  // 首輪
+  document.getElementById("petCollar").textContent =
+    petData.collar;
+
+
+  // 発見場所
+  document.getElementById("petLocation").textContent =
+    petData.location;
+
+
+  // 保護日
+  document.getElementById("petDate").textContent =
+    petData.date;
+
+  // 状態によってラベルの見た目を変更
+
+  if (
+    petData.status === "新規" ||
+    petData.status === "一致"
+  ) {
+
+    petStatus.className = "pill mag";
+
+  } else {
+
+    petStatus.className = "pill";
+
+  }
+
+}
+
+// Google Maps
+
+function initMap() {
+
+  // 仮の発見場所
+  const location = {
+    lat: 34.0703,
+    lng: 134.5549
+  };
+
+  const map = new google.maps.Map(
+    document.getElementById("map"),
+    {
+      center: location,
+      zoom: 15
+    }
+  );
+
+  new google.maps.Marker({
+    position: location,
+    map: map,
+    title: "保護ペットの発見場所"
+  });
+}
