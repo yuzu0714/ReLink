@@ -1,0 +1,65 @@
+:root {
+  --navy: #141466;
+  --navy-2: #1f1f8c;
+  --navy-deep: #0d0d3d;
+  --cyan: #22d3ee;
+  --cyan-soft: #67e8f9;
+  --magenta: #ec4899;
+  --magenta-soft: #f9a8d4;
+  --ink: #1a1a2e;
+  --paper: #f4f6fb;
+  --card: #ffffff;
+  --line: #dfe3f0;
+  --muted: #6b7096;
+  --shadow: 0 10px 30px rgba(20, 20, 102, 0.10);
+  --shadow-strong: 0 16px 34px rgba(20, 20, 102, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.stage {
+  min-height: 100vh;
+  padding: 0;
+}
+
+.screen {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@media (min-width: 900px) {
+  .stage {
+    padding: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .stage {
+    padding: 0;
+  }
+
+  .screen {
+    min-height: 100vh;
+  }
+}
+
+.screen::-webkit-scrollbar {
+  width: 0;
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK - 保護団体向け</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="appbar">
+          <a class="back" href="login.html">‹</a>
+          <h1>保護団体向け</h1>
+          <div class="spacer"></div>
+          <span class="role-chip">Shelter</span>
+        </div>
+
+        <div class="pad stack">
+          <div class="hero-banner">
+            <div class="hi">保護団体向け機能</div>
+            <div class="hn">保護中のペットを一覧で管理できます。</div>
+            <div class="hs">照合状況やお知らせをまとめて確認できます。</div>
+          </div>
+
+          <div class="stack">
+            <div class="card card-nav" onclick="location.href='shelter-list.html'">
+              <div class="ic">📋</div>
+              <div>
+                <div class="t">保護ペット一覧</div>
+                <div class="d">現在保護中のペットを確認・照合</div>
+              </div>
+              <div class="arr">›</div>
+            </div>
+
+            <div class="card card-nav" onclick="location.href='register.html'">
+              <div class="ic">📷</div>
+              <div>
+                <div class="t">新規保護を登録</div>
+                <div class="d">保護したペットを撮影して登録</div>
+              </div>
+              <div class="arr">›</div>
+            </div>
+
+            <div class="card card-nav" onclick="location.href='notify.html'">
+              <div class="ic">🔔</div>
+              <div>
+                <div class="t">お知らせ</div>
+                <div class="d">マッチング結果と受け渡し通知</div>
+              </div>
+              <div class="arr">›</div>
+            </div>
+
+          </div>
+
+          <div class="stack">
+            <a class="btn btn-primary" href="login.html">ログアウト</a>
+            <button class="btn btn-ghost" type="button" onclick="switchRole()">役割を切り替える</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function switchRole() {
+      sessionStorage.removeItem('selectedRole');
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</body>
+</html>

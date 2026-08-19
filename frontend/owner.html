@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK - 飼い主向け</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="appbar">
+          <a class="back" href="login.html">‹</a>
+          <h1>飼い主向け</h1>
+          <div class="spacer"></div>
+          <span class="role-chip">Owner</span>
+        </div>
+
+        <div class="pad stack">
+          <div class="hero-banner">
+            <div class="hi">飼い主向け機能</div>
+            <div class="hn">迷子のペットをすばやく登録できます。</div>
+            <div class="hs">通知とマッチングの状況を確認して、安心して待てます。</div>
+          </div>
+
+          <div class="role-list">
+            <div class="role-item">
+              <div class="emo">📷</div>
+              <div>
+                <div class="title">ペット情報を登録</div>
+                <div class="desc">写真と特徴を登録して照合を開始します。</div>
+              </div>
+            </div>
+            <div class="role-item">
+              <div class="emo">🔔</div>
+              <div>
+                <div class="title">通知を確認</div>
+                <div class="desc">似たペットが保護されたらお知らせが届きます。</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+          <a class="btn btn-primary" href="login.html">
+            ログアウト
+          </a>
+
+          <button class="btn btn-ghost" onclick="switchRole()">
+            役割を切り替える
+          </button>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  function switchRole() {
+    sessionStorage.removeItem('selectedRole');
+    window.location.href = 'login.html';
+  }
+</script>
+</body>
+</html>
