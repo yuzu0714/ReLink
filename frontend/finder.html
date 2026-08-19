@@ -174,11 +174,20 @@
     </div>
   </div>
 <script>
+// Kotlinバックエンド(relink-api)のURL。
+// ローカルで `./gradlew run` した状態だとデフォルトで8080番なのでこれで動く。
+// どこかにデプロイしたら、ここをそのURLに書き換える。
+const API_BASE = 'http://localhost:8080';
+
 const S = {
   role: 'finder',
   regPhotos: [],
   regColor: null,
   cancelMatch: false,
+  foundPlace: '',
+  foundDate: '',
+  specie: '',
+  other: '',
 };
 
 const screen = document.getElementById('screen');
@@ -209,6 +218,8 @@ const fileInput = (()=>{
 const roleLabel = {owner:'飼い主', finder:'発見者', shelter:'保護団体'};
 const roleChip = (r)=> r ? `<span class="role-chip">${roleLabel[r]}</span>` : '';
 const petColors = ['#c8935f','#e8c9a0','#7a5230','#3d3d3d','#e5e5e5','#f0f0f0'];
+// petColors と同じ順番の色名。/pets/found に送る色(color)はテキストなのでここから引く。
+const colorNames = ['茶色','クリーム色','こげ茶色','黒','白','グレー'];
 
 function petSwatch(i){return petColors[i%petColors.length];}
 
@@ -239,32 +250,33 @@ const screens = {
 
       ${finder ? `
       <div class="field"><label>発見場所</label>
-        <input class="input" value="" placeholder="市区町村"></div>
+        <input class="input" id="foundPlace" value="${S.foundPlace}" placeholder="市区町村" oninput="S.foundPlace=this.value"></div>
       <div class="field"><label>発見日時</label>
-        <input class="input" type="datetime-local"></div>
+        <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate}" oninput="S.foundDate=this.value"></div>
       ` : `
       <div class="field"><label>連絡先電話番号</label>
         <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
       `}
 
       <div class="field"><label>種類・犬種</label>
-        <select class="input">
+        <select class="input" id="specie" onchange="S.specie=this.value">
+          <option value="">選択してください</option>
           <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
           <option>猫（雑種）</option><option>その他</option>
         </select></div>
 
-      <div class="field"><label>毛色（複数選択可）</label>
+      <div class="field"><label>毛色（1色選択）</label>
         <div class="swatches" id="swatches">
           ${petColors.map((c,i)=>`<div class="sw ${S.regColor===i?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
         </div></div>
 
       <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
-        <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
+        <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="S.other=this.value">${S.other}</textarea></div>
 
-      <button class="btn btn-magenta" onclick="go('matching')">
-        🐾 AIマッチングを開始
+      <button class="btn btn-magenta" id="submitBtn" onclick="submitFound()">
+        🐾 保護情報を登録してAIマッチングを開始
       </button>
-      <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
+      <div class="footnote">まず発見情報をバックエンドに登録し、そのあと条件で絞り込んで照合します。</div>
     </div>`;
   },
 
@@ -368,6 +380,96 @@ function rmPhoto(i){
 function pickColor(i){
   S.regColor=i;
   document.querySelectorAll('#swatches .sw').forEach((el,idx)=>el.classList.toggle('on',idx===i));
+}
+
+// 保護情報をrelink-apiに実際に登録する処理
+// 1. ログイン時にもらったトークンを確認
+// 2. 写真を /pets/photos にアップロードしてphoto_urlをもらう
+// 3. /pets/found に発見情報を送って登録する
+async function submitFound(){
+  const token = sessionStorage.getItem('authToken');
+  if(!token){
+    alert('ログインが必要です。ログイン画面からやり直してください。');
+    window.location.href = 'login.html';
+    return;
+  }
+
+  if(S.regPhotos.length === 0){
+    alert('写真を1枚以上追加してください。');
+    return;
+  }
+  if(!S.foundPlace){
+    alert('発見場所を入力してください。');
+    return;
+  }
+  if(!S.foundDate){
+    alert('発見日時を入力してください。');
+    return;
+  }
+  if(!S.specie){
+    alert('種類・犬種を選択してください。');
+    return;
+  }
+  if(S.regColor === null){
+    alert('毛色を選択してください。');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = '登録中…';
+
+  try {
+    // 1枚目の写真をアップロード(現在のfoundpet_registerはphoto_urlを1つしか持てないため)
+    const firstPhoto = S.regPhotos[0].file;
+    const form = new FormData();
+    form.append('photo', firstPhoto);
+
+    const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form,
+    });
+    if(!uploadRes.ok){
+      throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
+    }
+    const { photoUrl } = await uploadRes.json();
+
+    // foundDateは<input type="datetime-local">の値("2026-08-19T14:30")そのままでOK(秒無しでもパース可能)
+    const foundRes = await fetch(`${API_BASE}/pets/found`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        photoUrl,
+        foundPlace: S.foundPlace,
+        foundDate: S.foundDate,
+        specie: S.specie,
+        color: colorNames[S.regColor],
+        other: S.other || null,
+      }),
+    });
+
+    if(!foundRes.ok){
+      if(foundRes.status === 403){
+        throw new Error('この操作には発見者(finder)権限が必要です。ログインし直してください。');
+      }
+      const body = await foundRes.json().catch(()=>null);
+      throw new Error((body && body.message) || ('登録に失敗しました。(status ' + foundRes.status + ')'));
+    }
+
+    // 登録できたら、そのままAIマッチングのアニメーションへ(マッチング自体は未実装)
+    go('matching');
+  } catch (err) {
+    console.error(err);
+    alert(err.message || '登録中にエラーが発生しました。');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  }
 }
 
 let matchTimer=null;

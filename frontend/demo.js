@@ -1,4 +1,9 @@
 /* ---------------- ReLINK demo — state & router ---------------- */
+// Kotlinバックエンド(relink-api)のURL。
+// ローカルで `./gradlew run` した状態だとデフォルトで8080番なのでこれで動く。
+// どこかにデプロイしたら、ここをそのURLに書き換える。
+const API_BASE = 'http://localhost:8080';
+
 const S = {
   role: null,
   regPhotos: [],
@@ -49,10 +54,13 @@ function initLoginPage(){
       loginButton.disabled = true;
 
       try {
-        // 3. バックエンドAPI呼び出し（※現在はデモ用関数を実行）
+        // 3. バックエンドAPI呼び出し（/auth/test-loginを実際に叩く）
         const result = await apiLogin(email, password, selectedRole);
 
         if (result.success) {
+          // ログインで受け取ったトークンとroleを保存(ページ遷移しても使えるように)
+          sessionStorage.setItem('authToken', result.token);
+          sessionStorage.setItem('selectedRole', selectedRole);
           // ログイン成功したら指定の画面へ移動
           window.location.href = selectedUrl;
         }
@@ -67,31 +75,23 @@ function initLoginPage(){
 }
 
 async function apiLogin(email, password, role) {
-  // 【デモ用】0.6秒だけ通信しているフリ（待ち時間）をする
-  await new Promise(resolve => setTimeout(resolve, 600));
-
-  /* ----------------------------------------------------
-     本番コード例
-     ----------------------------------------------------
-     const response = await fetch('/api/login', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ email, password, role })
-     });
-     if (!response.ok) throw new Error('メールアドレスまたはパスワードが違います');
-     return await response.json();
-  ---------------------------------------------------- */
-
-  // 正解として認めるメールアドレスとパスワードを定義(デモ用)
-  const CORRECT_EMAIL = "demo@relink.jp";
-  const CORRECT_PASS  = "demodemo";
-
-  // 入力された値が合っているか判定
-  if (email === CORRECT_EMAIL && password === CORRECT_PASS) {
-    return { success: true };
-  } else {
-    throw new Error("メールアドレスまたはパスワードが正しくありません。");
+  // 注意: /auth/test-login は「roleを渡したらトークンが返ってくる」だけの
+  // 動作確認用エンドポイントで、email/passwordの照合はまだしていない
+  // (本物のログイン機能がバックエンド側にできたら、ここをそのAPIに差し替える)
+  if (!email || !password) {
+    throw new Error('メールアドレスとパスワードを入力してください。');
   }
+
+  const response = await fetch(`${API_BASE}/auth/test-login?role=${encodeURIComponent(role)}`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error('ログインに失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
+  }
+
+  const data = await response.json();
+  return { success: true, token: data.token };
 }
 
 const roleLabel = {owner:'飼い主', finder:'発見者', shelter:'保護団体'};
