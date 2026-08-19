@@ -39,6 +39,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:0.55.0")
     implementation("org.jetbrains.exposed:exposed-dao:0.55.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.55.0")
+    // ↓↓↓ 追加:found_date(TIMESTAMP型)をKotlinのLocalDateTimeで扱うために必要
     implementation("org.jetbrains.exposed:exposed-java-time:0.55.0")
     implementation("org.postgresql:postgresql:42.7.4")
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
