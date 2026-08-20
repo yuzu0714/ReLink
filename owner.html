@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
 </head>
-<body>
+<body data-page="owner" class="owner-page">
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
@@ -27,29 +27,39 @@
             <div class="hs">通知とマッチングの状況を確認して、安心して待てます。</div>
           </div>
 
-          <div class="role-list">
-            <div class="role-item">
+          <div class="owner-actions">
+            <div class="card card-nav owner-action" data-owner-action="register">
               <div class="emo">📷</div>
               <div>
-                <div class="title">ペット情報を登録</div>
-                <div class="desc">写真と特徴を登録して照合を開始します。</div>
+                <div class="t">ペット情報を登録</div>
+                <div class="d">迷子のペットの写真をアップして照合を開始</div>
               </div>
+              <div class="arr">›</div>
             </div>
-            <div class="role-item">
+            <div class="card card-nav owner-action" data-owner-action="notify">
               <div class="emo">🔔</div>
               <div>
-                <div class="title">通知を確認</div>
-                <div class="desc">似たペットが保護されたらお知らせが届きます。</div>
+                <div class="t">通知を確認</div>
+                <div class="d">似たペットが保護されたらここに届きます。</div>
               </div>
+              <div class="arr">›</div>
+            </div>
+            <div class="card card-nav owner-action" data-owner-action="notice-list">
+              <div class="ic owner-notice-icon">🐕</div>
+              <div>
+                <div class="t">お知らせ一覧</div>
+                <div class="d">最新の照合・保護情報をまとめて確認</div>
+              </div>
+              <div class="arr">›</div>
             </div>
           </div>
 
           <div class="stack">
-          <a class="btn btn-primary" href="login.html">
+          <a class="btn btn-primary" data-owner-action="logout" href="login.html">
             ログアウト
           </a>
 
-          <button class="btn btn-ghost" onclick="switchRole()">
+          <button class="btn btn-ghost" data-owner-action="switch-role">
             役割を切り替える
           </button>
         </div>
@@ -57,11 +67,6 @@
       </div>
     </div>
   </div>
-  <script>
-  function switchRole() {
-    sessionStorage.removeItem('selectedRole');
-    window.location.href = 'login.html';
-  }
-</script>
+  <script src="demo.js"></script>
 </body>
 </html>
