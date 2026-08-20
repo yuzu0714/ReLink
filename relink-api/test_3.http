@@ -1,0 +1,16 @@
+### ① shelter権限のトークンを取得
+POST http://localhost:8080/auth/test-login?role=shelter
+
+### ② 一覧取得
+GET http://localhost:8080/shelter/pets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4NzgzNDQ0MX0.2ZWPpIlv--hFYXD-vkfB3dUOK4u_Mbm0Jz4hOpbCq90
+
+### ③ owner権限で呼ぶと403のはず
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+GET http://localhost:8080/shelter/pets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc4MzQ0OTJ9.kFd_mKBoKIH746Cv78s5Ukd2JwDRbY_hC1qvMDBrBis
+
+### ④ トークン無しで呼ぶと401のはず
+GET http://localhost:8080/shelter/pets
