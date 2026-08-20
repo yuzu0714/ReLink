@@ -55,7 +55,13 @@ fun Application.configureRouting() {
 
                 multipart.forEachPart { part ->
                     if (part is PartData.FileItem) {
-                        fileName = "${java.util.UUID.randomUUID()}_${part.originalFileName}"
+                        // 元のファイル名にスペース・日本語・括弧などが入っていると、
+                        // StorageService側でURLに未エンコードのまま組み込まれてしまい、
+                        // Supabase Storageへのアップロードが400 Bad Requestになることがあるため、
+                        // URLに安全な文字(英数字・.・_・-)だけに置き換えてから使う
+                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
                         contentType = part.contentType?.toString() ?: contentType
                         fileBytes = part.provider().readRemaining().readBytes()
                     }

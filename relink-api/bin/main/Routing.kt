@@ -28,6 +28,10 @@ import com.models.RescuedPetRegisterRequest
 import com.models.RescuedPetRegisterResponse
 import com.repositories.RescuedPetRepository
 
+// ★修正：ContactRequest / ContactRepository の import が漏れていたため追加
+import com.models.ContactRequest
+import com.repositories.ContactRepository
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -51,7 +55,13 @@ fun Application.configureRouting() {
 
                 multipart.forEachPart { part ->
                     if (part is PartData.FileItem) {
-                        fileName = "${java.util.UUID.randomUUID()}_${part.originalFileName}"
+                        // 元のファイル名にスペース・日本語・括弧などが入っていると、
+                        // StorageService側でURLに未エンコードのまま組み込まれてしまい、
+                        // Supabase Storageへのアップロードが400 Bad Requestになることがあるため、
+                        // URLに安全な文字(英数字・.・_・-)だけに置き換えてから使う
+                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
                         contentType = part.contentType?.toString() ?: contentType
                         fileBytes = part.provider().readRemaining().readBytes()
                     }
@@ -113,5 +123,18 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.Created, RescuedPetRegisterResponse(id = insertedId))
             }
         }
+        // ★修正：/contacts を authenticate ブロックの外に移動
+        // 決定事項③（JWT認証なし、match_idの実在チェックのみ）を反映するため
+        // authenticate の"外"にあるルートは、トークン無しで誰でも呼び出せる
+        post("/contacts") {
+            val request = call.receive<ContactRequest>()
+
+            if (!ContactRepository.matchExists(request.matchId)) {
+                throw NoSuchElementException("指定されたmatch_idが見つかりません: ${request.matchId}")
+            }
+
+            val response = ContactRepository.insert(request)
+            call.respond(HttpStatusCode.Created, response)
+        }    
     }
 }
