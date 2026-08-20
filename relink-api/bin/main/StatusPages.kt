@@ -23,6 +23,18 @@ fun Application.configureStatusPages() {
                 ErrorResponse("BAD_REQUEST", cause.message ?: "リクエストが不正です")
             )
         }
+        // ★修正：kotlinx.serialization.SerializationException ではなく
+        // io.ktor.server.plugins.BadRequestException で捕まえるように変更
+        // （実際にサーバーログで確認したところ、call.receive()のJSON変換失敗時に
+        // 　最終的にthrowされるのはこの型だったため。内部ではJsonConvertException →
+        // 　MissingFieldExceptionが連鎖して発生し、それをKtorがBadRequestExceptionに
+        // 　ラップしなおしてから投げている）
+        exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse("BAD_REQUEST", "リクエストの形式が正しくありません: ${cause.message}")
+            )
+        }
 
         // ② 想定内のエラー：探したデータが無い
         exception<NoSuchElementException> { call, cause ->
