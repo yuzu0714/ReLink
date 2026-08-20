@@ -7,7 +7,8 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import java.util.*
-import com.services.StorageService 
+import com.services.StorageService
+import com.services.AiExtractionService
 
 // --- 設定値 ---
 val securityDotenv = dotenv()
@@ -22,6 +23,13 @@ const val jwtRealm = "ReLINK API"         // 認証失敗時にレスポンス�
 val storageService = StorageService(
     supabaseUrl = securityDotenv["SUPABASE_URL"] ?: error("SUPABASE_URL が設定されていません"),
     serviceRoleKey = securityDotenv["SUPABASE_SERVICE_ROLE_KEY"] ?: error("SUPABASE_SERVICE_ROLE_KEY が設定されていません")
+)
+
+// ↓↓↓ 追加:AI特徴抽出(match_api.py, ブランチAI_JSONAPI)へ写真を転送するためのサービス
+// AI_API_BASEは.envで上書きできるが、必須ではない(未設定ならローカルのuvicornデフォルトを使う)。
+// ローカルで `uvicorn match_api:app --host 0.0.0.0 --port 8000` を起動しておく必要がある。
+val aiExtractionService = AiExtractionService(
+    aiApiBase = securityDotenv["AI_API_BASE"] ?: "http://localhost:8000"
 )
 
 

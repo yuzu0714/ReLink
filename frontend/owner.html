@@ -7,12 +7,128 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+<style>
+  :root{
+    --navy:#141466;
+    --navy-2:#1f1f8c;
+    --navy-deep:#0d0d3d;
+    --cyan:#22d3ee;
+    --cyan-soft:#67e8f9;
+    --magenta:#ec4899;
+    --magenta-soft:#f9a8d4;
+    --green:#16a34a;
+    --ink:#1a1a2e;
+    --paper:#f4f6fb;
+    --card:#ffffff;
+    --line:#dfe3f0;
+    --muted:#6b7096;
+    --shadow:0 10px 30px rgba(20,20,102,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .stage{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+    background:
+      radial-gradient(1100px 600px at 50% -10%, rgba(34,211,238,.12), transparent 60%),
+      linear-gradient(180deg,#e9edf7,#dfe4f2);
+  }
+  .phone{
+    width:390px;
+    max-width:100%;
+    height:820px;
+    max-height:calc(100vh - 48px);
+    background:var(--card);
+    border-radius:38px;
+    box-shadow:0 30px 80px rgba(13,13,61,.28), 0 0 0 10px #101038, 0 0 0 12px #22224e;
+    overflow:hidden;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:150px;height:26px;background:#101038;border-radius:0 0 18px 18px;z-index:40;
+  }
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{width:0}
+  .appbar{
+    position:sticky;top:0;z-index:30;
+    background:var(--navy);
+    color:#fff;
+    padding:34px 18px 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .appbar .back{
+    background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;
+    border-radius:10px;font-size:18px;cursor:pointer;display:grid;place-items:center;
+    transition:background .15s;
+  }
+  .appbar .back:hover{background:rgba(255,255,255,.24)}
+  .appbar h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+  .appbar .spacer{flex:1}
+  .appbar .role-chip{
+    font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
+    background:rgba(34,211,238,.18);color:var(--cyan-soft);border:1px solid rgba(34,211,238,.35);
+  }
+  .pad{padding:18px}
+  .stack>*+*{margin-top:14px}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:15px 16px;border-radius:14px;border:none;cursor:pointer;
+    font-size:15px;font-weight:700;font-family:inherit;transition:transform .08s, box-shadow .15s, background .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--navy);color:#fff;box-shadow:0 8px 20px rgba(20,20,102,.28)}
+  .btn-primary:hover{background:var(--navy-2)}
+  .btn-magenta{background:var(--magenta);color:#fff;box-shadow:0 8px 20px rgba(236,72,153,.30)}
+  .btn-magenta:hover{background:#db2777}
+  .btn-ghost{background:#eef1fa;color:var(--navy);border:1px solid var(--line)}
+  .btn-ghost:hover{background:#e6eaf7}
+  .btn-sm{padding:11px 14px;font-size:13px;border-radius:11px;width:auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--magenta)}
+  h2.title{font-size:22px;font-weight:800;line-height:1.3;margin-top:4px}
+  .lede{font-size:13px;color:var(--muted);line-height:1.7;margin-top:6px}
+  .field{display:block}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px}
+  .input, select.input, textarea.input{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-size:14px;font-family:inherit;background:#fbfcff;transition:border-color .15s, box-shadow .15s;
+  }
+  .input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 4px rgba(34,211,238,.18)}
+  textarea.input{resize:none;min-height:76px}
+  .imgbox{border:2px dashed var(--cyan);border-radius:16px;padding:26px;text-align:center;background:#f2feff;cursor:pointer;transition:background .15s}
+  .imgbox:hover{background:#e6fbff}
+  .imgbox .big{font-size:38px}
+  .imgbox .cap{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .thumbs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .thumb{width:56px;height:56px;border-radius:11px;display:grid;place-items:center;font-size:26px;color:#fff;position:relative}
+  .thumb .x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;display:grid;place-items:center;border:2px solid #fff}
+  .swatches{display:flex;gap:10px;flex-wrap:wrap}
+  .sw{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .1s}
+  .sw:hover{transform:scale(1.08)}
+  .sw.on{border-color:var(--navy)}
+  .footnote{font-size:11px;color:var(--muted);text-align:center;padding:14px;line-height:1.6}
+  .fade{animation:fade .28s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>飼い主向け</h1>
@@ -28,7 +144,7 @@
           </div>
 
           <div class="role-list">
-            <div class="role-item">
+            <div class="role-item" style="cursor:pointer" onclick="go('register')">
               <div class="emo">📷</div>
               <div>
                 <div class="title">ペット情報を登録</div>
@@ -45,23 +161,457 @@
           </div>
 
           <div class="stack">
-          <a class="btn btn-primary" href="login.html">
-            ログアウト
-          </a>
+            <a class="btn btn-primary" href="login.html">
+              ログアウト
+            </a>
 
-          <button class="btn btn-ghost" onclick="switchRole()">
-            役割を切り替える
-          </button>
-        </div>
+            <button class="btn btn-ghost" onclick="switchRole()">
+              役割を切り替える
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <script>
-  function switchRole() {
-    sessionStorage.removeItem('selectedRole');
-    window.location.href = 'login.html';
+<script>
+// Kotlinバックエンド(relink-api)のURL。
+// ローカルで `./gradlew run` した状態だとデフォルトで8080番なのでこれで動く。
+// どこかにデプロイしたら、ここをそのURLに書き換える。
+const API_BASE = 'http://localhost:8080';
+
+const S = {
+  role: 'owner',
+  regPhotos: [],
+  regColor: null,
+  cancelMatch: false,
+  lostPlace: '',
+  phone: '',
+  specie: '',
+  other: '',
+};
+
+const screen = document.getElementById('screen');
+const $ = (h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild;};
+
+// hidden file input for photo uploads
+const fileInput = (()=>{
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.multiple = true;
+  inp.style.display = 'none';
+  inp.id = 'file-input';
+  document.body.appendChild(inp);
+  inp.addEventListener('change', (e)=>{
+    const files = Array.from(inp.files || []);
+    files.forEach(f=>{
+      const src = URL.createObjectURL(f);
+      S.regPhotos.push({file: f, src});
+    });
+    const t = document.getElementById('thumbs');
+    if(t) t.innerHTML = renderThumbs();
+    inp.value = '';
+  });
+  return inp;
+})();
+
+const roleLabel = {owner:'飼い主', finder:'発見者', shelter:'保護団体'};
+const roleChip = (r)=> r ? `<span class="role-chip">${roleLabel[r]}</span>` : '';
+const petColors = ['#c8935f','#e8c9a0','#7a5230','#3d3d3d','#e5e5e5','#f0f0f0'];
+// petColors と同じ順番の色名。/pets/lost に送る色(color)はテキストなのでここから引く。
+const colorNames = ['茶色','クリーム色','こげ茶色','黒','白','グレー'];
+
+function petSwatch(i){return petColors[i%petColors.length];}
+
+function appbar(title, backTo, role){
+  return `<div class="appbar">
+    ${backTo!==null?`<button class="back" onclick="go('${backTo}')">‹</button>`:''}
+    <h1>${title}</h1><div class="spacer"></div>${roleChip(role)}
+  </div>`;
+}
+
+const screens = {
+  register(){
+    return `
+    ${appbar('ペット情報を登録','owner',S.role)}
+    <div class="pad stack fade">
+      <div>
+        <div class="eyebrow">STEP 1 / 撮影</div>
+        <h2 class="title" style="font-size:19px">手持ちの写真をアップ</h2>
+        <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
+      </div>
+
+      <div class="imgbox" onclick="addPhoto()">
+        <div class="big">📸</div>
+        <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
+      </div>
+      <div class="thumbs" id="thumbs">${renderThumbs()}</div>
+
+      <button class="btn btn-ghost btn-sm" id="aiFillBtn" style="width:100%" onclick="aiAutoFill()">
+        🤖 写真からAIで自動入力（未入力の項目のみ）
+      </button>
+      <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
+
+      <div class="field"><label>連絡先電話番号</label>
+        <input class="input" id="phone" type="tel" value="${S.phone}" placeholder="090-0000-0000" oninput="S.phone=this.value"></div>
+      <div class="field"><label>紛失場所</label>
+        <input class="input" id="lostPlace" value="${S.lostPlace}" placeholder="市区町村" oninput="S.lostPlace=this.value"></div>
+
+      <div class="field"><label>種類・犬種</label>
+        <select class="input" id="specie" onchange="S.specie=this.value">
+          <option value="">選択してください</option>
+          <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
+          <option>猫（雑種）</option><option>その他</option>
+        </select></div>
+
+      <div class="field"><label>毛色（1色選択）</label>
+        <div class="swatches" id="swatches">
+          ${petColors.map((c,i)=>`<div class="sw ${S.regColor===i?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
+        </div></div>
+
+      <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
+        <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="S.other=this.value">${S.other}</textarea></div>
+
+      <button class="btn btn-magenta" id="submitBtn" onclick="submitLost()">
+        🐾 登録情報を登録してAIマッチングを開始
+      </button>
+      <div class="footnote">まず迷子情報をバックエンドに登録し、そのあと条件で絞り込んで照合します。</div>
+    </div>`;
+  },
+
+  matching(){
+    return `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:30px;text-align:center;background:linear-gradient(180deg,#fff,#f0f3ff)">
+      <div class="eyebrow" style="color:var(--magenta)">AI MATCHING</div>
+      <div style="font-weight:800;font-size:17px;color:var(--navy);margin:20px 0 14px">マッチング中…</div>
+      <div style="width:100%;max-width:280px;margin:0 auto">
+        <div style="height:14px;background:#e4e8f6;border-radius:999px;overflow:hidden">
+          <i id="bar" style="display:block;height:100%;background:repeating-linear-gradient(45deg,var(--magenta),var(--magenta) 8px,var(--magenta-soft) 8px,var(--magenta-soft) 16px);transition:width .3s;border-radius:999px;width:0%"></i>
+        </div>
+        <div style="font-weight:800;color:var(--magenta);font-size:20px;margin-top:8px" id="pct">0%</div>
+      </div>
+      <div class="lede" style="max-width:260px;margin-top:14px">保護されたペットの中から、外見と首輪の特徴が近い子を探しています。</div>
+      <button class="cancel-link" onclick="cancelMatch()">時間がかかる場合はキャンセル</button>
+    </div>`;
+  },
+
+  results(){
+    return `
+    ${appbar('マッチング結果','register',S.role)}
+    <div class="pad stack fade">
+      <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px">✨</span>
+          <div><b style="color:var(--navy)">マッチング完了！</b>
+          <div class="lede" style="margin-top:2px">候補のペットが見つかりました。</div></div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:20px;background:#e6f7ff;border-radius:14px">
+        <div style="font-size:40px">🐕</div>
+        <div style="font-weight:800;font-size:16px;margin-top:8px">次のステップ</div>
+        <div class="lede" style="margin-top:6px">マッチ率が高い候補を確認して連絡してください。</div>
+      </div>
+    </div>`;
+  },
+
+  owner(){
+    return `
+    ${appbar('飼い主向け', null, S.role)}
+    <div class="pad stack fade">
+      <div class="hero-banner">
+        <div class="hi">飼い主向け機能</div>
+        <div class="hn">迷子のペットをすばやく登録できます。</div>
+        <div class="hs">通知とマッチングの状況を確認して、安心して待てます。</div>
+      </div>
+
+      <div class="role-list">
+        <div class="role-item" style="cursor:pointer" onclick="go('register')">
+          <div class="emo">📷</div>
+          <div>
+            <div class="title">ペット情報を登録</div>
+            <div class="desc">写真と特徴を登録して照合を開始します。</div>
+          </div>
+        </div>
+        <div class="role-item">
+          <div class="emo">🔔</div>
+          <div>
+            <div class="title">通知を確認</div>
+            <div class="desc">似たペットが保護されたらお知らせが届きます。</div>
+          </div>
+        </div>
+      </div>
+
+      <a class="btn btn-primary" href="login.html">ホームへ戻る</a>
+    </div>`;
   }
+};
+
+function go(name){
+  screen.scrollTop = 0;
+  screen.innerHTML = screens[name]();
+  if(name==='matching') startMatch();
+}
+
+function renderThumbs(){
+  return S.regPhotos.map((p,i)=>`
+    <div class="thumb" style="${p && p.src ? `background-image:url('${p.src}');background-size:cover;background-position:center` : `background:${petSwatch(i)}`}" onclick="event.stopPropagation()">
+      ${p && p.src ? '' : '🐕'}
+      <div class="x" onclick="event.stopPropagation();rmPhoto(${i})">×</div>
+    </div>`).join('');
+}
+
+function addPhoto(){
+  // open file picker
+  if(window && fileInput) fileInput.click();
+}
+
+function rmPhoto(i){
+  // revoke object URL if present, then remove
+  const item = S.regPhotos[i];
+  if(item && item.src) {
+    try{ URL.revokeObjectURL(item.src); }catch(e){}
+  }
+  S.regPhotos.splice(i,1);
+  const t=document.getElementById('thumbs');
+  if(t) t.innerHTML=renderThumbs();
+}
+
+function pickColor(i){
+  S.regColor=i;
+  document.querySelectorAll('#swatches .sw').forEach((el,idx)=>el.classList.toggle('on',idx===i));
+}
+
+// 写真をKotlinバックエンド経由でAI特徴抽出サーバー(match_api.py)に送り、
+// まだ入力していない項目(種類・犬種セレクト/毛色スウォッチ/そのほか欄)だけを自動入力する。
+// 決定事項:
+//   ・ブラウザからPython側を直接呼ばない(Kotlinの/pets/extract-featuresを経由する)
+//   ・フロント側の固定UI(セレクトボックス・色スウォッチ)自体は変更しない。
+//     AIの自由な出力(犬種名や毛色の詳しい表現など)は「そのほか」欄にそのまま残し、
+//     情報を失わないようにする。
+//   ・すでに入力済みの項目は上書きしない。
+async function aiAutoFill(){
+  const token = sessionStorage.getItem('authToken');
+  if(!token){
+    alert('ログインが必要です。ログイン画面からやり直してください。');
+    window.location.href = 'login.html';
+    return;
+  }
+  if(S.regPhotos.length === 0){
+    alert('先に写真を1枚以上追加してください。');
+    return;
+  }
+
+  const btn = document.getElementById('aiFillBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'AI解析中…';
+
+  try {
+    const form = new FormData();
+    S.regPhotos.forEach(p => form.append('photo', p.file));
+
+    const res = await fetch(`${API_BASE}/pets/extract-features`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form,
+    });
+
+    if(!res.ok){
+      const body = await res.json().catch(()=>null);
+      throw new Error((body && body.message) || ('AI解析に失敗しました。(status ' + res.status + ')'));
+    }
+
+    const tags = await res.json();
+    applyAiTags(tags);
+  } catch (err) {
+    console.error(err);
+    alert(err.message || 'AI解析中にエラーが発生しました。手動で入力してください。');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// AIの解析結果({animalType, breed, coatColor, hasCollar, collarFeatures})を、
+// 未入力の項目にだけ反映する
+function applyAiTags(tags){
+  const notes = [];
+  const breedOrType = tags.breed || tags.animalType;
+
+  // 種類・犬種: 未選択の場合だけ、固定の選択肢に近いものを自動選択する
+  if(!S.specie){
+    const guess = guessSpecieOption(tags.animalType, tags.breed);
+    if(guess){
+      S.specie = guess;
+      const sel = document.getElementById('specie');
+      if(sel) sel.value = guess;
+    }
+  }
+  if(breedOrType) notes.push(`AI推定: ${breedOrType}`);
+
+  // 毛色: 未選択の場合だけ、色見本に近いものを自動選択する
+  if(S.regColor === null && tags.coatColor){
+    const idx = colorKeywordIndex(tags.coatColor);
+    if(idx !== -1) pickColor(idx);
+  }
+  if(tags.coatColor) notes.push(`毛色: ${tags.coatColor}`);
+
+  if(tags.hasCollar){
+    notes.push(`首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`);
+  }
+
+  // そのほか: 元々空欄だった場合のみ、AIの解析結果をまとめて入れる(既存の入力は上書きしない)
+  if(!S.other && notes.length > 0){
+    S.other = notes.join(' / ');
+    const ta = document.getElementById('other');
+    if(ta) ta.value = S.other;
+  }
+}
+
+// 犬種・動物種のフリーテキストを、固定セレクトの選択肢に近いものへざっくり寄せる。
+// 判別できない場合は自動選択しない(ユーザーに選んでもらう)。細かい犬種名は
+// applyAiTags側で「そのほか」欄に残るので、ここでの選択が多少ざっくりでも情報は失われない。
+function guessSpecieOption(animalType, breed){
+  const text = `${animalType || ''} ${breed || ''}`;
+  if(/柴/.test(text)) return '柴犬';
+  if(/プードル/.test(text)) return 'トイプードル';
+  if(/猫/.test(text)) return '猫（雑種）';
+  if(/雑種/.test(text)) return '雑種（中型）';
+  if(/犬/.test(text)) return 'その他';
+  return '';
+}
+
+// 毛色のフリーテキストから、色見本(petColors/colorNames)に近いインデックスを探す
+function colorKeywordIndex(text){
+  for(let i=0;i<colorNames.length;i++){
+    if(text.includes(colorNames[i])) return i;
+  }
+  if(/黒/.test(text)) return 3;
+  if(/白/.test(text)) return 4;
+  if(/(グレー|灰)/.test(text)) return 5;
+  if(/茶/.test(text)) return 0;
+  return -1;
+}
+
+// 迷子情報をrelink-apiに実際に登録する処理
+// 1. ログイン時にもらったトークンを確認
+// 2. 写真を /pets/photos にアップロードしてphoto_urlをもらう
+// 3. /pets/lost に迷子情報を送って登録する
+async function submitLost(){
+  const token = sessionStorage.getItem('authToken');
+  if(!token){
+    alert('ログインが必要です。ログイン画面からやり直してください。');
+    window.location.href = 'login.html';
+    return;
+  }
+
+  if(S.regPhotos.length === 0){
+    alert('写真を1枚以上追加してください。');
+    return;
+  }
+  if(!S.phone){
+    alert('連絡先電話番号を入力してください。');
+    return;
+  }
+  if(!S.lostPlace){
+    alert('紛失場所を入力してください。');
+    return;
+  }
+  if(!S.specie){
+    alert('種類・犬種を選択してください。');
+    return;
+  }
+  if(S.regColor === null){
+    alert('毛色を選択してください。');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = '登録中…';
+
+  try {
+    // 1枚目の写真をアップロード(現在のlostpet_registerはphoto_urlを1つしか持てないため)
+    const firstPhoto = S.regPhotos[0].file;
+    const form = new FormData();
+    form.append('photo', firstPhoto);
+
+    const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form,
+    });
+    if(!uploadRes.ok){
+      throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
+    }
+    const { photoUrl } = await uploadRes.json();
+
+    const lostRes = await fetch(`${API_BASE}/pets/lost`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        photoUrl,
+        phoneNumber: S.phone,
+        specie: S.specie,
+        color: colorNames[S.regColor],
+        other: S.other || null,
+        lostPlace: S.lostPlace,
+      }),
+    });
+
+    if(!lostRes.ok){
+      if(lostRes.status === 403){
+        throw new Error('この操作には飼い主(owner)権限が必要です。ログインし直してください。');
+      }
+      const body = await lostRes.json().catch(()=>null);
+      throw new Error((body && body.message) || ('登録に失敗しました。(status ' + lostRes.status + ')'));
+    }
+
+    // 登録できたら、そのままAIマッチングのアニメーションへ(マッチング自体は未実装)
+    go('matching');
+  } catch (err) {
+    console.error(err);
+    alert(err.message || '登録中にエラーが発生しました。');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  }
+}
+
+let matchTimer=null;
+function startMatch(){
+  S.cancelMatch=false;
+  let p=0;
+  const bar=document.getElementById('bar');
+  const pct=document.getElementById('pct');
+  matchTimer=setInterval(()=>{
+    if(S.cancelMatch){clearInterval(matchTimer);return;}
+    p += Math.random()*7+3;
+    if(p>=100){p=100;}
+    bar.style.width=p+'%';
+    pct.textContent=Math.round(p)+'%';
+    if(p>=100){
+      clearInterval(matchTimer);
+      setTimeout(()=>{ if(!S.cancelMatch) go('results'); },420);
+    }
+  },220);
+}
+
+function cancelMatch(){
+  S.cancelMatch=true;
+  if(matchTimer)clearInterval(matchTimer);
+  go('register');
+}
+function switchRole() {
+  sessionStorage.removeItem('selectedRole');
+  window.location.href = 'login.html';
+}
+
+// 初期表示は既存の owner ページのままにする（ボタンで遷移）
 </script>
 </body>
 </html>
