@@ -1,9 +1,20 @@
 /* ---------------- ReLINK demo — state & router ---------------- */
+// Kotlinバックエンド(relink-api)のURL。
+// ローカルで `./gradlew run` した状態だとデフォルトで8080番なのでこれで動く。
+// どこかにデプロイしたら、ここをそのURLに書き換える。
+const API_BASE = 'http://localhost:8080';
+
 const S = {
   role: null,            // 'owner' | 'finder' | 'shelter'
   regPhotos: [],
   regColors: [],
   cancelMatch: false,
+  // register画面の入力値(役割によって使うものが違う)
+  regPlace: '',    // 発見場所(finder/shelter) / 紛失場所(owner)
+  regDate: '',     // 発見日時(finder/shelter)
+  regPhone: '',    // 連絡先電話番号(owner)
+  regSpecie: '',
+  regOther: '',
 };
 
 const screen = document.getElementById('screen');
@@ -20,6 +31,8 @@ function appbar(title, backTo, role){
 }
 
 const petColors = ['#c8935f','#e8c9a0','#7a5230','#3d3d3d','#e5e5e5','#f0f0f0'];
+// petColorsと同じ順番の色名。/pets/found・/pets/lost・/pets/rescued に送るcolorはテキストなのでここから引く。
+const colorNames = ['茶色','クリーム色','こげ茶色','黒','白','グレー'];
 function petSwatch(i){return petColors[i%petColors.length];}
 
 /* ---------------- Screens ---------------- */
@@ -47,10 +60,10 @@ login(){
       ${roleCard('shelter','🏥','保護団体として使う','保護中のペット一覧を管理する')}
     </div>
     <div class="field"><label>メールアドレス</label>
-      <input class="input" type="email" value="demo@relink.jp" placeholder="mail@example.com"></div>
+      <input class="input" id="loginEmail" type="email" value="demo@relink.jp" placeholder="mail@example.com"></div>
     <div class="field"><label>パスワード</label>
-      <input class="input" type="password" value="demodemo" placeholder="••••••••"></div>
-    <button class="btn btn-primary" onclick="login()">ログイン</button>
+      <input class="input" id="loginPassword" type="password" value="demodemo" placeholder="••••••••"></div>
+    <button class="btn btn-primary" id="loginButton" onclick="login()">ログイン</button>
     <div class="footnote">ReLINK は事前登録なしでも利用できます。<br>デモ版のため入力内容は保存されません。</div>
   </div>`;
 },
@@ -119,19 +132,24 @@ register(){
 
     ${finder ? `
     <div class="field"><label>発見場所</label>
-      <input class="input" value="" placeholder="市区町村"></div>
+      <input class="input" id="regPlace" value="${S.regPlace}" placeholder="市区町村" oninput="S.regPlace=this.value"></div>
     <div class="field"><label>発見日時</label>
-      <input class="input" type="datetime-local" value=""></div>
+      <input class="input" id="regDate" type="datetime-local" value="${S.regDate}" oninput="S.regDate=this.value"></div>
     ` : `
     <div class="field"><label>連絡先電話番号</label>
-      <input class="input" type="tel" value="" placeholder="090-0000-0000"></div>
+      <input class="input" id="regPhone" type="tel" value="${S.regPhone}" placeholder="090-0000-0000" oninput="S.regPhone=this.value"></div>
+    <div class="field"><label>紛失場所</label>
+      <input class="input" id="regPlace" value="${S.regPlace}" placeholder="市区町村" oninput="S.regPlace=this.value"></div>
     `}
 
     <div class="field"><label>種類・犬種</label>
-      <select class="input">
-        <option value="" disabled selected>選択してください</option>
-        <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
-        <option>猫（雑種）</option><option>その他</option>
+      <select class="input" id="regSpecie" onchange="S.regSpecie=this.value">
+        <option value="" disabled ${S.regSpecie?'':'selected'}>選択してください</option>
+        <option ${S.regSpecie==='柴犬'?'selected':''}>柴犬</option>
+        <option ${S.regSpecie==='トイプードル'?'selected':''}>トイプードル</option>
+        <option ${S.regSpecie==='雑種（中型）'?'selected':''}>雑種（中型）</option>
+        <option ${S.regSpecie==='猫（雑種）'?'selected':''}>猫（雑種）</option>
+        <option ${S.regSpecie==='その他'?'selected':''}>その他</option>
       </select></div>
 
     <div class="field"><label>毛色（複数選択可）</label>
@@ -140,12 +158,12 @@ register(){
       </div></div>
 
     <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
-      <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
+      <textarea class="input" id="regOther" placeholder="例）左耳が欠けている。人懐っこい。" oninput="S.regOther=this.value">${S.regOther}</textarea></div>
 
-    <button class="btn btn-magenta" onclick="go('matching')">
-      🐾 AIマッチングを開始
+    <button class="btn btn-magenta" id="submitBtn" onclick="submitRegister()">
+      🐾 登録してAIマッチングを開始
     </button>
-    <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
+    <div class="footnote">まず登録情報をバックエンドに登録し、そのあと条件で絞り込んで照合します。</div>
   </div>`;
 },
 
@@ -287,26 +305,13 @@ contactDone(){
 },
 
 /* SHELTER LIST --------------------------------------------------- */
+// GET /shelter/pets の結果を表示する。バックエンドから読み込むまでは
+// ローディング表示にしておき、読み込み終わったら shelterListLoaded() で中身を差し替える
 shelterList(){
-  const data = [
-    {n:'保護 #A21',c:0,meta:'柴犬 / ○○保健所 / 照合待ち 2件',tag:'照合中'},
-    {n:'保護 #A20',c:3,meta:'トイプードル / 発見者から受入',tag:'新規'},
-    {n:'保護 #A18',c:2,meta:'雑種 / 飼い主候補 95%',tag:'一致'},
-    {n:'保護 #A15',c:5,meta:'柴系 / 引き渡し済み',tag:'完了'},
-  ];
-  const tagColor={ '照合中':'pill', '新規':'pill mag', '一致':'pill mag', '完了':'pill'};
-  const row=(d)=>`
-    <div class="match-card" onclick="go('petDetail')">
-      <div class="ph" style="background:${petSwatch(d.c)}">🐕</div>
-      <div style="min-width:0"><div class="name">${d.n}</div><div class="meta">${d.meta}</div></div>
-      <span class="${tagColor[d.tag]}" style="margin-left:auto">${d.tag}</span>
-    </div>`;
   return `
   ${appbar('保護ペット一覧','home',S.role)}
-  <div class="pad stack fade">
-    <div class="lede" style="margin-top:2px">現在の保護：<b style="color:var(--navy)">12頭</b> ／ 照合待ち：<b style="color:var(--magenta)">3頭</b></div>
-    ${data.map(row).join('')}
-    <button class="btn btn-primary" onclick="go('register')">＋ 新しい保護を登録</button>
+  <div class="pad stack fade" id="shelterListBody">
+    <div class="lede" style="margin-top:2px">読み込み中…</div>
   </div>`;
 },
 /* NOTIFICATIONS -------------------------------------------------- */
@@ -337,13 +342,96 @@ function go(name){
   screen.scrollTop = 0;
   screen.innerHTML = screens[name]();
   if(name==='matching') startMatch();
+  if(name==='shelterList') loadShelterList();
 }
 function setRole(r){ S.role=r; go('login'); }
-function login(){
+
+async function login(){
   if(!S.role){ shake(); return; }
-  go('home');
+
+  const emailEl = document.getElementById('loginEmail');
+  const passwordEl = document.getElementById('loginPassword');
+  const email = emailEl ? emailEl.value : '';
+  const password = passwordEl ? passwordEl.value : '';
+  if(!email || !password){
+    alert('メールアドレスとパスワードを入力してください。');
+    return;
+  }
+
+  const loginButton = document.getElementById('loginButton');
+  if(loginButton) loginButton.disabled = true;
+
+  try{
+    // 注意: /auth/test-login は「roleを渡したらトークンが返ってくる」だけの
+    // 動作確認用エンドポイントで、email/passwordの照合はまだしていない
+    // (本物のログイン機能がバックエンド側にできたら、ここをそのAPIに差し替える)
+    const response = await fetch(`${API_BASE}/auth/test-login?role=${encodeURIComponent(S.role)}`, {
+      method: 'POST',
+    });
+    if(!response.ok){
+      throw new Error('ログインに失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
+    }
+    const data = await response.json();
+    sessionStorage.setItem('authToken', data.token);
+    sessionStorage.setItem('selectedRole', S.role);
+    go('home');
+  }catch(err){
+    alert(err.message || 'ログインに失敗しました。');
+  }finally{
+    if(loginButton) loginButton.disabled = false;
+  }
 }
-function switchRole(){ S.role=null; go('login'); }
+
+function switchRole(){
+  S.role=null;
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('selectedRole');
+  go('login');
+}
+
+/* 保護ペット一覧(GET /shelter/pets)を取得して画面に反映する */
+async function loadShelterList(){
+  const body = document.getElementById('shelterListBody');
+  const token = sessionStorage.getItem('authToken');
+  if(!body) return;
+
+  if(!token){
+    body.innerHTML = '<div class="lede">ログインが必要です。</div>';
+    return;
+  }
+
+  try{
+    const response = await fetch(`${API_BASE}/shelter/pets`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if(!response.ok){
+      if(response.status === 403){
+        throw new Error('この一覧の閲覧にはshelter権限が必要です。');
+      }
+      throw new Error('一覧の取得に失敗しました。(status ' + response.status + ')');
+    }
+    const data = await response.json();
+    const pets = data.pets || [];
+    const sourceLabel = { found: '発見', rescued: '保護' };
+    const row = (p) => `
+      <div class="match-card" onclick="go('petDetail')">
+        <div class="ph" style="background:${petSwatch(p.id)}">🐕</div>
+        <div style="min-width:0">
+          <div class="name">${p.specie || '種類不明'}（${p.color || '色不明'}）</div>
+          <div class="meta">${p.place || '場所不明'}${p.other ? ' / ' + p.other : ''}</div>
+        </div>
+        <span class="pill" style="margin-left:auto">${sourceLabel[p.source] || p.source}</span>
+      </div>`;
+
+    body.innerHTML = `
+      <div class="lede" style="margin-top:2px">現在の登録：<b style="color:var(--navy)">${pets.length}件</b></div>
+      ${pets.map(row).join('') || '<div class="lede">まだ登録がありません。</div>'}
+      <button class="btn btn-primary" onclick="go('register')">＋ 新しい保護を登録</button>
+    `;
+  }catch(err){
+    body.innerHTML = `<div class="lede" style="color:var(--magenta)">${err.message}</div>`;
+  }
+}
 
 function shake(){
   const roles=document.querySelector('.roles');
@@ -353,8 +441,9 @@ function shake(){
 
 /* register helpers */
 function renderThumbs(){
-  return S.regPhotos.map((url,i)=>`
-    <div class="thumb" style="background-image:url('${url}');background-size:cover;background-position:center;">
+  // 委任: S.regPhotosは{file, dataUrl}のオブジェクト配列(fileは/pets/photosへのアップロードに使う実体)
+  return S.regPhotos.map((p,i)=>`
+    <div class="thumb" style="background-image:url('${p.dataUrl}');background-size:cover;background-position:center;">
       <div class="x" onclick="event.stopPropagation();rmPhoto(${i})">×</div>
     </div>`).join('');
 }
@@ -363,7 +452,8 @@ function handleFileSelect(event){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(e){
-    S.regPhotos.push(e.target.result);
+    // プレビュー用のdataUrlと一緒に、アップロードに使う生のFileも保持しておく
+    S.regPhotos.push({ file, dataUrl: e.target.result });
     const t = document.getElementById('thumbs');
     if(t) t.innerHTML = renderThumbs();
   };
@@ -374,6 +464,115 @@ function rmPhoto(i){
   S.regPhotos.splice(i,1);
   const t=document.getElementById('thumbs');
   if(t) t.innerHTML=renderThumbs();
+}
+
+/* 登録情報をrelink-apiに実際に登録する処理(役割によって呼ぶAPIが違う)
+   owner   -> POST /pets/lost
+   finder  -> POST /pets/found
+   shelter -> POST /pets/rescued
+   どのAPIも先に POST /pets/photos で写真をアップロードしてphotoUrlをもらってから使う */
+async function submitRegister(){
+  const token = sessionStorage.getItem('authToken');
+  if(!token){
+    alert('ログインが必要です。ログイン画面からやり直してください。');
+    go('login');
+    return;
+  }
+
+  if(S.regPhotos.length === 0){ alert('写真を1枚以上追加してください。'); return; }
+  if(!S.regSpecie){ alert('種類・犬種を選択してください。'); return; }
+  if(S.regColors.length === 0){ alert('毛色を選択してください。'); return; }
+
+  if(S.role === 'owner'){
+    if(!S.regPhone){ alert('連絡先電話番号を入力してください。'); return; }
+    if(!S.regPlace){ alert('紛失場所を入力してください。'); return; }
+  } else {
+    if(!S.regPlace){ alert('発見場所を入力してください。'); return; }
+    if(!S.regDate){ alert('発見日時を入力してください。'); return; }
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = '登録中…';
+
+  try{
+    // 1枚目の写真だけアップロードする(各テーブルともphoto_urlを1つしか持てないため)
+    const firstPhoto = S.regPhotos[0].file;
+    const form = new FormData();
+    form.append('photo', firstPhoto);
+
+    const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form,
+    });
+    if(!uploadRes.ok){
+      throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
+    }
+    const { photoUrl } = await uploadRes.json();
+    const color = S.regColors.map((i) => colorNames[i]).join('、');
+
+    let endpoint;
+    let body;
+    if(S.role === 'owner'){
+      endpoint = '/pets/lost';
+      body = {
+        photoUrl,
+        phoneNumber: S.regPhone,
+        specie: S.regSpecie,
+        color,
+        other: S.regOther || null,
+        lostPlace: S.regPlace,
+      };
+    } else if(S.role === 'finder'){
+      endpoint = '/pets/found';
+      body = {
+        photoUrl,
+        foundPlace: S.regPlace,
+        foundDate: S.regDate,
+        specie: S.regSpecie,
+        color,
+        other: S.regOther || null,
+      };
+    } else {
+      endpoint = '/pets/rescued';
+      body = {
+        photoUrl,
+        foundPlace: S.regPlace,
+        foundDate: S.regDate,
+        specie: S.regSpecie,
+        color,
+        other: S.regOther || null,
+      };
+    }
+
+    const registerRes = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if(!registerRes.ok){
+      if(registerRes.status === 403){
+        throw new Error(`この操作には${roleLabel[S.role]}(${S.role})権限が必要です。ログインし直してください。`);
+      }
+      const errBody = await registerRes.json().catch(() => null);
+      throw new Error((errBody && errBody.message) || ('登録に失敗しました。(status ' + registerRes.status + ')'));
+    }
+
+    // 登録できたら、そのままAIマッチングのアニメーションへ(マッチング自体は未実装)
+    go('matching');
+  }catch(err){
+    console.error(err);
+    alert(err.message || '登録中にエラーが発生しました。');
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  }
 }
 function pickColor(i){
   const index = S.regColors.indexOf(i);
