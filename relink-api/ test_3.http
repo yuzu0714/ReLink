@@ -1,0 +1,26 @@
+### shelter権限のログイン
+# @name shelterLogin
+POST http://localhost:8080/auth/test-login?role=shelter
+
+###
+
+### ①一覧取得
+GET http://localhost:8080/shelter/pets
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+
+###
+
+### owner権限のログイン
+# @name ownerLogin
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+
+### ②owner権限で呼ぶ（403が返る）
+GET http://localhost:8080/shelter/pets
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+
+###
+
+### ③トークン無しで呼ぶ（401が返る）
+GET http://localhost:8080/shelter/pets
