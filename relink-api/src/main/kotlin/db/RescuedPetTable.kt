@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.javatime.datetime
 // カラム構成はFoundPetRegisterTableと同じ
 object RescuedPetRegisterTable : Table("rescuedpet_register") {
     val id = long("id").autoIncrement()
-    val photoUrl = text("photo_url").nullable()
+    // ★修正：photoUrlカラムの定義を削除（DB側でDROP COLUMN済み、pet_photosテーブルに移管したため）
     val foundPlace = text("found_place").nullable()
     val foundDate = datetime("found_date").nullable()
     val specie = text("specie").nullable()
