@@ -1,0 +1,15 @@
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc5MjAzNzh9.aG1YKa_L5PbluBkQf5q9zMK8cqJUz6fU5paEV-txuJI
+Content-Type: application/json
+
+{
+  "photoUrls": ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"],
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "テスト",
+  "lostPlace": "テスト市"
+}
