@@ -186,3 +186,464 @@
   border-color: var(--cyan-soft);
   background: #fcfdfe;
 }
+
+.owner-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.owner-action {
+  min-height: 80px;
+}
+
+.owner-action .emo {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: linear-gradient(140deg, var(--navy), var(--navy-2));
+  color: var(--cyan-soft);
+}
+
+.owner-notice-icon {
+  background: linear-gradient(140deg, var(--magenta), #be185d);
+}
+
+.owner-page .fade {
+  animation: owner-fade .28s ease;
+}
+
+@keyframes owner-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.owner-page .imgbox {
+  border: 2px dashed var(--cyan);
+  border-radius: 16px;
+  padding: 26px;
+  text-align: center;
+  background: #f2feff;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.owner-page .imgbox:hover {
+  background: #e6fbff;
+}
+
+.owner-page .imgbox .big {
+  font-size: 38px;
+}
+
+.owner-page .imgbox .cap {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.owner-page .owner-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.owner-page .owner-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 11px;
+  background-size: cover;
+  background-position: center;
+}
+
+.owner-page .swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.owner-page .sw {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform .1s;
+}
+
+.owner-page .sw:hover {
+  transform: scale(1.08);
+}
+
+.owner-page .sw.on {
+  border-color: var(--navy);
+}
+
+.owner-page .owner-pet-photo {
+  height: 180px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 80px;
+  color: #fff;
+}
+
+.owner-page .owner-pet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-page .owner-pet-title .title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.owner-page .owner-info-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.owner-page .owner-info-card > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.owner-page .owner-info-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.owner-page .owner-info-card b {
+  font-size: 13px;
+}
+
+.owner-page .loader-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  background: linear-gradient(180deg, #fff, #f0f3ff);
+}
+
+.owner-page .loader-wrap .eyebrow {
+  color: var(--magenta);
+}
+
+.owner-page .paw-container {
+  width: 130px;
+  height: 130px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.owner-page .paw-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 12px rgba(20, 20, 102, .08));
+}
+
+.owner-page .mm {
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--navy);
+  margin-top: 6px;
+}
+
+.owner-page .barwrap {
+  width: 100%;
+  max-width: 280px;
+  margin: 14px auto 0;
+}
+
+.owner-page .bar {
+  height: 14px;
+  background: #e4e8f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.owner-page .bar > i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, var(--magenta), var(--magenta) 8px, var(--magenta-soft) 8px, var(--magenta-soft) 16px);
+  transition: width .3s;
+  border-radius: 999px;
+}
+
+.owner-page .pct {
+  font-weight: 800;
+  color: var(--magenta);
+  font-size: 20px;
+  margin-top: 8px;
+}
+
+.owner-page .cancel-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 18px;
+  font-family: inherit;
+}
+
+.owner-page .cancel-link:hover {
+  color: var(--navy);
+}
+
+.owner-page .score {
+  margin-left: auto;
+  text-align: center;
+  flex: none;
+}
+
+.owner-page .score b {
+  display: block;
+  font-size: 19px;
+  color: var(--magenta);
+  line-height: 1;
+}
+
+.owner-page .score span {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.owner-page .notif {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.owner-page .notif .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--magenta);
+  flex: none;
+  margin-top: 5px;
+}
+
+.owner-page .notif.read .dot {
+  background: var(--line);
+}
+
+.owner-page .notif .nt {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.owner-page .notif .nb {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.owner-page .notif .tm {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+
+/*ペット保護・登録画面用 CSS*/
+
+h2.title {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-top: 4px;
+}
+
+.imgbox {
+  border: 2px dashed var(--cyan);
+  border-radius: 16px;
+  padding: 26px;
+  text-align: center;
+  background: #f2feff;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.imgbox:hover {
+  background: #e6fbff;
+}
+
+.imgbox .big {
+  font-size: 38px;
+}
+
+.imgbox .cap {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: #fff;
+  position: relative;
+}
+
+.thumb .x {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+}
+
+.swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sw {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform .1s;
+}
+
+.sw:hover {
+  transform: scale(1.08);
+}
+
+.sw.on {
+  border-color: var(--navy);
+}
+
+.fade {
+  animation: fade .28s ease;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*pet detail*/
+
+.pet-main {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.pet-photo {
+  flex: 3;
+  min-height: 0;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: #c8935f;
+  font-size: 80px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.pet-detail-info {
+  flex: 7;
+}
+
+.pet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pet-info {
+  padding: 14px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.info-row b {
+  font-size: 13px;
+  text-align: right;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+
+  margin-bottom: 8px;
+}
+
+.map {
+  width: 100%;
+  height: 220px;
+
+  border-radius: 16px;
+
+  background: #eef1fa;
+
+  display: grid;
+  place-items: center;
+
+  color: var(--muted);
+  font-size: 13px;
+
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .pet-main {
+    flex-direction: column;
+  }
+  .pet-photo {
+    height: 200px;
+    flex: none;
+  }
+}

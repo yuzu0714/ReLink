@@ -2,6 +2,7 @@ package com
 
 import com.exceptions.ForbiddenException
 import com.models.ErrorResponse
+import com.services.AiServiceException
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
@@ -14,6 +15,14 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.Forbidden,
                 ErrorResponse("FORBIDDEN", cause.message ?: "この操作を行う権限がありません")
+            )
+        }
+        // ↓↓↓ 追加:AI特徴抽出サーバー(match_api.py)との通信に失敗した場合(502)
+        // match_api.pyが起動していない/応答が想定外の形式だった、などのケース
+        exception<AiServiceException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadGateway,
+                ErrorResponse("AI_SERVICE_ERROR", cause.message ?: "AI特徴抽出サーバーとの通信に失敗しました")
             )
         }
         // ① 想定内のエラー：リクエストの中身が悪い
