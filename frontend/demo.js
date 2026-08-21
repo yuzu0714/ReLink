@@ -518,9 +518,9 @@ function initOwnerPage(){
   }
 
   // 種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIの解析結果で埋める
+  // (そのほか欄には首輪情報のみを書く。犬種・毛色はセレクト/スウォッチの選択だけに使う)
   function applyOwnerAiTags(tags){
     const notes = [];
-    const breedOrType = tags.breed || tags.animalType;
 
     if(!ownerState.specie){
       const guess = guessSpecieOption(tags.animalType, tags.breed);
@@ -530,13 +530,11 @@ function initOwnerPage(){
         if(sel) sel.value = guess;
       }
     }
-    if(breedOrType) notes.push(`AI推定: ${breedOrType}`);
 
     if(ownerState.color === null && tags.coatColor){
       const idx = colorKeywordIndex(tags.coatColor);
       if(idx !== -1) pickOwnerColor(idx);
     }
-    if(tags.coatColor) notes.push(`毛色: ${tags.coatColor}`);
 
     if(tags.hasCollar){
       notes.push(`首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`);
@@ -1429,9 +1427,9 @@ async function aiAutoFill(){
 }
 
 // AIの解析結果({animalType, breed, coatColor, hasCollar, collarFeatures})を、未入力の項目にだけ反映する
+// (そのほか欄には首輪情報のみを書く。犬種・毛色はセレクト/スウォッチの選択だけに使う)
 function applyAiTags(tags){
   const notes = [];
-  const breedOrType = tags.breed || tags.animalType;
 
   if(!S.specie){
     const guess = guessSpecieOption(tags.animalType, tags.breed);
@@ -1441,13 +1439,11 @@ function applyAiTags(tags){
       if(sel) sel.value = guess;
     }
   }
-  if(breedOrType) notes.push(`AI推定: ${breedOrType}`);
 
   if(S.regColors.length === 0 && tags.coatColor){
     const idx = colorKeywordIndex(tags.coatColor);
     if(idx !== -1) pickColor(idx);
   }
-  if(tags.coatColor) notes.push(`毛色: ${tags.coatColor}`);
 
   if(tags.hasCollar){
     notes.push(`首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`);
