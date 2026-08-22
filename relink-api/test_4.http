@@ -13,3 +13,37 @@ Content-Type: application/json
   "other": "テスト",
   "lostPlace": "テスト市"
 }
+
+### finder権限トークン取得
+POST http://localhost:8080/auth/test-login?role=finder
+
+### 発見ペット登録（複数枚写真）
+POST http://localhost:8080/pets/found
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3OTY3NTMzfQ.KJTsQQQ8DMYFTSAxjdUQo0m_KvSXfNiH2HTFiqTb__w
+Content-Type: application/json
+
+{
+  "photoUrls": ["https://example.com/found1.jpg", "https://example.com/found2.jpg"],
+  "foundPlace": "テスト市",
+  "foundDate": "2026-08-20T10:00:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "首輪あり"
+}
+
+### shelter権限トークン取得
+POST http://localhost:8080/auth/test-login?role=shelter
+
+### 保護ペット登録（複数枚写真）
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4Nzk2NzU1OX0.nvysQP4VE8qunVOS4illUENSlaQ52Mkb_NwgoDvzTt4
+Content-Type: application/json
+
+{
+  "photoUrls": ["https://example.com/rescued1.jpg", "https://example.com/rescued2.jpg", "https://example.com/rescued3.jpg"],
+  "foundPlace": "○○保健所",
+  "foundDate": "2026-08-20T11:30:00",
+  "specie": "猫",
+  "color": "白黒",
+  "other": null
+}

@@ -28,6 +28,10 @@ import com.models.RescuedPetRegisterRequest
 import com.models.RescuedPetRegisterResponse
 import com.repositories.RescuedPetRepository
 
+// ★修正：ContactRequest / ContactRepository の import が漏れていたため追加
+import com.models.ContactRequest
+import com.repositories.ContactRepository
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -113,5 +117,18 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.Created, RescuedPetRegisterResponse(id = insertedId))
             }
         }
+        // ★修正：/contacts を authenticate ブロックの外に移動
+        // 決定事項③（JWT認証なし、match_idの実在チェックのみ）を反映するため
+        // authenticate の"外"にあるルートは、トークン無しで誰でも呼び出せる
+        post("/contacts") {
+            val request = call.receive<ContactRequest>()
+
+            if (!ContactRepository.matchExists(request.matchId)) {
+                throw NoSuchElementException("指定されたmatch_idが見つかりません: ${request.matchId}")
+            }
+
+            val response = ContactRepository.insert(request)
+            call.respond(HttpStatusCode.Created, response)
+        } 
     }
 }
