@@ -32,6 +32,10 @@ import com.repositories.RescuedPetRepository
 import com.models.ContactRequest
 import com.repositories.ContactRepository
 
+// 委任タスク: 保護ペット一覧取得API(GET /shelter/pets、shelter向け)
+import com.models.ShelterPetListResponse
+import com.repositories.ShelterPetListRepository
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -116,6 +120,22 @@ fun Application.configureRouting() {
 
                 call.respond(HttpStatusCode.Created, RescuedPetRegisterResponse(id = insertedId))
             }
+
+            // 委任タスク: 保護ペット一覧取得API(shelter向け)
+            // foundpet_register・rescuedpet_registerの両方から全件取得して1つにまとめて返す(単純なSELECTのみ、
+            // matchesテーブル関連の絞り込みは含まない)。/pets/rescued と同じく authenticate{} 直下の兄弟として置くこと
+            // (他のルートの中にネストするとビルドは通ってもルートが404になるので注意)
+            get("/shelter/pets") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val pets = ShelterPetListRepository.getAll()
+                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+            }
         }
         // ★修正：/contacts を authenticate ブロックの外に移動
         // 決定事項③（JWT認証なし、match_idの実在チェックのみ）を反映するため
@@ -129,6 +149,6 @@ fun Application.configureRouting() {
 
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
-        } 
+        }
     }
 }

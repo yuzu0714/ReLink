@@ -23,7 +23,6 @@ fun Application.configureStatusPages() {
                 ErrorResponse("BAD_REQUEST", cause.message ?: "リクエストが不正です")
             )
         }
-        
         // ★修正：kotlinx.serialization.SerializationException ではなく
         // io.ktor.server.plugins.BadRequestException で捕まえるように変更
         // （実際にサーバーログで確認したところ、call.receive()のJSON変換失敗時に
