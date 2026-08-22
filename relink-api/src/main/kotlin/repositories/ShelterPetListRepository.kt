@@ -14,10 +14,18 @@ object ShelterPetListRepository {
         return transaction {
             // select { } は非推奨のため selectAll() を使う
             val foundRows = FoundPetRegisterTable.selectAll().map { row ->
+                val petId = row[FoundPetRegisterTable.id]
+                // ★修正：photoUrlカラムはpet_photosテーブルに移管されたため削除。
+                // 代わりにPetPhotoRepositoryから代表写真(sort_order=0の1枚)だけを取得する
+                // (一覧画面はサムネイル的に1枚見えれば十分という判断のため)
+                val representativePhotoUrl = PetPhotoRepository.findByPet("found", petId)
+                    .firstOrNull { it.sortOrder == 0 }
+                    ?.photoUrl ?: ""
+
                 val item = ShelterPetListItem(
-                    id = row[FoundPetRegisterTable.id],
+                    id = petId,
                     source = "found",
-                    photoUrl = row[FoundPetRegisterTable.photoUrl] ?: "",
+                    photoUrl = representativePhotoUrl,
                     place = row[FoundPetRegisterTable.foundPlace] ?: "",
                     date = row[FoundPetRegisterTable.foundDate]?.toString() ?: "",
                     specie = row[FoundPetRegisterTable.specie] ?: "",
@@ -29,10 +37,16 @@ object ShelterPetListRepository {
             }
 
             val rescuedRows = RescuedPetRegisterTable.selectAll().map { row ->
+                val petId = row[RescuedPetRegisterTable.id]
+                // ★修正：同上（rescued側）
+                val representativePhotoUrl = PetPhotoRepository.findByPet("rescued", petId)
+                    .firstOrNull { it.sortOrder == 0 }
+                    ?.photoUrl ?: ""
+
                 val item = ShelterPetListItem(
-                    id = row[RescuedPetRegisterTable.id],
+                    id = petId,
                     source = "rescued",
-                    photoUrl = row[RescuedPetRegisterTable.photoUrl] ?: "",
+                    photoUrl = representativePhotoUrl,
                     place = row[RescuedPetRegisterTable.foundPlace] ?: "",
                     date = row[RescuedPetRegisterTable.foundDate]?.toString() ?: "",
                     specie = row[RescuedPetRegisterTable.specie] ?: "",
