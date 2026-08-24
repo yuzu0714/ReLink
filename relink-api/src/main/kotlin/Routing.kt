@@ -46,6 +46,9 @@ import com.models.MatchingRunResponse
 // ↓↓↓ 既存のimportに追加 ↓↓↓
 import com.models.ContactStatusUpdateRequest
 
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.models.MatchResultItem
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -84,7 +87,6 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
             }
 
-            // authenticate{} 直下の兄弟ルートとして外に出した
             post("/pets/lost") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -96,7 +98,23 @@ fun Application.configureRouting() {
                 val request = call.receive<LostPetRegisterRequest>()
                 val insertedId = LostPetRepository.insert(request)
 
-                call.respond(HttpStatusCode.Created, LostPetRegisterResponse(id = insertedId))
+                // ★新規追加：登録が成功した直後に、自動でマッチング処理(SQL絞り込み→AI類似度判定→matches保存)を実行する
+                // これまでは/matching/runを手動で叩く必要があったが、本番導線として自動化した
+                //
+                // ★重要：マッチング処理自体が失敗しても、迷子ペットの「登録」自体は成功として扱う
+                // (写真がまだ無い、候補が1件も見つからない、AIサーバーが一時的に落ちている等の理由で
+                //  マッチングが失敗しても、ユーザーが行いたかった「登録」まで巻き添えで失敗させないための設計)
+                val matchResults: List<MatchResultItem> = try {
+                    MatchingService.runMatching(insertedId)
+                } catch (e: Exception) {
+                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
+                    emptyList()
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                )
             }
 
             // Part 2 追加①: 発見API(foundpet_register へのINSERT、finder向け)
