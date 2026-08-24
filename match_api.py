@@ -27,11 +27,27 @@
 #     "has_collar": false,
 #     "collar_features": null
 #   }
+#
+# 追加: POST /compare-photos（迷子側の写真群 と 候補1件の写真群を直接AIに見比べさせて、
+#       同一個体である可能性をスコアで返す）。
+#   候補が複数いる場合、Kotlin側でこのエンドポイントを候補ごとに1回ずつ呼ぶ想定
+#   （このエンドポイント自体は常に「迷子側 vs 候補1件」の1対1比較のみを行う）。
+#
+# 使い方（例. curl）:
+#   curl -X POST http://localhost:8000/compare-photos \
+#     -H "Content-Type: application/json" \
+#     -d '{"photoUrls": ["https://.../a.jpg"], "candidatePhotoUrls": ["https://.../b.jpg"]}'
+#
+# レスポンス（JSON）:
+#   {
+#     "similarity_score": 0.85,
+#     "reason": "毛色と体格が近く、首輪の柄も一致"
+#   }
 
 from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 import common
 
@@ -44,6 +60,20 @@ class ExtractedFeatures(BaseModel):
     coat_color: Optional[str] = None
     has_collar: bool = False
     collar_features: Optional[str] = None
+
+
+# リクエストはKotlin側からJSONで送られてくる（camelCaseのキー: photoUrls / candidatePhotoUrls）。
+# Python側の変数名はsnake_caseのままにして、Field(alias=...)でJSONのキー名だけ合わせている。
+class ComparePhotosRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    photo_urls: List[str] = Field(alias="photoUrls")
+    candidate_photo_urls: List[str] = Field(alias="candidatePhotoUrls")
+
+
+class ComparePhotosResponse(BaseModel):
+    similarity_score: float
+    reason: str
 
 
 @app.get("/health")
@@ -69,3 +99,18 @@ async def extract_features(photos: List[UploadFile] = File(...)):
         raise HTTPException(status_code=502, detail=str(e)) from e
 
     return ExtractedFeatures(**tags)
+
+
+@app.post("/compare-photos", response_model=ComparePhotosResponse)
+async def compare_photos(request: ComparePhotosRequest):
+    if not request.photo_urls:
+        raise HTTPException(status_code=400, detail="photoUrls が1枚も指定されていません。")
+    if not request.candidate_photo_urls:
+        raise HTTPException(status_code=400, detail="candidatePhotoUrls が1枚も指定されていません。")
+
+    try:
+        result = common.compare_photo_urls(request.photo_urls, request.candidate_photo_urls)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+    return ComparePhotosResponse(**result)
