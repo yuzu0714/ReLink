@@ -2,6 +2,7 @@ package com.repositories
 
 import com.db.RescuedPetRegisterTable
 import com.models.RescuedPetRegisterRequest
+import com.repositories.PetPhotoRepository // ★修正：import漏れを追加(これが無いとUnresolved referenceになる)
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
@@ -9,8 +10,6 @@ import java.time.LocalDateTime
 // rescuedpet_register への書き込みだけを担当するクラス
 object RescuedPetRepository {
     fun insert(request: RescuedPetRegisterRequest): Long {
-        // 発見API(FoundPetRepository)と同じく、日時パース失敗を
-        // 400(IllegalArgumentException)に変換する処理
         val parsedDate = try {
             LocalDateTime.parse(request.foundDate)
         } catch (e: java.time.format.DateTimeParseException) {
@@ -18,7 +17,6 @@ object RescuedPetRepository {
         }
         return transaction {
             val insertedId = RescuedPetRegisterTable.insert {
-                // ★修正：photoUrlカラムへの代入を削除（pet_photosテーブルに移管したため）
                 it[foundPlace] = request.foundPlace
                 it[foundDate] = parsedDate
                 it[specie] = request.specie
@@ -26,8 +24,6 @@ object RescuedPetRepository {
                 it[other] = request.other
             } get RescuedPetRegisterTable.id
 
-            // ★新規追加：本体のINSERTに成功したidを使って、pet_photosテーブルに
-            // 複数枚の写真をまとめてINSERTする
             PetPhotoRepository.insertPhotos(
                 petSource = "rescued",
                 petId = insertedId,

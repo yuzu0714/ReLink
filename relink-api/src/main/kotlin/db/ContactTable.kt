@@ -16,10 +16,6 @@ object ContactTable : Table("contacts") {
     override val primaryKey = PrimaryKey(id)
 }
 
-// ★新規追加：match_id存在チェック専用の最小限テーブル定義
-// Day3で本格的なMatchesTable/MatchRepositoryを作るまでの「仮の存在確認用」オブジェクト
-// idカラムだけ持たせていて、SELECT EXISTSのためだけに使う
-object MatchTable : Table("matches") {
-    val id = long("id")
-    override val primaryKey = PrimaryKey(id)
-}
+// ★修正(Day3-3)：仮の存在確認用MatchTableを削除しました
+// 理由：本物のMatchesTable(db/MatchesTable.kt)ができたため、
+//       同じ"matches"テーブルに対して2つのExposed定義が存在する状態を避けるため統合

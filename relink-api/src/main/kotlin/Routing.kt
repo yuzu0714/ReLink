@@ -36,6 +36,13 @@ import com.repositories.ContactRepository
 import com.models.ShelterPetListResponse
 import com.repositories.ShelterPetListRepository
 
+// ★新規追加：Day3のマッチング絞り込み機能の動作確認用
+import com.repositories.MatchingRepository
+
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.services.MatchingService
+import com.models.MatchingRunResponse
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -137,6 +144,20 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
             }
         }
+        
+        // ★新規追加：Day3 SQL絞り込みロジックの動作確認用エンドポイント
+        // クエリパラメータでspecie・color・lostPlaceを受け取り、
+        // MatchingRepository.findCandidates()で絞り込んだ結果をそのまま返すだけの仮実装
+        // (本番では/pets/lostの登録時などに自動で走らせる想定。今は単体動作確認が目的)
+        get("/matching/test") {
+            val specie = call.request.queryParameters["specie"]
+            val color = call.request.queryParameters["color"]
+            val lostPlace = call.request.queryParameters["lostPlace"]
+
+            val candidates = MatchingRepository.findCandidates(specie, color, lostPlace)
+            call.respond(HttpStatusCode.OK, candidates)
+        }
+        
         // ★修正：/contacts を authenticate ブロックの外に移動
         // 決定事項③（JWT認証なし、match_idの実在チェックのみ）を反映するため
         // authenticate の"外"にあるルートは、トークン無しで誰でも呼び出せる
@@ -149,6 +170,25 @@ fun Application.configureRouting() {
 
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
+        }
+        
+        // ★新規追加(Day3-3)：SQL絞り込み→AI類似度判定→matches保存、の一連の流れを動作確認するための仮エンドポイント
+        // /matching/testと同じく認証なし(authenticateブロックの外)に置いている
+        // 本番実装時は/pets/lost登録時などに自動で呼ばれる形に置き換える予定
+        post("/matching/run") {
+            val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
+
+            val results = MatchingService.runMatching(lostPetId)
+
+            call.respond(
+                HttpStatusCode.OK,
+                MatchingRunResponse(
+                    lostPetId = lostPetId,
+                    candidateCount = results.size,
+                    results = results
+                )
+            )
         }
     }
 }

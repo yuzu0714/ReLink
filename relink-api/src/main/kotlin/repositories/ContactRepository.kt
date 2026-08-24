@@ -1,7 +1,7 @@
 package com.repositories
 
 import com.db.ContactTable
-import com.db.MatchTable
+import com.db.MatchesTable // ★修正：MatchTable(仮) → MatchesTable(本物)にimport差し替え
 import com.models.ContactRequest
 import com.models.ContactResponse
 import org.jetbrains.exposed.sql.*
@@ -12,9 +12,9 @@ import kotlin.random.Random
 
 object ContactRepository {
 
-    // ★修正：非推奨の select{} → selectAll().where{} に変更（ビルドがwarning=errorモードのため）
+    // ★修正：MatchTable → MatchesTable に差し替え（それ以外の処理内容は変更なし）
     fun matchExists(matchId: Long): Boolean = transaction {
-        MatchTable.selectAll().where { MatchTable.id eq matchId }.limit(1).any()
+        MatchesTable.selectAll().where { MatchesTable.id eq matchId }.limit(1).any()
     }
 
     fun insert(request: ContactRequest): ContactResponse = transaction {
@@ -27,7 +27,6 @@ object ContactRepository {
             it[note] = request.note
         } get ContactTable.id
 
-        // ★修正：非推奨の select{} → selectAll().where{} に変更
         ContactTable.selectAll().where { ContactTable.id eq insertedId }
             .first()
             .let { row ->
