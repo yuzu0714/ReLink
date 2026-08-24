@@ -43,6 +43,9 @@ import com.repositories.MatchingRepository
 import com.services.MatchingService
 import com.models.MatchingRunResponse
 
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.models.ContactStatusUpdateRequest
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -170,6 +173,20 @@ fun Application.configureRouting() {
 
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
+        }
+        
+        // ★新規追加：contactsのステータスを更新するAPI(認証なし、matches.idの実在チェックと同じノリ)
+        // 保健所側の運用画面などから、連絡の進捗(pending→contacted→confirmed/rejected)を更新する想定
+        patch("/contacts/{id}/status") {
+            val id = call.parameters["id"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("idは数値で指定してください")
+
+            val request = call.receive<ContactStatusUpdateRequest>()
+
+            val updated = ContactRepository.updateStatus(id, request.status)
+                ?: throw NoSuchElementException("指定されたcontacts.idが見つかりません: $id")
+
+            call.respond(HttpStatusCode.OK, updated)
         }
         
         // ★新規追加(Day3-3)：SQL絞り込み→AI類似度判定→matches保存、の一連の流れを動作確認するための仮エンドポイント

@@ -1,0 +1,34 @@
+### ① matches.idを1つ用意する（既存のtest_1.htmlやtest_4.httpで作ったmatchIdを使ってもOK）
+### ② そのmatchIdでcontactsを作成
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 3,
+  "contactedByPhone": "090-1234-5678",
+  "note": "テスト連絡"
+}
+
+### ③ ②のレスポンスで返ってきたidを使って、ステータスを更新
+PATCH http://localhost:8080/contacts/25/status
+Content-Type: application/json
+
+{
+  "status": "contacted"
+}
+
+### ④ 異常系：許可されてない値を送ってみる(400が返るはず)
+PATCH http://localhost:8080/contacts/1/status
+Content-Type: application/json
+
+{
+  "status": "unknown_status"
+}
+
+### ⑤ 異常系：存在しないidを指定してみる(404が返るはず)
+PATCH http://localhost:8080/contacts/99999/status
+Content-Type: application/json
+
+{
+  "status": "confirmed"
+}
