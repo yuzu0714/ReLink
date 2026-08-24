@@ -11,7 +11,7 @@ POST http://localhost:8080/auth/test-login?role=owner
 ### ② 迷子ペットの写真をアップロード
 # @name lostPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzgwMDJ9.QFS1fOTdeqZxXkf78ZnVz3iFJ1gnJb9JjLDjVUEhRd0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -28,11 +28,11 @@ Content-Type: image/jpeg
 # 1枚しかなくても配列 [ ] で囲んで送る必要がある
 # @name lostPetRegister
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzgwMDJ9.QFS1fOTdeqZxXkf78ZnVz3iFJ1gnJb9JjLDjVUEhRd0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/3bde7e17-feaf-430e-96eb-3be94b146cc3_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/ac0a2474-e097-4d07-bb7e-c5eaedd6f2fb_test.jpg"],
   "phoneNumber": "090-1234-5678",
   "specie": "柴犬",
   "color": "茶色",
@@ -51,7 +51,7 @@ POST http://localhost:8080/auth/test-login?role=finder
 ### ⑤ 発見ペットの写真をアップロード
 # @name foundPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc4MDUwfQ.UCXoDCgi-Eeb5xseAPFcUBgidbBK53FA83msHPcqBd4
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -67,11 +67,11 @@ Content-Type: image/jpeg
 # ★修正：photoUrl(単数) → photoUrls(配列)に変更
 # @name foundPetRegister
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc4MDUwfQ.UCXoDCgi-Eeb5xseAPFcUBgidbBK53FA83msHPcqBd4
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/2500f2f9-ab77-4c3d-857a-0a38d70d1b70_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/c20c95f5-39f5-4e1c-bd93-42cfd469d020_test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-24T09:30:00",
   "specie": "柴犬",
