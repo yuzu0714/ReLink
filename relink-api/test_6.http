@@ -11,14 +11,14 @@ POST http://localhost:8080/auth/test-login?role=owner
 ### ② 迷子ペットの写真をアップロード
 # @name lostPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzQ2MjV9.rYCYPi1OVC5QwdWwkYAtBeI-kdlMp3Xw3JvXvB61gC4
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzgwMDJ9.QFS1fOTdeqZxXkf78ZnVz3iFJ1gnJb9JjLDjVUEhRd0
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
 Content-Disposition: form-data; name="photo"; filename="test.jpg"
 Content-Type: image/jpeg
 
-< ./test.jpg
+< ./test-assets/test.jpg
 --WebAppBoundary--
 
 ###
@@ -28,11 +28,11 @@ Content-Type: image/jpeg
 # 1枚しかなくても配列 [ ] で囲んで送る必要がある
 # @name lostPetRegister
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzQ2MjV9.rYCYPi1OVC5QwdWwkYAtBeI-kdlMp3Xw3JvXvB61gC4
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgxNzgwMDJ9.QFS1fOTdeqZxXkf78ZnVz3iFJ1gnJb9JjLDjVUEhRd0
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/b8f2e97f-852e-4c6a-b74d-5eb68a018643_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/3bde7e17-feaf-430e-96eb-3be94b146cc3_test.jpg"],
   "phoneNumber": "090-1234-5678",
   "specie": "柴犬",
   "color": "茶色",
@@ -51,14 +51,14 @@ POST http://localhost:8080/auth/test-login?role=finder
 ### ⑤ 発見ペットの写真をアップロード
 # @name foundPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc0NjY4fQ.NFd4ubeq1sAxIsvWKcvzFjsDwex0NjIDDBzhCI6yPXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc4MDUwfQ.UCXoDCgi-Eeb5xseAPFcUBgidbBK53FA83msHPcqBd4
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
 Content-Disposition: form-data; name="photo"; filename="test.jpg"
 Content-Type: image/jpeg
 
-< ./test.jpg
+< ./test-assets/test.jpg
 --WebAppBoundary--
 
 ###
@@ -67,11 +67,11 @@ Content-Type: image/jpeg
 # ★修正：photoUrl(単数) → photoUrls(配列)に変更
 # @name foundPetRegister
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc0NjY4fQ.NFd4ubeq1sAxIsvWKcvzFjsDwex0NjIDDBzhCI6yPXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MTc4MDUwfQ.UCXoDCgi-Eeb5xseAPFcUBgidbBK53FA83msHPcqBd4
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/be0b3e8c-1a2f-4a7a-aab0-ab8086fd665b_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/2500f2f9-ab77-4c3d-857a-0a38d70d1b70_test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-24T09:30:00",
   "specie": "柴犬",
@@ -83,3 +83,12 @@ Content-Type: application/json
 
 ### ⑦ マッチング実行！（本命）
 POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.body.$.id}}
+
+### 動作確認手順メモ
+### 1,ReLinkフォルダでAIサーバー起動
+###   uvicorn match_api:app --host 0.0.0.0 --port 8000
+
+### 2,ReLink/relink-apiフォルダでバックエンドサーバー起動
+###   .\gradlew.bat run 
+
+### 3,上のやつ実行
