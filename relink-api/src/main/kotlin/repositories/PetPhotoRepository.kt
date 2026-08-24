@@ -5,14 +5,25 @@ import com.models.PetPhotoItem
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
-// ★新規追加：写真の複数枚INSERT・取得を担当するリポジトリ
-// 他のRepositoryと同じくobject（シングルトン）として定義
+// 写真の複数枚INSERT・取得を担当するリポジトリ
 object PetPhotoRepository {
 
-    // ★新規追加：指定したpetSource + petIdに対して、複数枚の写真URLをまとめてINSERTする
-    // 3つの登録Repository（Lost/Found/Rescued）全部からここを呼んでもらう共通処理として切り出した
-    // （前回「委任先2人に同じ修正が伝わらなかった」学びを踏まえ、共通処理は1箇所にまとめる方針）
+    // ★新規追加：写真の上限枚数(チームで10枚と決定)。
+    // どこか1箇所で数値を管理しておくことで、後で変更する時にここだけ直せば済むようにしている
+    private const val MAX_PHOTOS_PER_PET = 10
+
+    // 指定したpetSource + petIdに対して、複数枚の写真URLをまとめてINSERTする
+    // 3つの登録Repository（Lost/Found/Rescued）全部からここを呼んでもらう共通処理
     fun insertPhotos(petSource: String, petId: Long, photoUrls: List<String>) = transaction {
+        // ★新規追加：写真の一括保存時点(photoUrls配列がペット1匹分まとまって届くタイミング)で
+        // 枚数をチェックする。Lost/Found/Rescuedの3つのRepositoryが全部ここを共通で通るため、
+        // この1箇所に制限を書くだけで3つすべてに反映される
+        if (photoUrls.size > MAX_PHOTOS_PER_PET) {
+            throw IllegalArgumentException(
+                "写真は${MAX_PHOTOS_PER_PET}枚までしか登録できません(現在${photoUrls.size}枚)"
+            )
+        }
+
         // 配列のインデックスをそのままsort_orderとして使う（0番目が代表写真）
         photoUrls.forEachIndexed { index, url ->
             PetPhotoTable.insert {
@@ -24,8 +35,7 @@ object PetPhotoRepository {
         }
     }
 
-    // ★新規追加：指定したpetSource + petIdに紐づく写真一覧を、sort_order昇順で取得する
-    // （一覧・詳細表示APIから使う想定。今回はまだ呼び出し元は無いが、後続タスクのために先に用意しておく）
+    // 指定したpetSource + petIdに紐づく写真一覧を、sort_order昇順で取得する
     fun findByPet(petSource: String, petId: Long): List<PetPhotoItem> = transaction {
         PetPhotoTable.selectAll()
             .where { (PetPhotoTable.petSource eq petSource) and (PetPhotoTable.petId eq petId) }

@@ -92,3 +92,22 @@ POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.bod
 ###   .\gradlew.bat run 
 
 ### 3,上のやつ実行
+
+### 枚数制限テスト：11枚の写真URLを送って400が返ることを確認
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Content-Type: application/json
+
+{
+  "photoUrls": [
+    "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg",
+    "https://example.com/4.jpg", "https://example.com/5.jpg", "https://example.com/6.jpg",
+    "https://example.com/7.jpg", "https://example.com/8.jpg", "https://example.com/9.jpg",
+    "https://example.com/10.jpg", "https://example.com/11.jpg"
+  ],
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "テスト",
+  "lostPlace": "テスト市"
+}
