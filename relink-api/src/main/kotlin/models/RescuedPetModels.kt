@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 // カラム構成はfoundpet_registerと同じ(photo_url / found_place / found_date / specie / color / other)
 @Serializable
 data class RescuedPetRegisterRequest(
-    val photoUrl: String,      // ← photo_url に対応
+    // ★修正：photoUrl(単数・String) → photoUrls(複数・List<String>)に変更
+    val photoUrls: List<String>,
     val foundPlace: String,    // ← found_place に対応
     val foundDate: String,     // ← found_date に対応(ISO8601形式の文字列。例: "2026-08-17T15:04:05")
     val specie: String,
