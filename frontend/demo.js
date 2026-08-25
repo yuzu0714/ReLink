@@ -131,6 +131,37 @@ async function callAiExtractFeatures(photoFiles){
   return res.json(); // { animalType, breed, coatColor, hasCollar, collarFeatures }
 }
 
+// 複数枚の写真を /pets/photos に1枚ずつアップロードし、返ってきたphotoUrlを配列で集める。
+// バックエンドのpet_photosテーブル移行(backend_contacts_mergeの統合)により、
+// /pets/lost・/pets/found・/pets/rescued は photoUrl(単数) ではなく
+// photoUrls: List<String>(複数)を必須で受け取るようになったため、
+// 登録時はこの関数でまとめてアップロードしてから配列として渡す。
+const MAX_PHOTOS_PER_PET = 10;
+async function uploadPhotos(files, token){
+  if(!files || files.length === 0){
+    throw new Error('写真を1枚以上追加してください。');
+  }
+  if(files.length > MAX_PHOTOS_PER_PET){
+    throw new Error(`写真は${MAX_PHOTOS_PER_PET}枚までしか登録できません(現在${files.length}枚)。`);
+  }
+  const photoUrls = [];
+  for(const file of files){
+    const form = new FormData();
+    form.append('photo', file);
+    const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form,
+    });
+    if(!uploadRes.ok){
+      throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
+    }
+    const { photoUrl } = await uploadRes.json();
+    photoUrls.push(photoUrl);
+  }
+  return photoUrls;
+}
+
 // 犬種・動物種のフリーテキストを、固定セレクトの選択肢に近いものへざっくり寄せる。
 // 判別できない場合は自動選択しない(ユーザーに選んでもらう)。細かい犬種名は
 // 呼び出し側で「そのほか」欄に残すので、ここでの選択が多少ざっくりでも情報は失われない。
@@ -469,6 +500,12 @@ function initOwnerPage(){
 
   const homeMarkup = ownerScreen.innerHTML;
   let ownerMatchTimer = null;
+  // 進行中の/matching/runリクエストが「今表示している画面」のものかどうかを見分けるための番号。
+  // キャンセルして別画面に移動した後にレスポンスが返ってきても、古いリクエストの結果で
+  // 画面を上書きしてしまわないようにするためのガード。
+  let ownerMatchRequestToken = 0;
+  // 直近のマッチング結果(showPetDetailで参照するため保持しておく)
+  let ownerMatchResults = [];
 
   // 登録フォームの入力値をここにまとめる(showRegister()を開くたびに初期化される)
   let ownerState = { photos: [], color: null, specie: '', other: '', phone: '', lostPlace: '' };
@@ -614,19 +651,7 @@ function initOwnerPage(){
     submitBtn.textContent = '登録中…';
 
     try {
-      const firstPhoto = ownerState.photos[0].file;
-      const form = new FormData();
-      form.append('photo', firstPhoto);
-
-      const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: form,
-      });
-      if(!uploadRes.ok){
-        throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
-      }
-      const { photoUrl } = await uploadRes.json();
+      const photoUrls = await uploadPhotos(ownerState.photos.map(p => p.file), token);
 
       const lostRes = await fetch(`${API_BASE}/pets/lost`, {
         method: 'POST',
@@ -635,7 +660,7 @@ function initOwnerPage(){
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          photoUrl,
+          photoUrls,
           phoneNumber: ownerState.phone,
           specie: ownerState.specie,
           color: colorNames[ownerState.color],
@@ -652,8 +677,9 @@ function initOwnerPage(){
         throw new Error((body && body.message) || ('登録に失敗しました。(status ' + lostRes.status + ')'));
       }
 
-      // 登録できたら、そのままAIマッチングのアニメーションへ(マッチング自体は未実装)
-      showMatching();
+      const lostBody = await lostRes.json();
+      // 登録できたら、そのまま実際のAIマッチング(/matching/run)を呼び出す
+      showMatching(lostBody.id);
     } catch (err) {
       console.error(err);
       alert(err.message || '登録中にエラーが発生しました。');
@@ -672,44 +698,149 @@ function initOwnerPage(){
       </div>`;
   }
 
-  function showMatching(){
+  // 実際のバックエンド(/matching/run)を呼び出してマッチングを実行する。
+  // 完了まで何秒かかるか分からないので、進捗バーは95%までは見た目だけで進めておき、
+  // レスポンスが返ってきたタイミングで100%にしてから結果画面に切り替える。
+  function showMatching(lostPetId){
     ownerScreen.innerHTML = `${ownerAppbar('AIマッチング')}
       <div class="loader-wrap fade"><div class="eyebrow">AI MATCHING</div><div class="paw-container"><svg class="paw-svg" viewBox="0 0 100 100"><defs><mask id="owner-paw-mask"><g transform="translate(3.8, 90) scale(0.018, -0.018)"><path d="M1799 4626 c-124 -45 -260 -153 -360 -284 -199 -263 -298 -687 -230 -987 29 -128 67 -247 96 -305 56 -110 206 -235 330 -272 54 -17 95 -22 175 -21 93 0 116 4 195 33 118 42 168 72 237 143 126 128 169 279 172 602 1 234 -14 369 -64 555 -49 186 -87 278 -150 368 -57 81 -103 122 -179 158 -79 37 -141 40 -222 10z" fill="white"/><path d="M3085 4626 c-183 -58 -269 -174 -373 -501 -71 -224 -71 -225 -86 -370 -22 -204 0 -521 43 -635 68 -178 192 -281 411 -341 110 -30 256 -32 348 -5 120 36 273 159 326 263 58 115 108 353 107 507 -2 235 -79 512 -206 736 -100 177 -230 291 -389 339 -77 24 -123 25 -181 7z" fill="white"/><path d="M598 3326 c-95 -34 -187 -115 -261 -231 -59 -92 -92 -173 -122 -298 -71 -292 -73 -593 -4 -800 61 -183 158 -302 305 -373 145 -71 296 -89 439 -52 66 17 205 99 272 162 140 130 212 392 169 618 -44 235 -199 552 -381 782 -98 124 -166 172 -273 195 -67 14 -98 13 -144 -3z" fill="white"/><path d="M4290 3327 c-106 -25 -164 -66 -260 -187 -191 -240 -356 -583 -390 -815 -30 -200 31 -437 145 -563 56 -62 101 -94 210 -151 106 -55 217 -70 349 -48 112 20 236 78 307 144 218 202 285 590 183 1053 -47 211 -127 367 -244 473 -104 93 -188 120 -300 94z" fill="white"/><path d="M2379 2616 c-120 -36 -168 -64 -262 -155 -108 -104 -132 -137 -242 -326 -130 -224 -228 -366 -298 -432 -64 -60 -219 -181 -342 -268 -114 -81 -221 -189 -255 -259 -49 -100 -65 -177 -64 -311 0 -229 70 -368 242 -479 246 -159 527 -170 888 -35 170 64 229 71 511 67 269 -5 268 -5 479 -81 334 -122 624 -103 856 54 84 57 133 109 166 176 58 115 67 157 66 303 0 119 -3 145 -27 215 -32 96 -68 156 -133 219 -48 46 -74 66 -308 242 -184 138 -244 199 -339 342 -46 70 -114 181 -152 247 -93 165 -139 227 -238 322 -96 92 -147 121 -273 158 -106 31 -175 31 -275 1z" fill="white"/></g></mask></defs><g mask="url(#owner-paw-mask)"><rect x="0" y="0" width="100" height="100" fill="var(--line)"/><rect id="owner-paw-fill" x="0" y="100" width="100" height="100" fill="url(#owner-paw-gradient)"/></g><defs><linearGradient id="owner-paw-gradient" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="var(--magenta)"/><stop offset="100%" stop-color="var(--cyan)"/></linearGradient></defs></svg></div><div class="mm">マッチング中…</div><div class="barwrap"><div class="bar"><i id="ownerBar" style="width:0%"></i></div><div class="pct" id="ownerPct">0%</div></div><div class="lede" style="max-width:260px">保護中のペットの中から、外見と首輪の特徴が近い子を探しています。</div><button class="cancel-link" type="button" data-owner-action="register">時間がかかる場合はキャンセル</button></div>`;
+    const myToken = ++ownerMatchRequestToken;
     let progress = 0;
     ownerMatchTimer = setInterval(() => {
-      progress = Math.min(100, progress + 10);
+      // 実際のレスポンスが返ってくるまでは95%で止めておき、完了した瞬間に100%へ進める
+      progress = Math.min(95, progress + 5);
       const bar = document.getElementById('ownerBar');
       const pct = document.getElementById('ownerPct');
       const fill = document.getElementById('owner-paw-fill');
       if (bar) bar.style.width = `${progress}%`;
       if (pct) pct.textContent = `${progress}%`;
       if (fill) fill.setAttribute('y', 85 - (progress / 100) * 78);
-      if (progress >= 100) { clearInterval(ownerMatchTimer); ownerMatchTimer = null; setTimeout(showResults, 420); }
-    }, 120);
+    }, 200);
+
+    fetch(`${API_BASE}/matching/run?lostPetId=${lostPetId}`, { method: 'POST' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body && body.message) || ('マッチングに失敗しました。(status ' + res.status + ')'));
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (myToken !== ownerMatchRequestToken) return; // 画面がすでに切り替わっている場合は無視
+        if (ownerMatchTimer) { clearInterval(ownerMatchTimer); ownerMatchTimer = null; }
+        ownerMatchResults = (data && data.results) || [];
+        const bar = document.getElementById('ownerBar');
+        const pct = document.getElementById('ownerPct');
+        const fill = document.getElementById('owner-paw-fill');
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
+        if (fill) fill.setAttribute('y', 85 - 78);
+        setTimeout(() => { if (myToken === ownerMatchRequestToken) showResults(ownerMatchResults); }, 350);
+      })
+      .catch((err) => {
+        if (myToken !== ownerMatchRequestToken) return;
+        if (ownerMatchTimer) { clearInterval(ownerMatchTimer); ownerMatchTimer = null; }
+        console.error(err);
+        alert(err.message || 'マッチング処理中にエラーが発生しました。');
+        ownerScreen.innerHTML = homeMarkup;
+      });
   }
 
-  function showResults(){
+  function showResults(results){
+    const list = results || [];
+    const body = list.length === 0
+      ? `<div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
+          <b style="color:var(--navy)">候補が見つかりませんでした</b>
+          <div class="lede">現在登録されている保護ペットの中には、条件に近い子がいませんでした。新しく保護情報が登録された際に改めてお知らせします。</div>
+        </div>`
+      : `<div class="card" style="background:#f2f4ff;border-color:#d8ddfb"><b style="color:var(--navy)">${list.length}件ヒットしました</b><div class="lede">マッチ率が高い順に表示しています。</div></div>
+        ${list.map((item, i) => {
+          const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見された個体';
+          return `<div class="match-card" data-owner-action="pet-detail" data-match-index="${i}">
+            <div class="ph" style="background:${petSwatch(i)}">🐕</div>
+            <div><div class="name">${sourceLabel} #${item.protectedPetId}</div><div class="meta">${item.reason ? item.reason : ''}</div></div>
+            <div class="score"><b>${Math.round(item.matchScore)}%</b><span>マッチ率</span></div>
+          </div>`;
+        }).join('')}`;
     ownerScreen.innerHTML = `${ownerAppbar('マッチング結果')}
-      <div class="pad stack fade"><div class="card" style="background:#f2f4ff;border-color:#d8ddfb"><b style="color:var(--navy)">6件ヒットしました</b><div class="lede">マッチ率が高い順に表示しています。</div></div>
-        ${[['ぽん太',95,'#c8935f','柴犬・オス / ○○保健所で保護 / 首輪：赤い革'],['候補 2',93,'#e8c9a0','柴犬・推定オス / △△市で発見 / 首輪：赤系'],['候補 3',91,'#7a5230','柴系雑種 / □□町で保護 / 首輪あり'],['候補 4',89,'#3d3d3d','柴犬・不明 / 発見者宅で一時保護'],['候補 5',87,'#e5e5e5','中型犬 / ○○市 / 首輪：色不明'],['候補 6',86,'#f0f0f0','柴系 / △△市で保護']].map(([name, score, color, meta]) => `<div class="match-card" data-owner-action="pet-detail"><div class="ph" style="background:${color}">🐕</div><div><div class="name">${name}</div><div class="meta">${meta}</div></div><div class="score"><b>${score}%</b><span>マッチ率</span></div></div>`).join('')}
+      <div class="pad stack fade">${body}</div>`;
+  }
+
+  function showPetDetail(index){
+    const item = ownerMatchResults[index];
+    if (!item) { ownerScreen.innerHTML = homeMarkup; return; }
+    const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見者に保護されている個体';
+    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細')}
+      <div class="pad stack fade">
+        <div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>
+        <div class="owner-pet-title"><h2 class="title">${sourceLabel} #${item.protectedPetId}</h2><span class="pill mag">マッチ率 ${Math.round(item.matchScore)}%</span></div>
+        <div class="card owner-info-card"><div><span>AIの判定理由</span><b>${item.reason || '（コメントなし）'}</b></div></div>
+        <div class="card">
+          <div class="field"><label>連絡先電話番号</label><input class="input" id="contactPhone" type="tel" placeholder="090-0000-0000"></div>
+          <div class="field"><label>メモ（任意）</label><textarea class="input" id="contactNote" placeholder="伝えたいことがあれば入力してください"></textarea></div>
+          <button class="btn btn-magenta" type="button" id="sendContactBtn" data-owner-action="send-contact" data-match-id="${item.matchId}">この子について連絡する</button>
+        </div>
       </div>`;
   }
 
-  function showPetDetail(){
-    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細')}
-      <div class="pad stack fade"><div class="owner-pet-photo" style="background:#c8935f">🐕</div><div class="owner-pet-title"><h2 class="title">ぽん太</h2><span class="pill mag">マッチ率 95%</span></div><div class="card owner-info-card"><div><span>種類</span><b>柴犬 / オス</b></div><div><span>毛色</span><b>薄い茶色・白</b></div><div><span>首輪</span><b>赤い革製</b></div><div><span>保護場所</span><b>○○保健所</b></div></div><button class="btn btn-magenta" type="button" data-owner-action="home">この子について保健所に連絡する</button></div>`;
+  // マッチした候補について、保護元へ連絡する(/contacts)
+  async function sendContact(matchId){
+    const phoneInput = document.getElementById('contactPhone');
+    const noteInput = document.getElementById('contactNote');
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    if (!phone) {
+      alert('連絡先電話番号を入力してください。');
+      return;
+    }
+    const btn = document.getElementById('sendContactBtn');
+    const originalLabel = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+    try {
+      const res = await fetch(`${API_BASE}/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId,
+          contactedByPhone: phone,
+          note: (noteInput && noteInput.value.trim()) || null,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error((errBody && errBody.message) || ('連絡の送信に失敗しました。(status ' + res.status + ')'));
+      }
+      const data = await res.json();
+      showContactDone(data.receptionNumber);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '連絡の送信中にエラーが発生しました。');
+      if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
+    }
+  }
+
+  function showContactDone(receptionNumber){
+    ownerScreen.innerHTML = `${ownerAppbar('連絡完了')}
+      <div class="pad stack fade">
+        <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
+          <b style="color:var(--navy)">連絡を送信しました</b>
+          <div class="lede">受付番号：<b>${receptionNumber}</b></div>
+          <div class="lede">この番号を控えて、担当者からの連絡をお待ちください。</div>
+        </div>
+        <button class="btn btn-magenta" type="button" data-owner-action="home">ホームに戻る</button>
+      </div>`;
   }
 
   ownerScreen.addEventListener('click', (event) => {
     const action = event.target.closest('[data-owner-action]');
     if (action) {
       const name = action.dataset.ownerAction;
-      if (ownerMatchTimer && name !== 'matching') { clearInterval(ownerMatchTimer); ownerMatchTimer = null; }
+      if (ownerMatchTimer) { clearInterval(ownerMatchTimer); ownerMatchTimer = null; ownerMatchRequestToken++; }
       if (name === 'register') showRegister();
       if (name === 'notify' || name === 'notice-list') showNotify();
       if (name === 'submit-lost') submitLost();
       if (name === 'ai-fill') aiAutoFillOwner();
-      if (name === 'pet-detail') showPetDetail();
+      if (name === 'pet-detail') showPetDetail(Number(action.dataset.matchIndex));
+      if (name === 'send-contact') sendContact(Number(action.dataset.matchId));
       if (name === 'home' && ownerScreen.innerHTML !== homeMarkup) ownerScreen.innerHTML = homeMarkup;
       if (name === 'switch-role') {
         sessionStorage.removeItem('selectedRole');
@@ -924,16 +1055,16 @@ const screens = {
 
       ${finder ? `
       <div class="field"><label>発見場所</label>
-        <input class="input" id="foundPlace" value="${S.foundPlace||''}" placeholder="市区町村" oninput="S.foundPlace=this.value"></div>
+        <input class="input" id="foundPlace" value="${S.foundPlace||''}" placeholder="市区町村" oninput="setFoundPlace(this.value)"></div>
       <div class="field"><label>発見日時</label>
-        <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate||''}" oninput="S.foundDate=this.value"></div>
+        <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate||''}" oninput="setFoundDate(this.value)"></div>
       ` : `
       <div class="field"><label>連絡先電話番号</label>
         <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
       `}
 
       <div class="field"><label>種類・犬種</label>
-        <select class="input" id="specie" onchange="S.specie=this.value">
+        <select class="input" id="specie" onchange="setSpecie(this.value)">
           <option value="">選択してください</option>
           <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
           <option>猫（雑種）</option><option>その他</option>
@@ -945,9 +1076,9 @@ const screens = {
         </div></div>
 
       <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
-        <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="S.other=this.value">${S.other||''}</textarea></div>
+        <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="setOther(this.value)">${S.other||''}</textarea></div>
 
-      <button class="btn btn-magenta" onclick="go('step2')">
+      <button class="btn btn-magenta" onclick="goToStep2()">
         🐾 登録
       </button>
       <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
@@ -1359,6 +1490,52 @@ screen.innerHTML = screens[name]();
 if (name === 'step2' && typeof initStep2 === 'function') initStep2();
 }
 
+// 発見場所・発見日時・種類・そのほか欄の入力を S に反映するための関数。
+// 【原因判明】これまでは <input oninput="S.foundPlace=this.value"> のように
+// HTML属性の中に直接 S への代入を書いていたが、inline属性のイベントハンドラは
+// このIIFE内のローカル変数(const Sなど)にはアクセスできず、グローバルスコープの
+// S を探しに行ってしまう。ここでは const S しか無い(windowには乗っていない)ため、
+// 実際には「S is not defined」というエラーがコンソールに出て代入自体が失敗し、
+// 画面の入力欄には文字が表示されていても S.foundPlace は空のまま、という状態になっていた
+// (これが「発見場所を入力しているのに入力してくださいと言われる」不具合の正体)。
+// 対策として、代入は必ずこのIIFE内の関数(=Sへのクロージャを持つ関数)経由で行い、
+// HTML属性側からはその関数をwindow経由で呼び出すだけにする。
+function setFoundPlace(v){ S.foundPlace = v; }
+function setFoundDate(v){ S.foundDate = v; }
+function setSpecie(v){ S.specie = v; }
+function setOther(v){ S.other = v; }
+
+// STEP1(register画面)の「🐾 登録」ボタンから呼ばれる。
+// 以前はSTEP1では何もチェックせずSTEP2へ進めていたため、発見場所などの入力が
+// 抜けたままSTEP2(保護方法の選択画面。発見場所の入力欄はここには無い)まで進んでしまい、
+// 「登録して完了」を押した瞬間に「発見場所を入力してください」と言われても
+// 画面上に直す場所が無い、という分かりにくい状態になっていた。
+// そのため、STEP1からSTEP2へ進む前にここで必須項目をチェックし、
+// 足りない項目があればSTEP1の画面(該当の入力欄が見えている状態)で知らせるようにする。
+function goToStep2(){
+  if(S.regPhotos.length === 0){
+    alert('写真を1枚以上追加してください。');
+    return;
+  }
+  if(!S.foundPlace){
+    alert('発見場所を入力してください。');
+    return;
+  }
+  if(!S.foundDate){
+    alert('発見日時を入力してください。');
+    return;
+  }
+  if(!S.specie){
+    alert('種類・犬種を選択してください。');
+    return;
+  }
+  if(S.regColors.length === 0){
+    alert('毛色を選択してください。');
+    return;
+  }
+  go('step2');
+}
+
 function renderThumbs(){
   return S.regPhotos.map((p,i)=>`
     <div class="thumb" style="${p && p.src ? `background-image:url('${p.src}');background-size:cover;background-position:center` : `background:${petSwatch(i)}`}" onclick="event.stopPropagation()">
@@ -1495,19 +1672,7 @@ async function submitFound(){
   submitBtn.textContent = '登録中…';
 
   try {
-    const firstPhoto = S.regPhotos[0].file;
-    const form = new FormData();
-    form.append('photo', firstPhoto);
-
-    const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: form,
-    });
-    if(!uploadRes.ok){
-      throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
-    }
-    const { photoUrl } = await uploadRes.json();
+    const photoUrls = await uploadPhotos(S.regPhotos.map(p => p.file), token);
 
     // 保護方法(STEP2で選んだラジオボタン)を、そのほか欄に追記して情報を残す
     const methodLabels = { temporary: '自宅保護', shelter: '保護団体・シェルターへ引き渡し', healthcenter: '保健所へ引き渡し' };
@@ -1529,7 +1694,7 @@ async function submitFound(){
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        photoUrl,
+        photoUrls,
         foundPlace: S.foundPlace,
         foundDate: S.foundDate,
         specie: S.specie,
@@ -1592,6 +1757,11 @@ function initStep2(){
     window.pickColor = pickColor;
     window.aiAutoFill = aiAutoFill;
     window.submitFound = submitFound;
+    window.goToStep2 = goToStep2;
+    window.setFoundPlace = setFoundPlace;
+    window.setFoundDate = setFoundDate;
+    window.setSpecie = setSpecie;
+    window.setOther = setOther;
   }
 })();
 
