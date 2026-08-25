@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 // DBのカラム名(snake_case)をKotlinの命名規則(camelCase)に合わせて変換している
 @Serializable
 data class FoundPetRegisterRequest(
-    val photoUrl: String,      // ← photo_url に対応
+    // ★修正：photoUrl(単数・String) → photoUrls(複数・List<String>)に変更
+    val photoUrls: List<String>,
     val foundPlace: String,    // ← found_place に対応
     val foundDate: String,     // ← found_date に対応(ISO8601形式の文字列。例: "2026-08-17T15:04:05")
     val specie: String,

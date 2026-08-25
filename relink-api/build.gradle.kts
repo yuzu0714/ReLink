@@ -35,6 +35,8 @@ dependencies {
      // ↓↓↓ 追加:画像アップロードでSupabase Storage APIを叩くためのHTTPクライアント ↓↓↓
     implementation(ktorLibs.client.core)
     implementation(ktorLibs.client.cio)
+    // ★新規追加：AiSimilarityServiceでJSONを送受信するために必要
+    implementation(ktorLibs.client.contentNegotiation)
     //追加分
     implementation("org.jetbrains.exposed:exposed-core:0.55.0")
     implementation("org.jetbrains.exposed:exposed-dao:0.55.0")

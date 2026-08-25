@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
 // DBのカラム名(snake_case)をKotlinの命名規則(camelCase)に合わせて変換している
 @Serializable
 data class LostPetRegisterRequest(
-    val photoUrl: String,       // ← photo_url に対応
+    // ★修正：photoUrl(単数・String) → photoUrls(複数・List<String>)に変更
+    // 写真の保存先が pet_photos テーブルに移管され、複数枚登録できるようにしたため
+    val photoUrls: List<String>,
     val phoneNumber: String,    // ← phone_number に対応
     val specie: String,
     val color: String,

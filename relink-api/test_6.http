@@ -1,0 +1,113 @@
+### ============================================================
+### Day3-3 動作確認用：迷子ペット登録 → 発見ペット登録 → マッチング実行
+### ============================================================
+
+### ① owner権限でログイン
+# @name ownerLogin
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+
+### ② 迷子ペットの写真をアップロード
+# @name lostPhotoUpload
+POST http://localhost:8080/pets/photos
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photo"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
+
+###
+
+### ③ 迷子ペット本体を登録（/pets/lost）
+# ★修正：photoUrl(単数) → photoUrls(配列)に変更。モデル側がList<String>を要求するようになったため、
+# 1枚しかなくても配列 [ ] で囲んで送る必要がある
+# @name lostPetRegister
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Content-Type: application/json
+
+{
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/ac0a2474-e097-4d07-bb7e-c5eaedd6f2fb_test.jpg"],
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "赤い首輪をしていた",
+  "lostPlace": "石川県 輪島市 ○○町"
+}
+
+###
+
+### ④ finder権限でログイン
+# @name finderLogin
+POST http://localhost:8080/auth/test-login?role=finder
+
+###
+
+### ⑤ 発見ペットの写真をアップロード
+# @name foundPhotoUpload
+POST http://localhost:8080/pets/photos
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photo"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
+
+###
+
+### ⑥ 発見ペット本体を登録（/pets/found）
+# ★修正：photoUrl(単数) → photoUrls(配列)に変更
+# @name foundPetRegister
+POST http://localhost:8080/pets/found
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
+Content-Type: application/json
+
+{
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/c20c95f5-39f5-4e1c-bd93-42cfd469d020_test.jpg"],
+  "foundPlace": "石川県 輪島市 ○○町",
+  "foundDate": "2026-08-24T09:30:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "人懐っこい"
+}
+
+###
+
+### ⑦ マッチング実行！（本命）
+POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.body.$.id}}
+
+### 動作確認手順メモ
+### 1,ReLinkフォルダでAIサーバー起動
+###   uvicorn match_api:app --host 0.0.0.0 --port 8000
+
+### 2,ReLink/relink-apiフォルダでバックエンドサーバー起動
+###   .\gradlew.bat run 
+
+### 3,上のやつ実行
+
+### 枚数制限テスト：11枚の写真URLを送って400が返ることを確認
+POST http://localhost:8080/pets/lost
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Content-Type: application/json
+
+{
+  "photoUrls": [
+    "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg",
+    "https://example.com/4.jpg", "https://example.com/5.jpg", "https://example.com/6.jpg",
+    "https://example.com/7.jpg", "https://example.com/8.jpg", "https://example.com/9.jpg",
+    "https://example.com/10.jpg", "https://example.com/11.jpg"
+  ],
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "テスト",
+  "lostPlace": "テスト市"
+}
