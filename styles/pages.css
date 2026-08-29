@@ -647,3 +647,78 @@ h2.title {
     flex: none;
   }
 }
+
+/*お知らせ画面*/
+
+.notify-card {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 12px;
+
+    padding: 14px;
+
+    background: #fff;
+
+    border: 1px solid var(--line);
+
+    border-radius: 14px;
+
+    box-shadow: none;
+
+    cursor: pointer;
+}
+
+
+.notify-dot {
+    width: 10px;
+    height: 10px;
+
+    flex: none;
+
+    margin-top: 5px;
+
+    border-radius: 50%;
+
+    background: var(--line);
+}
+
+
+.notify-dot.unread {
+    background: var(--magenta);
+}
+
+
+.notify-content {
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+.notify-title {
+    font-weight: 700;
+
+    font-size: 13.5px;
+
+    color: var(--ink);
+}
+
+
+.notify-body {
+    margin-top: 3px;
+
+    font-size: 12px;
+
+    color: var(--muted);
+
+    line-height: 1.5;
+}
+
+.notify-time {
+    margin-top: 6px;
+
+    font-size: 10.5px;
+
+    color: var(--muted);
+}

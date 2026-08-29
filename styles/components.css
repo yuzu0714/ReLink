@@ -26,6 +26,10 @@
   text-decoration: none;
 }
 
+.appbar .back:hover {
+  background: rgba(255, 255, 255, .24);
+}
+
 .appbar h1 {
   font-size: 17px;
   font-weight: 800;

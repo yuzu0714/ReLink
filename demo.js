@@ -242,10 +242,43 @@ const screens = {
   },
 
   register(){
-    const finder = S.role !== 'owner';
-    const extraField = finder
-      ? `<div class="field"><label>発見場所</label><input class="input" value="石川県 輪島市 ○○町" placeholder="市区町村"></div><div class="field"><label>発見日時</label><input class="input" type="datetime-local" value="2026-07-07T09:30"></div>`
-      : `<div class="field"><label>連絡先電話番号</label><input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>`;
+  const isFinder = S.role === 'finder';
+  const isShelter = S.role === 'shelter';
+
+  const extraField = isShelter
+    ? `<div class="field">
+         <label>発見場所</label>
+         <input class="input" type="text" value="石川県 輪島市 ○○町" placeholder="市区町村">
+       </div>
+
+       <div class="field">
+         <label>発見日時</label>
+         <input class="input" type="datetime-local" value="2026-07-07T09:30">
+       </div>
+
+       <div class="field">
+         <label>保護場所</label>
+         <input class="input" type="text" value="石川県 輪島市 ○○保健所" placeholder="市区町村・施設名">
+       </div>
+
+       <div class="field">
+         <label>保護日時</label>
+         <input class="input" type="datetime-local" value="2026-07-07T10:15">
+       </div>`
+    : isFinder
+      ? `<div class="field">
+           <label>発見場所</label>
+           <input class="input" type="text" value="石川県 輪島市 ○○町" placeholder="市区町村">
+         </div>
+
+         <div class="field">
+           <label>発見日時</label>
+           <input class="input" type="datetime-local" value="2026-07-07T09:30">
+         </div>`
+      : `<div class="field">
+           <label>連絡先電話番号</label>
+           <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000">
+         </div>`;
 
     return renderTemplate('register-template', {
       appbar: buildAppbar(finder ? 'ペットを保護・登録' : 'ペット情報を登録', 'home', S.role),
@@ -305,11 +338,12 @@ const screens = {
 
   notify(){
     const items = [
-      {t:'似たペットが保護されました', b:'マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。詳細を確認してください。', tm:'たった今', read:false, to:'petDetail'},
-      {t:'AIマッチングが完了', b:'登録したペットについて6件の候補が見つかりました。', tm:'5分前', read:false, to:'results'},
-      {t:'受け渡し記録の共有', b:'発見者から飼い主へ直接引き渡された記録が保健所に共有されました。', tm:'2時間前', read:true, to:null},
-      {t:'新しい保護情報', b:'△△市でトイプードルが保護されました。登録内容と照合中です。', tm:'昨日', read:true, to:null},
+      {t:'飼い主候補が見つかりました', b:'AIマッチングの結果、飼い主候補が見つかりました。詳細を確認してください。', tm:'たった今', read:false, to:'results'},
+      {t:'新しい保護情報があります', b:'新しく登録された保護ペットの情報があります。内容を確認してください。', tm:'5分前', read:false, to:'register'},
+      {t:'マッチング結果が更新されました', b:'保護中のペットについて新しいマッチング結果が見つかりました。', tm:'2時間前', read:true, to:'results'},
+      {t:'保護情報の登録が完了しました', b:'保護したペットの情報が正常に登録されました。', tm:'昨日', read:true, to:'shelterList'},
     ];
+
     return renderTemplate('notify-template', {
       appbar: buildAppbar('お知らせ', 'home', S.role),
       rows: items.map(renderNotifItem).join(''),
@@ -674,6 +708,8 @@ function appbar(title, backTo, role){
 const screens = {
   register(){
     const finder = S.role!=='owner';
+    const isFinder = S.role === 'finder';
+    const isShelter = S.role === 'shelter';
     return `
     ${appbar(finder?'ペットを保護・登録':'ペット情報を登録','finder',S.role)}
     <div class="pad stack fade">
@@ -689,15 +725,42 @@ const screens = {
       </div>
       <div class="thumbs" id="thumbs">${renderThumbs()}</div>
 
-      ${finder ? `
-      <div class="field"><label>発見場所</label>
-        <input class="input" value="" placeholder="市区町村"></div>
-      <div class="field"><label>発見日時</label>
-        <input class="input" type="datetime-local"></div>
-      ` : `
-      <div class="field"><label>連絡先電話番号</label>
-        <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
-      `}
+      ${isShelter ? `
+        <div class="field">
+          <label>発見場所</label>
+          <input class="input" value="" placeholder="市区町村">
+        </div>
+
+        <div class="field">
+          <label>発見日時</label>
+          <input class="input" type="datetime-local">
+        </div>
+
+        <div class="field">
+          <label>保護場所</label>
+          <input class="input" value="" placeholder="市区町村・施設名">
+        </div>
+
+        <div class="field">
+          <label>保護日時</label>
+          <input class="input" type="datetime-local">
+        </div>
+        ` : isFinder ? `
+        <div class="field">
+          <label>発見場所</label>
+          <input class="input" value="" placeholder="市区町村">
+        </div>
+
+        <div class="field">
+          <label>発見日時</label>
+          <input class="input" type="datetime-local">
+        </div>
+        ` : `
+        <div class="field">
+          <label>連絡先電話番号</label>
+          <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000">
+        </div>
+        `}
 
       <div class="field"><label>種類・犬種</label>
         <select class="input">
