@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK — 新規保護登録（保護団体）</title>
+  
+  <!-- 機能・責務ごとに3つのCSSへ分割 -->
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen" id="screen">
+        
+        <!-- App bar -->
+        <div class="appbar">
+          <button class="back" id="backBtn" type="button">‹</button>
+          <h1>ペットを保護・登録</h1>
+          <div class="spacer"></div>
+          <span class="role-chip">保護団体</span>
+        </div>
+
+        <!-- Main Content -->
+        <div class="pad stack fade">
+          <div>
+            <div class="eyebrow">STEP 1 / 撮影</div>
+            <h2 class="title" style="font-size:19px">保護したペットを撮る</h2>
+            <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
+          </div>
+
+          <!-- 写真追加ボックス -->
+          <div class="imgbox" id="addPhotoBox">
+            <div class="big">📸</div>
+            <div class="cap">
+              <b style="color:var(--navy)">タップして写真を追加</b><br>
+              全体像 ＋ 首輪アップがおすすめ
+            </div>
+          </div>
+          
+          <!-- サムネイルプレビュー領域 -->
+          <div class="thumbs" id="thumbs"></div>
+
+          <!-- フォーム領域 -->
+          <div class="field">
+            <label>発見場所</label>
+            <input class="input" type="text" value="石川県 輪島市 ○○町" placeholder="市区町村">
+          </div>
+
+          <div class="field">
+            <label>発見日時</label>
+            <input class="input" type="datetime-local" value="2026-07-07T09:30">
+          </div>
+
+          <div class="field">
+            <label>保護場所</label>
+            <input class="input" type="text" value="石川県 輪島市 ○○保健所" placeholder="市区町村・施設名">
+          </div>
+
+          <div class="field">
+            <label>保護日時</label>
+            <input class="input" type="datetime-local" value="2026-07-07T10:15">
+          </div>
+
+          <div class="field">
+            <label>種類・犬種</label>
+            <select class="input">
+              <option value="柴犬" selected>柴犬</option>
+              <option value="トイプードル">トイプードル</option>
+              <option value="雑種（中型）">雑種（中型）</option>
+              <option value="猫（雑種）">猫（雑種）</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>毛色（複数選択可）</label>
+            <div class="swatches" id="swatches">
+              <div class="sw" style="background:#c8935f" data-color-index="0"></div>
+              <div class="sw" style="background:#e8c9a0" data-color-index="1"></div>
+              <div class="sw" style="background:#7a5230" data-color-index="2"></div>
+              <div class="sw" style="background:#3d3d3d" data-color-index="3"></div>
+              <div class="sw" style="background:#e5e5e5" data-color-index="4"></div>
+              <div class="sw" style="background:#f0f0f0" data-color-index="5"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>そのほか（アレルギー・伝えたいこと）</label>
+            <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。">赤い革の首輪。左後ろ足を少し引きずる。</textarea>
+          </div>
+
+          <!-- アクションボタン -->
+          <button class="btn btn-magenta" id="submitBtn" type="button">
+            🐾 AIマッチングを開始
+          </button>
+          
+          <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
