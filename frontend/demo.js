@@ -517,8 +517,8 @@ function initOwnerPage(){
   // 登録フォームの入力値をここにまとめる(showRegister()を開くたびに初期化される)
   let ownerState = { photos: [], color: null, specie: '', other: '', phone: '', lostPlace: '' };
 
-  function ownerAppbar(title){
-    return `<div class="appbar"><button class="back" type="button" data-owner-action="home">‹</button><h1>${title}</h1><div class="spacer"></div><span class="role-chip">Owner</span></div>`;
+  function ownerAppbar(title, backAction = 'home'){
+    return `<div class="appbar"><button class="back" type="button" data-owner-action="${backAction}">‹</button><h1>${title}</h1><div class="spacer"></div><span class="role-chip">Owner</span></div>`;
   }
 
   function showRegister(){
@@ -777,7 +777,7 @@ function initOwnerPage(){
     const item = ownerMatchResults[index];
     if (!item) { ownerScreen.innerHTML = homeMarkup; return; }
     const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見者に保護されている個体';
-    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細')}
+    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細', 'results')}
       <div class="pad stack fade">
         <div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>
         <div class="owner-pet-title"><h2 class="title">${sourceLabel} #${item.protectedPetId}</h2><span class="pill mag">マッチ率 ${Math.round(item.matchScore)}%</span></div>
@@ -847,6 +847,7 @@ function initOwnerPage(){
       if (name === 'submit-lost') submitLost();
       if (name === 'ai-fill') aiAutoFillOwner();
       if (name === 'pet-detail') showPetDetail(Number(action.dataset.matchIndex));
+      if (name === 'results') showResults(ownerMatchResults);
       if (name === 'send-contact') sendContact(Number(action.dataset.matchId));
       if (name === 'home' && ownerScreen.innerHTML !== homeMarkup) ownerScreen.innerHTML = homeMarkup;
       if (name === 'switch-role') {
@@ -1771,5 +1772,3 @@ function initStep2(){
     window.setOther = setOther;
   }
 })();
-
-
