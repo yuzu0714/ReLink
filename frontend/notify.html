@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>お知らせ | ReLINK</title>
+
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/pages.css">
+</head>
+
+<body data-page="notify">
+
+    <main class="screen">
+
+        <!-- 共通ヘッダー -->
+        <div class="appbar">
+            <button
+                class="back"
+                onclick="history.back()">
+                ‹
+            </button>
+
+            <h1>お知らせ</h1>
+
+            <div class="spacer"></div>
+
+            <span class="role-chip">
+                保護団体
+            </span>
+        </div>
+
+
+        <!-- お知らせ一覧 -->
+        <div class="pad stack">
+
+            <div class="notify-card">
+                <div class="notify-dot unread"></div>
+
+                <div class="notify-content">
+                    <div class="notify-title">
+                        似たペットが保護されました
+                    </div>
+
+                    <div class="notify-body">
+                        マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。詳細を確認してください。
+                    </div>
+
+                    <div class="notify-time">
+                        たった今
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="notify-card">
+                <div class="notify-dot unread"></div>
+
+                <div class="notify-content">
+                    <div class="notify-title">
+                        AIマッチングが完了
+                    </div>
+
+                    <div class="notify-body">
+                        登録したペットについて6件の候補が見つかりました。
+                    </div>
+
+                    <div class="notify-time">
+                        5分前
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="notify-card">
+                <div class="notify-dot"></div>
+
+                <div class="notify-content">
+                    <div class="notify-title">
+                        受け渡し記録の共有
+                    </div>
+
+                    <div class="notify-body">
+                        発見者から飼い主へ直接引き渡された記録が保健所に共有されました。
+                    </div>
+
+                    <div class="notify-time">
+                        2時間前
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="notify-card">
+                <div class="notify-dot"></div>
+
+                <div class="notify-content">
+                    <div class="notify-title">
+                        新しい保護情報
+                    </div>
+
+                    <div class="notify-body">
+                        △△市でトイプードルが保護されました。登録内容と照合中です。
+                    </div>
+
+                    <div class="notify-time">
+                        昨日
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+</html>

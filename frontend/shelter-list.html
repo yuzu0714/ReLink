@@ -78,7 +78,7 @@
       const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
       const status = statusCycle[index % statusCycle.length];
       return `
-        <div class="match-card" onclick="location.href='pet-detail.html'">
+        <div class="match-card" onclick="location.href='pet_detail.html'">
           <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
           <div style="min-width:0">
             <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
