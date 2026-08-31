@@ -169,6 +169,13 @@ function guessSpecieOption(animalType, breed){
   const text = `${animalType || ''} ${breed || ''}`;
   if(/柴/.test(text)) return '柴犬';
   if(/プードル/.test(text)) return 'トイプードル';
+  if (/プードル/.test(text)) return 'トイプードル';
+  if (/ドーベルマン/.test(text)) return 'ドーベルマン';
+  if (/チワワ/.test(text)) return 'チワワ';
+  if (/ゴールデン・レトリバー/.test(text)) return 'ゴールデン・レトリバー';
+  if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
+  if (/ハスキー/.test(text)) return 'ハスキー';
+  if (/パグ/.test(text)) return 'パグ';
   if(/猫/.test(text)) return '猫（雑種）';
   if(/雑種/.test(text)) return '雑種（中型）';
   if(/犬/.test(text)) return 'その他';
@@ -526,7 +533,7 @@ function initOwnerPage(){
         <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         <div class="field"><label>連絡先電話番号</label><input class="input" id="ownerPhone" type="tel" placeholder="090-0000-0000" value="${ownerState.phone}"></div>
         <div class="field"><label>紛失場所</label><input class="input" id="ownerLostPlace" placeholder="市区町村" value="${ownerState.lostPlace}"></div>
-        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option><option>猫（雑種）</option><option>その他</option></select></div>
+        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>雑種（中型）</option><option>猫（雑種）</option><option>その他</option></select></div>
         <div class="field"><label>毛色（1色選択）</label><div class="swatches" id="ownerSwatches">${petColors.map((color, index) => `<div class="sw" style="background:${color}" data-owner-color="${index}"></div>`).join('')}</div></div>
         <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label><textarea class="input" id="ownerOther" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
         <button class="btn btn-magenta" type="button" id="ownerSubmitBtn" data-owner-action="submit-lost">🐾 登録情報を登録してAIマッチングを開始</button>
