@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ReLINK — 新規保護登録（保護団体）</title>
-  
+
   <!-- 機能・責務ごとに3つのCSSへ分割 -->
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
@@ -15,10 +15,10 @@
     <div class="phone">
       <div class="notch"></div>
       <div class="screen" id="screen">
-        
+
         <!-- App bar -->
         <div class="appbar">
-          <button class="back" id="backBtn" type="button">‹</button>
+          <button class="back" id="backBtn" type="button" onclick="location.href='shelter.html'">‹</button>
           <h1>ペットを保護・登録</h1>
           <div class="spacer"></div>
           <span class="role-chip">保護団体</span>
@@ -32,43 +32,53 @@
             <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
           </div>
 
+          <!-- 写真を選ぶための隠しinput(タップするとこれが開く) -->
+          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+
           <!-- 写真追加ボックス -->
           <div class="imgbox" id="addPhotoBox">
             <div class="big">📸</div>
             <div class="cap">
               <b style="color:var(--navy)">タップして写真を追加</b><br>
-              全体像 ＋ 首輪アップがおすすめ
+              全体像 ＋ 首輪アップがおすすめ（最大10枚）
             </div>
           </div>
-          
+
           <!-- サムネイルプレビュー領域 -->
           <div class="thumbs" id="thumbs"></div>
+
+          <!-- AIによる自動入力 -->
+          <button class="btn btn-ghost btn-sm" id="aiFillBtn" type="button" style="width:100%">
+            🤖 写真からAIで自動入力（未入力の項目のみ）
+          </button>
+          <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
 
           <!-- フォーム領域 -->
           <div class="field">
             <label>発見場所</label>
-            <input class="input" type="text" value="石川県 輪島市 ○○町" placeholder="市区町村">
+            <input class="input" id="foundPlace" type="text" placeholder="市区町村">
           </div>
 
           <div class="field">
             <label>発見日時</label>
-            <input class="input" type="datetime-local" value="2026-07-07T09:30">
+            <input class="input" id="foundDate" type="datetime-local">
           </div>
 
           <div class="field">
             <label>保護場所</label>
-            <input class="input" type="text" value="石川県 輪島市 ○○保健所" placeholder="市区町村・施設名">
+            <input class="input" id="rescuePlace" type="text" placeholder="市区町村・施設名">
           </div>
 
           <div class="field">
             <label>保護日時</label>
-            <input class="input" type="datetime-local" value="2026-07-07T10:15">
+            <input class="input" id="rescueDate" type="datetime-local">
           </div>
 
           <div class="field">
             <label>種類・犬種</label>
-            <select class="input">
-              <option value="柴犬" selected>柴犬</option>
+            <select class="input" id="specieSelect">
+              <option value="" selected>選択してください</option>
+              <option value="柴犬">柴犬</option>
               <option value="トイプードル">トイプードル</option>
               <option value="雑種（中型）">雑種（中型）</option>
               <option value="猫（雑種）">猫（雑種）</option>
@@ -90,19 +100,283 @@
 
           <div class="field">
             <label>そのほか（アレルギー・伝えたいこと）</label>
-            <textarea class="input" placeholder="例）左耳が欠けている。人懐っこい。">赤い革の首輪。左後ろ足を少し引きずる。</textarea>
+            <textarea class="input" id="otherText" placeholder="例）左耳が欠けている。人懐っこい。"></textarea>
           </div>
 
           <!-- アクションボタン -->
           <button class="btn btn-magenta" id="submitBtn" type="button">
-            🐾 AIマッチングを開始
+            🐾 保護情報を登録する
           </button>
-          
-          <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
+
+          <div class="footnote">登録すると、飼い主からの迷子登録があった際に自動で照合されます。</div>
 
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    // このページは demo.js を読み込まない、完全に独立したスクリプトにしている。
+    // (demo.js を読み込むと、末尾の共通ルーター処理が data-page 未設定のこのページでも動いてしまい、
+    //  ここで組んだ画面をテンプレートの中身で上書きしてしまうため)
+    const API_BASE = 'http://localhost:8080';
+    const MAX_PHOTOS_PER_PET = 10;
+
+    // 毛色スウォッチの並び順と、バックエンドに送るテキストの対応(他ページと合わせている)
+    const colorNames = ['茶色','クリーム色','こげ茶色','黒','白','グレー'];
+
+    let photos = [];        // { file, dataUrl }[]
+    let selectedColors = []; // 選択中の毛色インデックス
+
+    const fileInput = document.getElementById('fileInput');
+    const addPhotoBox = document.getElementById('addPhotoBox');
+    const thumbs = document.getElementById('thumbs');
+    const aiFillBtn = document.getElementById('aiFillBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const specieSelect = document.getElementById('specieSelect');
+    const otherText = document.getElementById('otherText');
+
+    addPhotoBox.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (event) => {
+      const files = Array.from(event.target.files || []);
+      if (photos.length + files.length > MAX_PHOTOS_PER_PET) {
+        alert(`写真は${MAX_PHOTOS_PER_PET}枚までしか登録できません(現在${photos.length}枚)。`);
+        event.target.value = '';
+        return;
+      }
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+          photos.push({ file, dataUrl: loadEvent.target.result });
+          renderThumbs();
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';
+    });
+
+    function renderThumbs() {
+      thumbs.innerHTML = photos.map((p, i) => `
+        <div class="thumb" style="background-image:url('${p.dataUrl}');background-size:cover;background-position:center" onclick="event.stopPropagation()">
+          <div class="x" onclick="event.stopPropagation();removePhoto(${i})">×</div>
+        </div>`).join('');
+    }
+
+    function removePhoto(index) {
+      photos.splice(index, 1);
+      renderThumbs();
+    }
+    window.removePhoto = removePhoto;
+
+    document.getElementById('swatches').addEventListener('click', (event) => {
+      const sw = event.target.closest('.sw');
+      if (!sw) return;
+      const index = Number(sw.dataset.colorIndex);
+      if (selectedColors.includes(index)) {
+        selectedColors = selectedColors.filter((i) => i !== index);
+      } else {
+        selectedColors.push(index);
+      }
+      sw.classList.toggle('on', selectedColors.includes(index));
+    });
+
+    // 犬種・動物種のフリーテキストを、固定セレクトの選択肢に近いものへざっくり寄せる
+    function guessSpecieOption(animalType, breed) {
+      const text = `${animalType || ''} ${breed || ''}`;
+      if (/柴/.test(text)) return '柴犬';
+      if (/プードル/.test(text)) return 'トイプードル';
+      if (/ドーベルマン/.test(text)) return 'ドーベルマン';
+      if (/チワワ/.test(text)) return 'チワワ';
+      if (/ゴールデン・レトリバー/.test(text)) return 'ゴールデン・レトリバー';
+      if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
+      if (/ハスキー/.test(text)) return 'ハスキー';
+      if (/パグ/.test(text)) return 'パグ';
+      if (/猫/.test(text)) return '猫（雑種）';
+      if (/雑種/.test(text)) return '雑種（中型）';
+      if (/犬/.test(text)) return 'その他';
+      return '';
+    }
+
+    // 毛色のフリーテキストから、色見本(colorNames)に近いインデックスを探す
+    function colorKeywordIndex(text) {
+      for (let i = 0; i < colorNames.length; i++) {
+        if (text.includes(colorNames[i])) return i;
+      }
+      if (/黒/.test(text)) return 3;
+      if (/白/.test(text)) return 4;
+      if (/(グレー|灰)/.test(text)) return 5;
+      if (/茶/.test(text)) return 0;
+      return -1;
+    }
+
+    function pickColor(index) {
+      if (!selectedColors.includes(index)) {
+        selectedColors.push(index);
+        document.querySelector(`#swatches .sw[data-color-index="${index}"]`)?.classList.add('on');
+      }
+    }
+
+    // 写真をKotlinバックエンド経由でAI特徴抽出サーバー(match_api.py)に送り、
+    // まだ入力していない項目だけを自動入力する(すでに入力済みの項目は上書きしない)
+    aiFillBtn.addEventListener('click', async () => {
+      if (photos.length === 0) {
+        alert('先に写真を1枚以上追加してください。');
+        return;
+      }
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+        alert('ログインが必要です。ログイン画面からやり直してください。');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const originalLabel = aiFillBtn.textContent;
+      aiFillBtn.disabled = true;
+      aiFillBtn.textContent = 'AI解析中…';
+
+      try {
+        const form = new FormData();
+        photos.forEach((p) => form.append('photo', p.file));
+
+        const res = await fetch(`${API_BASE}/pets/extract-features`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: form,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body && body.message) || ('AI解析に失敗しました。(status ' + res.status + ')'));
+        }
+        const tags = await res.json(); // { animalType, breed, coatColor, hasCollar, collarFeatures }
+
+        if (!specieSelect.value) {
+          const guess = guessSpecieOption(tags.animalType, tags.breed);
+          if (guess) specieSelect.value = guess;
+        }
+        if (selectedColors.length === 0 && tags.coatColor) {
+          const idx = colorKeywordIndex(tags.coatColor);
+          if (idx !== -1) pickColor(idx);
+        }
+        if (tags.hasCollar) {
+          const note = `首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`;
+          if (!otherText.value) otherText.value = note;
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.message && err.message.includes('ログイン')) {
+          alert(err.message);
+          window.location.href = 'login.html';
+          return;
+        }
+        alert(err.message || 'AI解析中にエラーが発生しました。手動で入力してください。');
+      } finally {
+        aiFillBtn.disabled = false;
+        aiFillBtn.textContent = originalLabel;
+      }
+    });
+
+    // 複数枚の写真を /pets/photos に1枚ずつアップロードして、photoUrlの配列を作る
+    async function uploadPhotos(files, token) {
+      const photoUrls = [];
+      for (const file of files) {
+        const form = new FormData();
+        form.append('photo', file);
+        const uploadRes = await fetch(`${API_BASE}/pets/photos`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: form,
+        });
+        if (!uploadRes.ok) {
+          throw new Error('写真のアップロードに失敗しました。(status ' + uploadRes.status + ')');
+        }
+        const { photoUrl } = await uploadRes.json();
+        photoUrls.push(photoUrl);
+      }
+      return photoUrls;
+    }
+
+    // 保護情報をrelink-apiに登録する(POST /pets/rescued。shelter権限が必要)
+    submitBtn.addEventListener('click', async () => {
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+        alert('ログインが必要です。ログイン画面からやり直してください。');
+        window.location.href = 'login.html';
+        return;
+      }
+      if (photos.length === 0) {
+        alert('写真を1枚以上追加してください。');
+        return;
+      }
+      const foundPlace = document.getElementById('foundPlace').value.trim();
+      if (!foundPlace) {
+        alert('発見場所を入力してください。');
+        return;
+      }
+      const foundDate = document.getElementById('foundDate').value;
+      if (!foundDate) {
+        alert('発見日時を入力してください。');
+        return;
+      }
+      if (!specieSelect.value) {
+        alert('種類・犬種を選択してください。');
+        return;
+      }
+      if (selectedColors.length === 0) {
+        alert('毛色を選択してください。');
+        return;
+      }
+
+      const originalLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '登録中…';
+
+      try {
+        const photoUrls = await uploadPhotos(photos.map((p) => p.file), token);
+
+        // 保護場所・保護日時は/pets/rescuedの項目に無いので、そのほか欄に追記して情報を残す
+        // (finder側の保護方法登録と同じやり方)
+        const rescuePlace = document.getElementById('rescuePlace').value.trim();
+        const rescueDate = document.getElementById('rescueDate').value;
+        const extraNotes = [];
+        if (rescuePlace) extraNotes.push(`保護場所: ${rescuePlace}`);
+        if (rescueDate) extraNotes.push(`保護日時: ${rescueDate}`);
+        const otherValue = [otherText.value.trim(), ...extraNotes].filter(Boolean).join(' / ') || null;
+
+        const res = await fetch(`${API_BASE}/pets/rescued`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            photoUrls,
+            foundPlace,
+            foundDate,
+            specie: specieSelect.value,
+            color: selectedColors.map((i) => colorNames[i]).join('・'),
+            other: otherValue,
+          }),
+        });
+
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('この操作には保護団体(shelter)権限が必要です。ログインし直してください。');
+          }
+          const body = await res.json().catch(() => null);
+          throw new Error((body && body.message) || ('登録に失敗しました。(status ' + res.status + ')'));
+        }
+
+        alert('登録が完了しました。');
+        window.location.href = 'shelter.html';
+      } catch (err) {
+        console.error(err);
+        alert(err.message || '登録中にエラーが発生しました。');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    });
+  </script>
 </body>
 </html>
