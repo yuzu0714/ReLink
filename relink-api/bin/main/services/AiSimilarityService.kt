@@ -5,6 +5,7 @@ import com.models.AiSimilarityRequest
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -18,6 +19,18 @@ class AiSimilarityService(
     private val aiApiBase: String,
 ) {
     private val client = HttpClient(CIO) {
+        // ★修正：タイムアウト超過で失敗していたのを修正。
+        // /compare-photos は「迷子側・候補側それぞれの写真を全部ダウンロード→base64化→
+        // AI(Sakura AI)に複数枚まとめて投げて判定させる」という重い処理のため、
+        // Ktorクライアントのデフォルトのタイムアウト(明示指定しない場合、CIOエンジンの
+        // デフォルトで15秒程度)だと簡単に超えてしまい、
+        // 「Request timeout has expired」で候補がAI比較スキップ扱いになっていた。
+        // 写真が複数枚・AIの応答が遅いケースを考慮して長めに設定する。
+        install(HttpTimeout) {
+            requestTimeoutMillis = 120_000
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = 120_000
+        }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
