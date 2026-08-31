@@ -22,6 +22,7 @@ import mimetypes
 import os
 import sys
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from dotenv import load_dotenv
@@ -166,7 +167,7 @@ COMPARE_SYSTEM_PROMPT = """あなたは2つの写真グループが同じ1匹の
 def download_image_as_data_url(url: str) -> str:
     """写真URL（Supabase Storageなどの公開URL）をダウンロードして、
     data URL（base64）に変換する。AIへは data URL の形で渡す。"""
-    response = requests.get(url, timeout=30)
+    response = requests.get(url, timeout=60)
     if response.status_code >= 300:
         raise RuntimeError(f"写真のダウンロードに失敗しました (status={response.status_code}): {url}")
     filename = url.split("/")[-1].split("?")[0] or "photo.jpg"
@@ -176,14 +177,25 @@ def download_image_as_data_url(url: str) -> str:
 def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
     """迷子側の写真URL群(photo_urls)と、候補側の写真URL群(candidate_photo_urls)を
     1回のAI呼び出しで直接見比べ、{"similarity_score": 0.0〜1.0, "reason": str} を返す。
-    候補が複数いる場合は、この関数を候補ごとに1回ずつ呼ぶ想定（複数候補をまとめて渡さない）。"""
+    候補が複数いる場合は、この関数を候補ごとに1回ずつ呼ぶ想定（複数候補をまとめて渡さない）。
+    迷子側・候補側の写真を ThreadPoolExecutor で並列ダウンロードしてから AI に渡す。"""
+    all_urls = list(photo_urls) + list(candidate_photo_urls)
+    n_lost = len(photo_urls)
+
+    # 全写真を並列ダウンロード（順序を保ったまま）
+    with ThreadPoolExecutor(max_workers=min(len(all_urls), 8)) as executor:
+        encoded_all = list(executor.map(download_image_as_data_url, all_urls))
+
+    lost_encoded = encoded_all[:n_lost]
+    candidate_encoded = encoded_all[n_lost:]
+
     content = [{"type": "text", "text": "【行方不明のペットの写真】"}]
-    for url in photo_urls:
-        content.append({"type": "image_url", "image_url": {"url": download_image_as_data_url(url)}})
+    for enc in lost_encoded:
+        content.append({"type": "image_url", "image_url": {"url": enc}})
 
     content.append({"type": "text", "text": "【保護されたペットの写真】"})
-    for url in candidate_photo_urls:
-        content.append({"type": "image_url", "image_url": {"url": download_image_as_data_url(url)}})
+    for enc in candidate_encoded:
+        content.append({"type": "image_url", "image_url": {"url": enc}})
 
     content.append({"type": "text", "text": "これらは同じ1匹の動物だと思いますか？JSON形式で回答してください。"})
 
@@ -267,7 +279,7 @@ def upload_photo_bytes_to_supabase(file_bytes: bytes, filename: str, status: str
         "Content-Type": mime_type,
         "x-upsert": "true",
     }
-    response = requests.post(upload_url, headers=headers, data=file_bytes, timeout=30)
+    response = requests.post(upload_url, headers=headers, data=file_bytes, timeout=60)
     if response.status_code >= 300:
         raise RuntimeError(
             f"アップロード失敗 (status={response.status_code}): {response.text}"
@@ -289,7 +301,7 @@ def supabase_insert(table: str, payload: dict) -> None:
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     }
-    response = requests.post(insert_url, headers=headers, json=payload, timeout=30)
+    response = requests.post(insert_url, headers=headers, json=payload, timeout=60)
     if response.status_code >= 300:
         raise RuntimeError(f"登録失敗 (status={response.status_code}): {response.text}")
 
