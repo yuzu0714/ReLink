@@ -169,6 +169,13 @@ function guessSpecieOption(animalType, breed){
   const text = `${animalType || ''} ${breed || ''}`;
   if(/柴/.test(text)) return '柴犬';
   if(/プードル/.test(text)) return 'トイプードル';
+  if (/プードル/.test(text)) return 'トイプードル';
+  if (/ドーベルマン/.test(text)) return 'ドーベルマン';
+  if (/チワワ/.test(text)) return 'チワワ';
+  if (/ゴールデン・レトリバー/.test(text)) return 'ゴールデン・レトリバー';
+  if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
+  if (/ハスキー/.test(text)) return 'ハスキー';
+  if (/パグ/.test(text)) return 'パグ';
   if(/猫/.test(text)) return '猫（雑種）';
   if(/雑種/.test(text)) return '雑種（中型）';
   if(/犬/.test(text)) return 'その他';
@@ -510,8 +517,8 @@ function initOwnerPage(){
   // 登録フォームの入力値をここにまとめる(showRegister()を開くたびに初期化される)
   let ownerState = { photos: [], color: null, specie: '', other: '', phone: '', lostPlace: '' };
 
-  function ownerAppbar(title){
-    return `<div class="appbar"><button class="back" type="button" data-owner-action="home">‹</button><h1>${title}</h1><div class="spacer"></div><span class="role-chip">Owner</span></div>`;
+  function ownerAppbar(title, backAction = 'home'){
+    return `<div class="appbar"><button class="back" type="button" data-owner-action="${backAction}">‹</button><h1>${title}</h1><div class="spacer"></div><span class="role-chip">Owner</span></div>`;
   }
 
   function showRegister(){
@@ -526,7 +533,7 @@ function initOwnerPage(){
         <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         <div class="field"><label>連絡先電話番号</label><input class="input" id="ownerPhone" type="tel" placeholder="090-0000-0000" value="${ownerState.phone}"></div>
         <div class="field"><label>紛失場所</label><input class="input" id="ownerLostPlace" placeholder="市区町村" value="${ownerState.lostPlace}"></div>
-        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option><option>猫（雑種）</option><option>その他</option></select></div>
+        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>雑種（中型）</option><option>猫（雑種）</option><option>その他</option></select></div>
         <div class="field"><label>毛色（1色選択）</label><div class="swatches" id="ownerSwatches">${petColors.map((color, index) => `<div class="sw" style="background:${color}" data-owner-color="${index}"></div>`).join('')}</div></div>
         <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label><textarea class="input" id="ownerOther" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
         <button class="btn btn-magenta" type="button" id="ownerSubmitBtn" data-owner-action="submit-lost">🐾 登録情報を登録してAIマッチングを開始</button>
@@ -770,7 +777,7 @@ function initOwnerPage(){
     const item = ownerMatchResults[index];
     if (!item) { ownerScreen.innerHTML = homeMarkup; return; }
     const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見者に保護されている個体';
-    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細')}
+    ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細', 'results')}
       <div class="pad stack fade">
         <div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>
         <div class="owner-pet-title"><h2 class="title">${sourceLabel} #${item.protectedPetId}</h2><span class="pill mag">マッチ率 ${Math.round(item.matchScore)}%</span></div>
@@ -840,6 +847,7 @@ function initOwnerPage(){
       if (name === 'submit-lost') submitLost();
       if (name === 'ai-fill') aiAutoFillOwner();
       if (name === 'pet-detail') showPetDetail(Number(action.dataset.matchIndex));
+      if (name === 'results') showResults(ownerMatchResults);
       if (name === 'send-contact') sendContact(Number(action.dataset.matchId));
       if (name === 'home' && ownerScreen.innerHTML !== homeMarkup) ownerScreen.innerHTML = homeMarkup;
       if (name === 'switch-role') {
@@ -1764,5 +1772,3 @@ function initStep2(){
     window.setOther = setOther;
   }
 })();
-
-

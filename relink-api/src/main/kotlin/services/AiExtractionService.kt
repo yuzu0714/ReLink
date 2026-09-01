@@ -3,6 +3,7 @@ package com.services
 import com.models.AiRawFeatures
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -19,7 +20,15 @@ class AiExtractionService(
     private val aiApiBase: String,
 ) {
     // HTTPクライアントは使い回す(StorageServiceと同じ考え方)
-    private val client = HttpClient(CIO)
+    // ★修正：/compare-photosと同じ理由で、AI解析が長引くケースに備えてタイムアウトを延長
+    // (デフォルトのままだと写真の枚数が多いときに「Request timeout has expired」で失敗しうる)
+    private val client = HttpClient(CIO) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 120_000
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = 120_000
+        }
+    }
     private val json = Json { ignoreUnknownKeys = true }
 
     // photos: (ファイル名, バイト列) のリスト。複数枚まとめて送ると、
