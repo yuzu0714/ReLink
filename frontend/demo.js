@@ -763,8 +763,13 @@ function initOwnerPage(){
       : `<div class="card" style="background:#f2f4ff;border-color:#d8ddfb"><b style="color:var(--navy)">${list.length}件ヒットしました</b><div class="lede">マッチ率が高い順に表示しています。</div></div>
         ${list.map((item, i) => {
           const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見された個体';
+          const firstPhoto = item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls[0] : null;
+          const thumbStyle = firstPhoto
+            ? `background-image:url('${firstPhoto}');background-size:cover;background-position:center`
+            : `background:${petSwatch(i)}`;
+          const thumbContent = firstPhoto ? '' : '🐕';
           return `<div class="match-card" data-owner-action="pet-detail" data-match-index="${i}">
-            <div class="ph" style="background:${petSwatch(i)}">🐕</div>
+            <div class="ph" style="${thumbStyle}">${thumbContent}</div>
             <div><div class="name">${sourceLabel} #${item.protectedPetId}</div><div class="meta">${item.reason ? item.reason : ''}</div></div>
             <div class="score"><b>${Math.round(item.matchScore)}%</b><span>マッチ率</span></div>
           </div>`;
@@ -777,9 +782,15 @@ function initOwnerPage(){
     const item = ownerMatchResults[index];
     if (!item) { ownerScreen.innerHTML = homeMarkup; return; }
     const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見者に保護されている個体';
+    const photos = item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls : [];
+    const photoSwiperHtml = photos.length > 0
+      ? photos.map(url =>
+          `<img src="${url}" alt="ペット画像" style="width:100%;max-height:300px;object-fit:contain;border-radius:16px;background:#f5f5f5;scroll-snap-align:start">`
+        ).join('')
+      : `<div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>`;
     ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細', 'results')}
       <div class="pad stack fade">
-        <div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">${photoSwiperHtml}</div>
         <div class="owner-pet-title"><h2 class="title">${sourceLabel} #${item.protectedPetId}</h2><span class="pill mag">マッチ率 ${Math.round(item.matchScore)}%</span></div>
         <div class="card owner-info-card"><div><span>AIの判定理由</span><b>${item.reason || '（コメントなし）'}</b></div></div>
         <div class="card">
