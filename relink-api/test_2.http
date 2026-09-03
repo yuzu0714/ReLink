@@ -1,0 +1,35 @@
+### ① 正常系：matches.id = 1 (foundパターン) で連絡
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 1,
+  "contactedByPhone": "090-1234-5678",
+  "note": "明日午前中に伺います"
+}
+
+### ② 正常系：matches.id = 2 (rescuedパターン) で連絡
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 2,
+  "contactedByPhone": "080-9876-5432"
+}
+
+### ③ 異常系：存在しないmatchId → 404が返るはず
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 99999,
+  "contactedByPhone": "090-1234-5678"
+}
+
+### ④ 異常系：必須項目(contactedByPhone)が無い → 400が返るはず
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 1
+}

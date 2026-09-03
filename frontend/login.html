@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK - ログイン</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="login">
+  <div class="stage">
+    <div class="screen">
+      <div class="appbar">
+        <h1>🐾 ReLINK</h1>
+        <div class="spacer"></div>
+        <span class="role-chip" id="roleChip">利用者選択</span>
+      </div>
+
+      <div class="pad stack">
+        <div class="hero-banner">
+          <div class="hi">ログイン</div>
+          <div class="hn">つなぎ直そう、大切な家族と。</div>
+          <div class="hs">利用者を選んでログインすると、対応する画面へ移動します。</div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">ROLE SELECT</div>
+          <h2 class="title">どの利用者として進みますか？</h2>
+          <p class="lede">選択した役割に応じて、飼い主・発見者・保護団体の各画面へ遷移します。</p>
+          <div class="roles">
+            <button class="role" type="button" data-role="owner" data-url="owner.html">
+              <div class="emo">🧑</div>
+              <div>
+                <div class="rt">飼い主として使う</div>
+                <div class="rd">迷子のペットを登録して通知を受け取ります。</div>
+              </div>
+              <div class="tick">✓</div>
+            </button>
+
+            <button class="role" type="button" data-role="finder" data-url="finder.html">
+              <div class="emo">🙋</div>
+              <div>
+                <div class="rt">発見者として使う</div>
+                <div class="rd">保護したペットの写真を撮って照合します。</div>
+              </div>
+              <div class="tick">✓</div>
+            </button>
+
+            <button class="role" type="button" data-role="shelter" data-url="shelter.html">
+              <div class="emo">🏥</div>
+              <div>
+                <div class="rt">保護団体として使う</div>
+                <div class="rd">保護中のペットを確認・管理します。</div>
+              </div>
+              <div class="tick">✓</div>
+            </button>
+          </div>
+        </div>
+
+        <form id="loginForm" class="card stack">
+          <div class="field">
+            <label for="email">メールアドレス</label>
+            <input class="input" id="email" name="email" type="email" required>
+          </div>
+
+          <div class="field">
+            <label for="password">パスワード</label>
+            <input class="input" id="password" name="password" type="password" required>
+          </div>
+
+          <button class="btn btn-primary" id="loginButton" type="submit">ログイン</button>
+          <button class="btn btn-ghost" type="reset">入力をリセット</button>
+        </form>
+
+        <div class="footnote">ReLINK はデモ版のため、入力内容は保存されません。</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="demo.js"></script>
+</body>
+</html>

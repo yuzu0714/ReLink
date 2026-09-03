@@ -1,0 +1,11 @@
+### ①正常系：全部指定
+GET http://localhost:8080/matching/test?specie=柴犬&color=茶色&lostPlace=輪島市
+
+### ②正常系：一部だけ指定(colorのみ)
+GET http://localhost:8080/matching/test?color=茶色
+
+### ③正常系：何も指定しない(全件返るはず)
+GET http://localhost:8080/matching/test
+
+### ④境界：マッチしない条件(空配列が返るはず)
+GET http://localhost:8080/matching/test?specie=存在しない動物

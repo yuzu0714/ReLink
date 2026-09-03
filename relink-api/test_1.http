@@ -1,0 +1,77 @@
+### ① finder権限でログイン
+POST http://localhost:8080/auth/test-login?role=finder
+
+### ↑のレスポンスのtokenをコピーして、下の {{finderToken}} 部分に貼る
+
+### ② 発見API:正常系(201が返るはず)
+POST http://localhost:8080/pets/found
+Authorization: Bearer (finderToken)
+Content-Type: application/json
+
+{
+  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "foundPlace": "石川県 輪島市 ○○町",
+  "foundDate": "2026-08-17T15:04:05",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "赤い首輪をしていた"
+}
+
+### ③ 発見API:owner権限で叩いてみる(403が返るはず)
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+POST http://localhost:8080/pets/found
+Authorization: Bearer (ownerToken)
+Content-Type: application/json
+
+{
+  "photoUrl": "test",
+  "foundPlace": "test",
+  "foundDate": "2026-08-17T15:04:05",
+  "specie": "test",
+  "color": "test"
+}
+
+### ④ 発見API:foundDateの形式がおかしい場合(400が返るはず ← 今回直した①の確認ポイント!)
+POST http://localhost:8080/pets/found
+Authorization: Bearer (finderToken)
+Content-Type: application/json
+
+{
+  "photoUrl": "test",
+  "foundPlace": "test",
+  "foundDate": "2026年8月17日",
+  "specie": "test",
+  "color": "test"
+}
+
+### ⑤ shelter権限でログイン
+POST http://localhost:8080/auth/test-login?role=shelter
+
+### ⑥ 保護API:正常系(201が返るはず)
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer (shelterToken)
+Content-Type: application/json
+
+{
+  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "foundPlace": "石川県 輪島市 △△町",
+  "foundDate": "2026-08-17T09:30:00",
+  "specie": "猫",
+  "color": "白黒",
+  "other": "人懐っこい性格"
+}
+
+### ⑦ 保護API:finder権限で叩いてみる(403が返るはず)
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer (finderToken)
+Content-Type: application/json
+
+{
+  "photoUrl": "test",
+  "foundPlace": "test",
+  "foundDate": "2026-08-17T09:30:00",
+  "specie": "test",
+  "color": "test"
+}

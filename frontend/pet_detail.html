@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ReLINK — 保護ペットの詳細</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+
+<body>
+
+  <div class="stage">
+    <div class="phone">
+
+      <div class="notch"></div>
+
+      <div class="screen">
+        <div class="appbar">
+
+          <a class="back" href="shelter-list.html">
+            ‹
+          </a>
+
+          <h1>保護ペットの詳細</h1>
+
+          <div class="spacer"></div>
+
+          <span class="role-chip">
+            保護団体
+          </span>
+
+        </div>
+
+        <div class="pad stack fade">
+
+            <div class="pet-main">
+                <div class="pet-photo" id="petPhoto">
+                🐕
+                </div>
+            
+                <div class="pet-detail-info">
+
+                    <div class="pet-title">
+                        <h2 class="title" id="petName">
+                            保護 #A21
+                        </h2>
+                        <span class="pill" id="petStatus">
+                            照合中
+                        </span>
+                    </div>
+
+                    <div class="card stack pet-info">
+                        <div class="info-row">
+                            <span class="lede">種類</span>
+                            <b id="petBreed">柴犬 / オス</b>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="lede">毛色</span>
+                            <b id="petColor">薄い茶色・白</b>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="lede">首輪</span>
+                            <b id="petCollar">赤い革製</b>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="lede">発見場所</span>
+                            <b id="petLocation">○○市○○町</b>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="lede">保護日</span>
+                            <b id="petDate">2026/07/06</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          <div>
+
+            <div class="section-title">
+              発見場所
+            </div>
+
+            <div class="map" id="map">
+              Google Maps
+            </div>
+
+          </div>
+
+          <button
+            class="btn btn-magenta"
+            id="updateButton">
+            保護情報を更新
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <script src="demo.js"></script>
+
+</body>
+</html>
