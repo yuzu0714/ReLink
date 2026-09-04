@@ -80,10 +80,21 @@
               <option value="" selected>選択してください</option>
               <option value="柴犬">柴犬</option>
               <option value="トイプードル">トイプードル</option>
+              <option value="ドーベルマン">ドーベルマン</option>
+              <option value="チワワ">チワワ</option>
+              <option value="ゴールデン・レトリバー">ゴールデン・レトリバー</option>
+              <option value="ボーダー・コリー">ボーダー・コリー</option>
+              <option value="ハスキー">ハスキー</option>
+              <option value="パグ">パグ</option>
+              <option value="秋田犬">秋田犬</option>
               <option value="雑種（中型）">雑種（中型）</option>
               <option value="猫（雑種）">猫（雑種）</option>
-              <option value="その他">その他</option>
             </select>
+          </div>
+
+          <div class="field">
+            <label>上記にない犬種・品種（任意）</label>
+            <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など">
           </div>
 
           <div class="field">
@@ -194,7 +205,6 @@
       if (/パグ/.test(text)) return 'パグ';
       if (/猫/.test(text)) return '猫（雑種）';
       if (/雑種/.test(text)) return '雑種（中型）';
-      if (/犬/.test(text)) return 'その他';
       return '';
     }
 
@@ -252,7 +262,12 @@
 
         if (!specieSelect.value) {
           const guess = guessSpecieOption(tags.animalType, tags.breed);
-          if (guess) specieSelect.value = guess;
+          if (guess) {
+            specieSelect.value = guess;
+          } else if (tags.breed && !document.getElementById('otherSpecie').value) {
+            // 選択肢にない犬種はテキスト欄に入れる
+            document.getElementById('otherSpecie').value = [tags.animalType, tags.breed].filter(Boolean).join(' ');
+          }
         }
         if (selectedColors.length === 0 && tags.coatColor) {
           const idx = colorKeywordIndex(tags.coatColor);
@@ -318,8 +333,9 @@
         alert('発見日時を入力してください。');
         return;
       }
-      if (!specieSelect.value) {
-        alert('種類・犬種を選択してください。');
+      const otherSpecieValue = document.getElementById('otherSpecie').value.trim();
+      if (!specieSelect.value && !otherSpecieValue) {
+        alert('種類・犬種を選択するか、上記にない犬種・品種欄に入力してください。');
         return;
       }
       if (selectedColors.length === 0) {
@@ -353,7 +369,7 @@
             photoUrls,
             foundPlace,
             foundDate,
-            specie: specieSelect.value,
+            specie: specieSelect.value || otherSpecieValue,
             color: selectedColors.map((i) => colorNames[i]).join('・'),
             other: otherValue,
           }),
