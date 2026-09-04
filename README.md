@@ -2,10 +2,12 @@
 
 ## 1. 事前準備
 
+vscodeに「Kotlin by JetBrains」「Extension Pack for Java」「Gradle for Java」、あと「REST Client」を拡張機能としてインストールする
 - JDK（`./gradlew run` が動く環境）
 - Python 3（`pip install fastapi uvicorn python-multipart openai python-dotenv requests`）
 - Supabaseプロジェクトの情報（URL・service role key・DB接続情報）
 - Sakura AIのAPIトークン（`SAKURA_AI_TOKEN`）
+
 
 ## 2. 環境変数（.env）の設定
 
