@@ -78,17 +78,33 @@
             <label>種類・犬種</label>
             <select class="input" id="specieSelect">
               <option value="" selected>選択してください</option>
-              <option value="柴犬">柴犬</option>
-              <option value="トイプードル">トイプードル</option>
-              <option value="ドーベルマン">ドーベルマン</option>
-              <option value="チワワ">チワワ</option>
-              <option value="ゴールデン・レトリバー">ゴールデン・レトリバー</option>
-              <option value="ボーダー・コリー">ボーダー・コリー</option>
-              <option value="ハスキー">ハスキー</option>
-              <option value="パグ">パグ</option>
-              <option value="秋田犬">秋田犬</option>
-              <option value="雑種（中型）">雑種（中型）</option>
-              <option value="猫（雑種）">猫（雑種）</option>
+              <optgroup label="🐕 犬">
+                <option value="柴犬">柴犬</option>
+                <option value="トイプードル">トイプードル</option>
+                <option value="ドーベルマン">ドーベルマン</option>
+                <option value="チワワ">チワワ</option>
+                <option value="ゴールデン・レトリバー">ゴールデン・レトリバー</option>
+                <option value="ボーダー・コリー">ボーダー・コリー</option>
+                <option value="ハスキー">ハスキー</option>
+                <option value="パグ">パグ</option>
+                <option value="秋田犬">秋田犬</option>
+                <option value="雑種（中型）">雑種（中型）</option>
+              </optgroup>
+              <optgroup label="🐈 猫">
+                <option value="アメリカン・ショートヘア">アメリカン・ショートヘア</option>
+                <option value="スコティッシュ・フォールド">スコティッシュ・フォールド</option>
+                <option value="マンチカン">マンチカン</option>
+                <option value="ペルシャ">ペルシャ</option>
+                <option value="ロシアン・ブルー">ロシアン・ブルー</option>
+                <option value="シャム">シャム</option>
+                <option value="ノルウェージアン・フォレスト・キャット">ノルウェージアン・フォレスト・キャット</option>
+                <option value="メインクーン">メインクーン</option>
+                <option value="ラグドール">ラグドール</option>
+                <option value="ブリティッシュ・ショートヘア">ブリティッシュ・ショートヘア</option>
+                <option value="アビシニアン">アビシニアン</option>
+                <option value="ベンガル">ベンガル</option>
+                <option value="猫（雑種）">猫（雑種）</option>
+              </optgroup>
             </select>
           </div>
 
@@ -203,6 +219,19 @@
       if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
       if (/ハスキー/.test(text)) return 'ハスキー';
       if (/パグ/.test(text)) return 'パグ';
+      // 猫の品種（先に具体的な品種を判定し、最後に雑種にフォールバック）
+      if (/アメリカン.?ショートヘア|アメショ/.test(text)) return 'アメリカン・ショートヘア';
+      if (/スコティッシュ.?フォールド|スコ折/.test(text)) return 'スコティッシュ・フォールド';
+      if (/マンチカン/.test(text)) return 'マンチカン';
+      if (/ペルシャ/.test(text)) return 'ペルシャ';
+      if (/ロシアン.?ブルー/.test(text)) return 'ロシアン・ブルー';
+      if (/シャム/.test(text)) return 'シャム';
+      if (/ノルウェージアン/.test(text)) return 'ノルウェージアン・フォレスト・キャット';
+      if (/メインクーン/.test(text)) return 'メインクーン';
+      if (/ラグドール/.test(text)) return 'ラグドール';
+      if (/ブリティッシュ.?ショートヘア|ブリショ/.test(text)) return 'ブリティッシュ・ショートヘア';
+      if (/アビシニアン/.test(text)) return 'アビシニアン';
+      if (/ベンガル/.test(text)) return 'ベンガル';
       if (/猫/.test(text)) return '猫（雑種）';
       if (/雑種/.test(text)) return '雑種（中型）';
       return '';

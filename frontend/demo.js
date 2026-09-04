@@ -176,6 +176,19 @@ function guessSpecieOption(animalType, breed){
   if (/ハスキー/.test(text)) return 'ハスキー';
   if (/パグ/.test(text)) return 'パグ';
   if (/秋田犬/.test(text)) return '秋田犬';
+  // 猫の品種（先に具体的な品種を判定し、最後に雑種にフォールバック）
+  if(/アメリカン.?ショートヘア|アメショ/.test(text)) return 'アメリカン・ショートヘア';
+  if(/スコティッシュ.?フォールド|スコ折/.test(text)) return 'スコティッシュ・フォールド';
+  if(/マンチカン/.test(text)) return 'マンチカン';
+  if(/ペルシャ/.test(text)) return 'ペルシャ';
+  if(/ロシアン.?ブルー/.test(text)) return 'ロシアン・ブルー';
+  if(/シャム/.test(text)) return 'シャム';
+  if(/ノルウェージアン/.test(text)) return 'ノルウェージアン・フォレスト・キャット';
+  if(/メインクーン/.test(text)) return 'メインクーン';
+  if(/ラグドール/.test(text)) return 'ラグドール';
+  if(/ブリティッシュ.?ショートヘア|ブリショ/.test(text)) return 'ブリティッシュ・ショートヘア';
+  if(/アビシニアン/.test(text)) return 'アビシニアン';
+  if(/ベンガル/.test(text)) return 'ベンガル';
   if(/猫/.test(text)) return '猫（雑種）';
   if(/雑種/.test(text)) return '雑種（中型）';
   return '';
@@ -532,7 +545,7 @@ function initOwnerPage(){
         <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         <div class="field"><label>連絡先電話番号</label><input class="input" id="ownerPhone" type="tel" placeholder="090-0000-0000" value="${ownerState.phone}"></div>
         <div class="field"><label>紛失場所</label><input class="input" id="ownerLostPlace" placeholder="市区町村" value="${ownerState.lostPlace}"></div>
-        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>秋田犬</option><option>雑種（中型）</option><option>猫（雑種）</option></select></div>
+        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><optgroup label="🐕 犬"><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>秋田犬</option><option>雑種（中型）</option></optgroup><optgroup label="🐈 猫"><option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option><option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option><option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option><option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option><option>猫（雑種）</option></optgroup></select></div>
         <div class="field"><label>上記にない犬種・品種（任意）</label><input class="input" id="ownerOtherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など" value="${ownerState.otherSpecie}"></div>
         <div class="field"><label>毛色（1色選択）</label><div class="swatches" id="ownerSwatches">${petColors.map((color, index) => `<div class="sw" style="background:${color}" data-owner-color="${index}"></div>`).join('')}</div></div>
         <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label><textarea class="input" id="ownerOther" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
@@ -1092,9 +1105,18 @@ const screens = {
       <div class="field"><label>種類・犬種</label>
         <select class="input" id="specie" onchange="setSpecie(this.value)">
           <option value="">選択してください</option>
-          <option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option>
-          <option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option>
-          <option>パグ</option><option>秋田犬</option><option>雑種（中型）</option><option>猫（雑種）</option>
+          <optgroup label="🐕 犬">
+            <option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option>
+            <option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option>
+            <option>パグ</option><option>秋田犬</option><option>雑種（中型）</option>
+          </optgroup>
+          <optgroup label="🐈 猫">
+            <option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option>
+            <option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option>
+            <option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option>
+            <option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option>
+            <option>猫（雑種）</option>
+          </optgroup>
         </select></div>
 
       <div class="field"><label>上記にない犬種・品種（任意）</label>
