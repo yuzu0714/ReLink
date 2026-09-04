@@ -53,13 +53,6 @@ vscodeの拡張機能Live Server(Five Server)を入れて、
 login.htmlを右クリック。
 「Open with Five Server」をクリックするとブラウザで開くことができます。
 
-（ターミナルで開く場合は以下を実行してください。
-```
-cd frontend
-python3 -m http.server 5500
-```
-その後、ブラウザで `http://localhost:5500/login.html` を開いてください。）
-
 ## 4. 基本操作
 
 ### ログイン
