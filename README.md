@@ -1,5 +1,11 @@
 # ReLINK 開発環境セットアップ＆操作ガイド
 
+##サーバーに接続している人は
+~/deploy.sh
+をターミナルで実行して、
+http://157.17.49.232/login.htm
+を開いたらメインブランチが確認できるようになりました！！
+
 ## 1. 事前準備
 
 vscodeに「Kotlin by JetBrains」「Extension Pack for Java」「Gradle for Java」、あと「REST Client」を拡張機能としてインストールする
