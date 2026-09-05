@@ -16,12 +16,8 @@ venv/
 pets.db
 images/
 
-# Gradle / Kotlinの除外設定
+# Gradle / Kotlin
 build/
 .gradle/
 *.class
 out/
-
-# .env.example
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
