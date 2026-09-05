@@ -1,11 +1,16 @@
 # ReLINK 開発環境セットアップ＆操作ガイド
 
+http://157.17.49.232/login.html
+を開いたらメインブランチが確認できるようになりました！！
+
 ## 1. 事前準備
 
+vscodeに「Kotlin by JetBrains」「Extension Pack for Java」「Gradle for Java」、あと「REST Client」を拡張機能としてインストールする
 - JDK（`./gradlew run` が動く環境）
 - Python 3（`pip install fastapi uvicorn python-multipart openai python-dotenv requests`）
 - Supabaseプロジェクトの情報（URL・service role key・DB接続情報）
 - Sakura AIのAPIトークン（`SAKURA_AI_TOKEN`）
+
 
 ## 2. 環境変数（.env）の設定
 
@@ -50,13 +55,6 @@ uvicorn match_api:app --host 0.0.0.0 --port 8000
 vscodeの拡張機能Live Server(Five Server)を入れて、
 login.htmlを右クリック。
 「Open with Five Server」をクリックするとブラウザで開くことができます。
-
-（ターミナルで開く場合は以下を実行してください。
-```
-cd frontend
-python3 -m http.server 5500
-```
-その後、ブラウザで `http://localhost:5500/login.html` を開いてください。）
 
 ## 4. 基本操作
 
