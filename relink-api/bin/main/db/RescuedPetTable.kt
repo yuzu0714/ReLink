@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 // カラム構成はFoundPetRegisterTableと同じ
 object RescuedPetRegisterTable : Table("rescuedpet_register") {
     val id = long("id").autoIncrement()
-    val photoUrl = text("photo_url").nullable()
+    // ★修正：photoUrlカラムの定義を削除（DB側でDROP COLUMN済み、pet_photosテーブルに移管したため）
     val foundPlace = text("found_place").nullable()
     val foundDate = datetime("found_date").nullable()
     val specie = text("specie").nullable()
@@ -17,6 +17,10 @@ object RescuedPetRegisterTable : Table("rescuedpet_register") {
     val other = text("other").nullable()
     // 委任タスク(GET /shelter/pets)で新しい順に並べ替えるために追加。読み取り専用として使う。
     val createdAt = timestampWithTimeZone("created_at")
+    
+    // ★新規追加
+    val latitude = double("latitude").nullable()
+    val longitude = double("longitude").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
