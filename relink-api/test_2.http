@@ -1,3 +1,10 @@
+### ★追記：①②は「matches.id = 1 / 2 が実際にDBへ存在している」ことが前提のテストです。
+###        matchesテーブルへのレコードは /matching/run を1回でも実行しないと作られません
+###        (MatchingService.runMatching内でAI判定に成功した候補だけがINSERTされる仕組みのため)。
+###        実行する前に、test_6.http を①から⑦まで一通り実行してmatchesレコードを作っておくか、
+###        Supabaseの Table Editor で matches テーブルを開いて実在するidに書き換えてから使ってください。
+###        (存在しないidのまま実行すると、①②も③と同じ404になってしまいます)
+
 ### ① 正常系：matches.id = 1 (foundパターン) で連絡
 POST http://localhost:8080/contacts
 Content-Type: application/json
