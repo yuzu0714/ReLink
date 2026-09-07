@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK - 新規登録</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="signup">
+  <div class="stage">
+    <div class="screen">
+      <div class="appbar">
+        <button class="back" type="button" onclick="location.href='login.html'">‹</button>
+        <h1>🐾 ReLINK</h1>
+        <div class="spacer"></div>
+      </div>
+
+      <div class="pad stack">
+        <div class="hero-banner">
+          <div class="hi">新規登録</div>
+          <div class="hn">アカウントを作成する</div>
+          <div class="hs">登録後すぐにログインできます。</div>
+        </div>
+
+        <form id="signupForm" class="card stack">
+          <div class="field">
+            <label for="displayName">表示名（任意）</label>
+            <input class="input" id="displayName" name="displayName" type="text" placeholder="例：田中 太郎">
+          </div>
+
+          <div class="field">
+            <label for="email">メールアドレス</label>
+            <input class="input" id="email" name="email" type="email" required placeholder="example@mail.com">
+          </div>
+
+          <div class="field">
+            <label for="password">パスワード</label>
+            <input class="input" id="password" name="password" type="password" required placeholder="6文字以上">
+          </div>
+
+          <div class="field">
+            <label>利用者の種類</label>
+            <div class="roles">
+              <button class="role" type="button" data-role="owner">
+                <div class="emo">🧑</div>
+                <div>
+                  <div class="rt">飼い主</div>
+                  <div class="rd">迷子のペットを登録して通知を受け取ります。</div>
+                </div>
+                <div class="tick">✓</div>
+              </button>
+              <button class="role" type="button" data-role="finder">
+                <div class="emo">🙋</div>
+                <div>
+                  <div class="rt">発見者</div>
+                  <div class="rd">保護したペットの写真を撮って照合します。</div>
+                </div>
+                <div class="tick">✓</div>
+              </button>
+              <button class="role" type="button" data-role="shelter">
+                <div class="emo">🏥</div>
+                <div>
+                  <div class="rt">保護団体</div>
+                  <div class="rd">保護中のペットを確認・管理します。</div>
+                </div>
+                <div class="tick">✓</div>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="signupButton" type="submit">登録する</button>
+          <a class="btn btn-ghost" href="login.html" style="text-align:center;display:block">ログインに戻る</a>
+        </form>
+
+        <div class="footnote">登録情報はSupabaseに安全に保存されます。</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="demo.js"></script>
+</body>
+</html>

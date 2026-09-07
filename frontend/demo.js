@@ -11,7 +11,8 @@ const S = {
   cancelMatch: false,
 };
 
-const isLoginPage = document.body && document.body.dataset.page === 'login';
+const isLoginPage  = document.body && document.body.dataset.page === 'login';
+const isSignupPage = document.body && document.body.dataset.page === 'signup';
 const isOwnerPage = document.body && document.body.dataset.page === 'owner';
 const isFinderPage = document.body && document.body.dataset.page === 'finder';
 const screen = document.getElementById('screen');
@@ -56,15 +57,16 @@ function initLoginPage(){
       loginButton.disabled = true;
 
       try {
-        // 3. バックエンドAPI呼び出し（/auth/test-loginを実際に叩く）
+        // 3. バックエンドAPI(/auth/login)呼び出し
         const result = await apiLogin(email, password, selectedRole);
 
         if (result.success) {
-          // ログインで受け取ったトークンとroleを保存(ページ遷移しても使えるように)
+          // DBから返ってきたroleを使って遷移先を決定する
+          const roleUrlMap = { owner: 'owner.html', finder: 'finder.html', shelter: 'shelter.html' };
+          const destUrl = roleUrlMap[result.role] || selectedUrl;
           sessionStorage.setItem('authToken', result.token);
-          sessionStorage.setItem('selectedRole', selectedRole);
-          // ログイン成功したら指定の画面へ移動
-          window.location.href = selectedUrl;
+          sessionStorage.setItem('selectedRole', result.role);
+          window.location.href = destUrl;
         }
       } catch (error) {
         alert(error.message);
@@ -77,23 +79,93 @@ function initLoginPage(){
 }
 
 async function apiLogin(email, password, role) {
-  // 注意: /auth/test-login は「roleを渡したらトークンが返ってくる」だけの
-  // 動作確認用エンドポイントで、email/passwordの照合はまだしていない
-  // (本物のログイン機能がバックエンド側にできたら、ここをそのAPIに差し替える)
   if (!email || !password) {
     throw new Error('メールアドレスとパスワードを入力してください。');
   }
 
-  const response = await fetch(`${API_BASE}/auth/test-login?role=${encodeURIComponent(role)}`, {
+  const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
   });
 
+  if (response.status === 400) {
+    throw new Error('メールアドレスまたはパスワードが正しくありません。');
+  }
   if (!response.ok) {
     throw new Error('ログインに失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
   }
 
   const data = await response.json();
-  return { success: true, token: data.token };
+  return { success: true, token: data.token, role: data.role };
+}
+
+// 新規登録API
+async function apiRegister(email, password, role, displayName) {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role, displayName: displayName || null }),
+  });
+
+  if (response.status === 400) {
+    const data = await response.json();
+    throw new Error(data.message || '登録に失敗しました。');
+  }
+  if (!response.ok) {
+    throw new Error('登録に失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
+  }
+
+  const data = await response.json();
+  return { success: true, token: data.token, role: data.role };
+}
+
+// 新規登録ページの初期化
+function initSignupPage() {
+  const roleButtons = Array.from(document.querySelectorAll('.role'));
+  const signupButton = document.getElementById('signupButton');
+  const signupForm = document.getElementById('signupForm');
+  let selectedRole = null;
+
+  roleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      roleButtons.forEach((b) => b.classList.remove('on'));
+      button.classList.add('on');
+      selectedRole = button.getAttribute('data-role');
+    });
+  });
+
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selectedRole) {
+      alert('利用者の種類を選択してください。');
+      return;
+    }
+    const email       = signupForm.email.value;
+    const password    = signupForm.password.value;
+    const displayName = signupForm.displayName.value;
+
+    if (password.length < 6) {
+      alert('パスワードは6文字以上にしてください。');
+      return;
+    }
+
+    signupButton.disabled = true;
+    signupButton.textContent = '登録中…';
+
+    try {
+      const result = await apiRegister(email, password, selectedRole, displayName);
+      sessionStorage.setItem('authToken', result.token);
+      sessionStorage.setItem('selectedRole', result.role);
+
+      const urlMap = { owner: 'owner.html', finder: 'finder.html', shelter: 'shelter.html' };
+      window.location.href = urlMap[result.role] || 'login.html';
+    } catch (error) {
+      alert(error.message);
+      signupButton.disabled = false;
+      signupButton.textContent = '登録する';
+    }
+  });
 }
 
 /* ---------------- AI特徴抽出(共通) ----------------
@@ -897,7 +969,7 @@ if (!isFinderPage && isLoginPage) {
   initLoginPage();
 } else if (!isFinderPage && isOwnerPage) {
   initOwnerPage();
-} else if (!isFinderPage && screen) {
+} else if (!isFinderPage && !isSignupPage && screen) {
   loadTemplates()
     .then(() => {
       const pageRole = document.body.dataset.page || sessionStorage.getItem('selectedRole') || 'owner';
@@ -1822,3 +1894,4 @@ function initStep2(){
     window.setOther = setOther;
   }
 })();
+if (isSignupPage) { initSignupPage(); }
