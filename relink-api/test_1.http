@@ -1,15 +1,23 @@
-### ① finder権限でログイン
-POST http://localhost:8080/auth/test-login?role=finder
+### ============================================================
+### ★修正点まとめ
+### ① photoUrl(単数) → photoUrls(配列)に変更(既に対応済み)
+### ② トークンの扱いを「手動コピー&貼り付け」から「REST Clientの動的参照」に変更。
+###    ログインリクエストに # @name で名前を付け、{{xxxLogin.response.body.$.token}}で
+###    自動的に最新のトークンを参照するようにした。これで毎回コピー&貼り付けする手間や、
+###    貼り替え忘れによる401エラーが起きなくなる。
+### ============================================================
 
-### ↑のレスポンスのtokenをコピーして、下の {{finderToken}} 部分に貼る
+### ① finder権限でログイン
+# @name finderLogin
+POST http://localhost:8080/auth/test-login?role=finder
 
 ### ② 発見API:正常系(201が返るはず)
 POST http://localhost:8080/pets/found
-Authorization: Bearer (finderToken)
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "photoUrls": ["https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-17T15:04:05",
   "specie": "柴犬",
@@ -18,15 +26,16 @@ Content-Type: application/json
 }
 
 ### ③ 発見API:owner権限で叩いてみる(403が返るはず)
+# @name ownerLogin
 POST http://localhost:8080/auth/test-login?role=owner
 
-###
+### role判定は本文を読む前に行われるため、photoUrlsの中身自体はダミーのままでOK
 POST http://localhost:8080/pets/found
-Authorization: Bearer (ownerToken)
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026-08-17T15:04:05",
   "specie": "test",
@@ -34,12 +43,14 @@ Content-Type: application/json
 }
 
 ### ④ 発見API:foundDateの形式がおかしい場合(400が返るはず ← 今回直した①の確認ポイント!)
+### photoUrlsを配列で入れておくことで必須項目チェックを通過させ、
+### 本来テストしたい「日付フォーマットのチェック」まで確実に到達させる
 POST http://localhost:8080/pets/found
-Authorization: Bearer (finderToken)
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026年8月17日",
   "specie": "test",
@@ -47,15 +58,16 @@ Content-Type: application/json
 }
 
 ### ⑤ shelter権限でログイン
+# @name shelterLogin
 POST http://localhost:8080/auth/test-login?role=shelter
 
 ### ⑥ 保護API:正常系(201が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer (shelterToken)
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "photoUrls": ["https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg"],
   "foundPlace": "石川県 輪島市 △△町",
   "foundDate": "2026-08-17T09:30:00",
   "specie": "猫",
@@ -65,11 +77,11 @@ Content-Type: application/json
 
 ### ⑦ 保護API:finder権限で叩いてみる(403が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer (finderToken)
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026-08-17T09:30:00",
   "specie": "test",

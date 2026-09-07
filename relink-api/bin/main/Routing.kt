@@ -31,7 +31,6 @@ import com.repositories.RescuedPetRepository
 // ★修正：ContactRequest / ContactRepository の import が漏れていたため追加
 import com.models.ContactRequest
 import com.repositories.ContactRepository
-import com.models.toResponse
 
 // 委任タスク: 保護ペット一覧取得API(GET /shelter/pets、shelter向け)
 import com.models.ShelterPetListResponse
@@ -43,6 +42,12 @@ import com.repositories.MatchingRepository
 // ↓↓↓ 既存のimportに追加 ↓↓↓
 import com.services.MatchingService
 import com.models.MatchingRunResponse
+
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.models.ContactStatusUpdateRequest
+
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.models.MatchResultItem
 
 fun Application.configureRouting() {
     routing {
@@ -67,13 +72,7 @@ fun Application.configureRouting() {
 
                 multipart.forEachPart { part ->
                     if (part is PartData.FileItem) {
-                        // 元のファイル名にスペース・日本語・括弧などが入っていると、
-                        // StorageService側でURLに未エンコードのまま組み込まれてしまい、
-                        // Supabase Storageへのアップロードが400 Bad Requestになることがあるため、
-                        // URLに安全な文字(英数字・.・_・-)だけに置き換えてから使う
-                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
-                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        fileName = "${java.util.UUID.randomUUID()}_${part.originalFileName}"
                         contentType = part.contentType?.toString() ?: contentType
                         fileBytes = part.provider().readRemaining().readBytes()
                     }
@@ -87,31 +86,7 @@ fun Application.configureRouting() {
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
             }
-            
-                        // 追加:登録フォームで未入力の項目(犬種・そのほか欄など)を、写真からAIで自動入力するための下準備。
-            post("/pets/extract-features") {
-                val multipart = call.receiveMultipart()
-                val photos = mutableListOf<Pair<String, ByteArray>>()
 
-                multipart.forEachPart { part ->
-                    if (part is PartData.FileItem) {
-                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
-                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-                        val bytes = part.provider().readRemaining().readBytes()
-                        photos.add(safeOriginalName to bytes)
-                    }
-                    part.dispose()
-                }
-
-                if (photos.isEmpty()) {
-                    throw IllegalArgumentException("画像ファイルが見つかりません")
-                }
-
-                val raw = aiExtractionService.extractFeatures(photos)
-                call.respond(HttpStatusCode.OK, raw.toResponse())
-            }
-
-            // authenticate{} 直下の兄弟ルートとして外に出した
             post("/pets/lost") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -123,7 +98,23 @@ fun Application.configureRouting() {
                 val request = call.receive<LostPetRegisterRequest>()
                 val insertedId = LostPetRepository.insert(request)
 
-                call.respond(HttpStatusCode.Created, LostPetRegisterResponse(id = insertedId))
+                // ★新規追加：登録が成功した直後に、自動でマッチング処理(SQL絞り込み→AI類似度判定→matches保存)を実行する
+                // これまでは/matching/runを手動で叩く必要があったが、本番導線として自動化した
+                //
+                // ★重要：マッチング処理自体が失敗しても、迷子ペットの「登録」自体は成功として扱う
+                // (写真がまだ無い、候補が1件も見つからない、AIサーバーが一時的に落ちている等の理由で
+                //  マッチングが失敗しても、ユーザーが行いたかった「登録」まで巻き添えで失敗させないための設計)
+                val matchResults: List<MatchResultItem> = try {
+                    MatchingService.runMatching(insertedId)
+                } catch (e: Exception) {
+                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
+                    emptyList()
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                )
             }
 
             // Part 2 追加①: 発見API(foundpet_register へのINSERT、finder向け)
@@ -200,6 +191,20 @@ fun Application.configureRouting() {
 
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
+        }
+        
+        // ★新規追加：contactsのステータスを更新するAPI(認証なし、matches.idの実在チェックと同じノリ)
+        // 保健所側の運用画面などから、連絡の進捗(pending→contacted→confirmed/rejected)を更新する想定
+        patch("/contacts/{id}/status") {
+            val id = call.parameters["id"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("idは数値で指定してください")
+
+            val request = call.receive<ContactStatusUpdateRequest>()
+
+            val updated = ContactRepository.updateStatus(id, request.status)
+                ?: throw NoSuchElementException("指定されたcontacts.idが見つかりません: $id")
+
+            call.respond(HttpStatusCode.OK, updated)
         }
         
         // ★新規追加(Day3-3)：SQL絞り込み→AI類似度判定→matches保存、の一連の流れを動作確認するための仮エンドポイント

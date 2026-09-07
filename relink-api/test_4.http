@@ -1,8 +1,16 @@
+### ★修正：ログイン直後のリクエストで、コピペし忘れた古い(期限切れ確実な)トークンが
+###        直書きされたままになっており、実行するとほぼ確実に401になる状態だった。
+###        ログインリクエストに # @name で名前を付けて、そのレスポンスのtokenを
+###        {{xxxLogin.response.body.$.token}} の形で自動参照するように変更した。
+###        これで毎回手動でコピー&貼り付けする手間が無くなる。
+
+### owner権限トークン取得
+# @name ownerLogin
 POST http://localhost:8080/auth/test-login?role=owner
 
 ###
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODc5MjAzNzh9.aG1YKa_L5PbluBkQf5q9zMK8cqJUz6fU5paEV-txuJI
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -15,11 +23,12 @@ Content-Type: application/json
 }
 
 ### finder権限トークン取得
+# @name finderLogin
 POST http://localhost:8080/auth/test-login?role=finder
 
 ### 発見ペット登録（複数枚写真）
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg3OTY3NTMzfQ.KJTsQQQ8DMYFTSAxjdUQo0m_KvSXfNiH2HTFiqTb__w
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -32,11 +41,12 @@ Content-Type: application/json
 }
 
 ### shelter権限トークン取得
+# @name shelterLogin
 POST http://localhost:8080/auth/test-login?role=shelter
 
 ### 保護ペット登録（複数枚写真）
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4Nzk2NzU1OX0.nvysQP4VE8qunVOS4illUENSlaQ52Mkb_NwgoDvzTt4
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
 Content-Type: application/json
 
 {

@@ -1,0 +1,49 @@
+### ① matches.idを1つ用意する（既存のtest_1.httpやtest_4.httpで作ったmatchIdを使ってもOK）
+### ★注意：ここのmatchIdは実際にDBに存在するmatches.idに書き換えてから実行してください。
+###        (test_2.httpと同じく、matchesテーブルへのレコードはtest_6.httpの一連の流れを
+###        実行しないと作られません)
+
+### ② そのmatchIdでcontactsを作成
+### ★修正：③のコメントで「②のレスポンスで返ってきたidを使う」と書かれていたので、
+###        # @name で名前を付けて、③以降から実際のレスポンスを参照できるようにした
+# @name createContact
+POST http://localhost:8080/contacts
+Content-Type: application/json
+
+{
+  "matchId": 3,
+  "contactedByPhone": "090-1234-5678",
+  "note": "テスト連絡"
+}
+
+### ③ ②のレスポンスで返ってきたidを使って、ステータスを更新
+### ★修正：コメントでは「②の結果を使う」とあるのに、実際は数字の25が直書きされていた。
+###        contactsのidは自動採番のため、環境によって25以外の値になるのが普通で、
+###        たまたま25番目のcontactが存在しないと意図せず404になってしまう。
+###        {{createContact.response.body.$.id}} で②の実際のidを自動参照するように修正した。
+PATCH http://localhost:8080/contacts/{{createContact.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "contacted"
+}
+
+### ④ 異常系：許可されてない値を送ってみる(400が返るはず)
+### ★修正：存在するか分からないid(1)を直書きしていたため、
+###        「無効なstatus値のエラー(400)」より先に「idが見つからないエラー(404)」が
+###        返ってしまう可能性があった。②で確実に作ったidを使うように変更し、
+###        本来テストしたい「不正なstatus値のチェック」に確実にたどり着けるようにした。
+PATCH http://localhost:8080/contacts/{{createContact.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "unknown_status"
+}
+
+### ⑤ 異常系：存在しないidを指定してみる(404が返るはず)
+PATCH http://localhost:8080/contacts/99999/status
+Content-Type: application/json
+
+{
+  "status": "confirmed"
+}
