@@ -33,6 +33,7 @@ Content-Type: application/json
 }
 
 ### ③ 発見API:owner権限で叩いてみる(403が返るはず)
+# @name ownerLogin
 POST http://localhost:8080/auth/test-login?role=owner
 
 ### ↑のレスポンスのtokenをコピーして、すぐ下のAuthorizationヘッダーに貼り付ける
@@ -65,6 +66,7 @@ Content-Type: application/json
 }
 
 ### ⑤ shelter権限でログイン
+# @name shelterLogin
 POST http://localhost:8080/auth/test-login?role=shelter
 
 ### ↑のレスポンスのtokenをコピーして、すぐ下の⑥のAuthorizationヘッダーに貼り付ける
