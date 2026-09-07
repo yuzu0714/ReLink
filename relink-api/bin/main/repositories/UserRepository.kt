@@ -35,6 +35,14 @@ object UserRepository {
         }[UserTable.id]
     }
 
+    // メールアドレスをIDで検索
+    fun findEmailById(userId: Long): String? = transaction {
+        UserTable.selectAll()
+            .where { UserTable.id eq userId }
+            .map { it[UserTable.email] }
+            .firstOrNull()
+    }
+
     // ログイン検証
     // メール・パスワードが一致したら (userId, role) を返す。失敗はnull
     fun login(email: String, password: String): Pair<String, String>? = transaction {

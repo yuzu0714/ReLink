@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 // rescuedpet_register への書き込みだけを担当するクラス
 object RescuedPetRepository {
     // ★修正：ジオコーディングを呼ぶためsuspend関数に変更
-    suspend fun insert(request: RescuedPetRegisterRequest): Long {
+    suspend fun insert(request: RescuedPetRegisterRequest, userId: Long? = null): Long {
         val parsedDate = try {
             LocalDateTime.parse(request.foundDate)
         } catch (e: java.time.format.DateTimeParseException) {
@@ -30,6 +30,8 @@ object RescuedPetRepository {
                 // ★新規追加：座標が取得できていれば保存する
                 it[latitude] = coordinates?.lat
                 it[longitude] = coordinates?.lng
+                // ★新規追加：登録したユーザーのIDを保存
+                it[RescuedPetRegisterTable.userId] = userId
             } get RescuedPetRegisterTable.id
 
             PetPhotoRepository.insertPhotos(

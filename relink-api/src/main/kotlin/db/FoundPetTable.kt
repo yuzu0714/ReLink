@@ -20,6 +20,8 @@ object FoundPetRegisterTable : Table("foundpet_register") {
     // 変換に失敗した場合も登録自体は継続させるため、nullableにしている
     val latitude = double("latitude").nullable()
     val longitude = double("longitude").nullable()
+    // 登録したユーザーのID（usersテーブルの外部キー）
+    val userId = long("user_id").references(UserTable.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

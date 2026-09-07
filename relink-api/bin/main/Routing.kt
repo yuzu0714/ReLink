@@ -54,6 +54,10 @@ import com.models.ContactStatusUpdateRequest
 // ↓↓↓ 既存のimportに追加 ↓↓↓
 import com.models.MatchResultItem
 
+// ★新規追加：通知API
+import com.repositories.NotificationRepository
+import kotlinx.serialization.Serializable
+
 fun Application.configureRouting() {
     routing {
         get("/health") {
@@ -147,8 +151,9 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはowner権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<LostPetRegisterRequest>()
-                val insertedId = LostPetRepository.insert(request)
+                val insertedId = LostPetRepository.insert(request, userId)
 
                 // ★新規追加：登録が成功した直後に、自動でマッチング処理(SQL絞り込み→AI類似度判定→matches保存)を実行する
                 // これまでは/matching/runを手動で叩く必要があったが、本番導線として自動化した
@@ -180,8 +185,9 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはfinder権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<FoundPetRegisterRequest>()
-                val insertedId = FoundPetRepository.insert(request)
+                val insertedId = FoundPetRepository.insert(request, userId)
 
                 call.respond(HttpStatusCode.Created, FoundPetRegisterResponse(id = insertedId))
             }
@@ -195,8 +201,9 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<RescuedPetRegisterRequest>()
-                val insertedId = RescuedPetRepository.insert(request)
+                val insertedId = RescuedPetRepository.insert(request, userId)
 
                 call.respond(HttpStatusCode.Created, RescuedPetRegisterResponse(id = insertedId))
             }
@@ -215,6 +222,16 @@ fun Application.configureRouting() {
 
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+            }
+
+            // ★新規追加：飼い主向け通知一覧取得API
+            get("/notifications") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userId が取得できません")
+
+                val notifications = NotificationRepository.findByUser(userId)
+                call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
             }
         }
         
@@ -279,3 +296,9 @@ fun Application.configureRouting() {
         }
     }
 }
+
+// ★新規追加：GET /notifications のレスポンス用DTO
+@Serializable
+data class NotificationsResponse(
+    val notifications: List<com.repositories.NotificationRow>
+)

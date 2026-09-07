@@ -21,6 +21,8 @@ object RescuedPetRegisterTable : Table("rescuedpet_register") {
     // ★新規追加
     val latitude = double("latitude").nullable()
     val longitude = double("longitude").nullable()
+    // 登録したユーザーのID（usersテーブルの外部キー）
+    val userId = long("user_id").references(UserTable.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
