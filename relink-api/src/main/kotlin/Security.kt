@@ -11,6 +11,9 @@ import com.services.StorageService
 import com.services.AiExtractionService
 import com.services.AiSimilarityService // ★新規追加：AI類似度判定サービスをimport
 
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.services.GeocodingService
+
 // --- 設定値 ---
 val securityDotenv = dotenv()
 val jwtSecret = securityDotenv["JWT_SECRET"] ?: error("JWT_SECRET が設定されていません")
@@ -37,6 +40,11 @@ val aiExtractionService = AiExtractionService(
 // AI_API_BASEの読み込みは上のaiExtractionServiceと同じ値を再利用する
 val aiSimilarityService = AiSimilarityService(
     aiApiBase = securityDotenv["AI_API_BASE"] ?: "http://localhost:8000"
+)
+
+// ★新規追加：Google Geocoding APIを叩くためのサービス
+val geocodingService = GeocodingService(
+    apiKey = securityDotenv["GOOGLE_MAPS_API_KEY"] ?: error("GOOGLE_MAPS_API_KEY が設定されていません")
 )
 
 

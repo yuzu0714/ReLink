@@ -169,16 +169,28 @@ function guessSpecieOption(animalType, breed){
   const text = `${animalType || ''} ${breed || ''}`;
   if(/柴/.test(text)) return '柴犬';
   if(/プードル/.test(text)) return 'トイプードル';
-  if (/プードル/.test(text)) return 'トイプードル';
   if (/ドーベルマン/.test(text)) return 'ドーベルマン';
   if (/チワワ/.test(text)) return 'チワワ';
   if (/ゴールデン・レトリバー/.test(text)) return 'ゴールデン・レトリバー';
   if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
   if (/ハスキー/.test(text)) return 'ハスキー';
   if (/パグ/.test(text)) return 'パグ';
+  if (/秋田犬/.test(text)) return '秋田犬';
+  // 猫の品種（先に具体的な品種を判定し、最後に雑種にフォールバック）
+  if(/アメリカン.?ショートヘア|アメショ/.test(text)) return 'アメリカン・ショートヘア';
+  if(/スコティッシュ.?フォールド|スコ折/.test(text)) return 'スコティッシュ・フォールド';
+  if(/マンチカン/.test(text)) return 'マンチカン';
+  if(/ペルシャ/.test(text)) return 'ペルシャ';
+  if(/ロシアン.?ブルー/.test(text)) return 'ロシアン・ブルー';
+  if(/シャム/.test(text)) return 'シャム';
+  if(/ノルウェージアン/.test(text)) return 'ノルウェージアン・フォレスト・キャット';
+  if(/メインクーン/.test(text)) return 'メインクーン';
+  if(/ラグドール/.test(text)) return 'ラグドール';
+  if(/ブリティッシュ.?ショートヘア|ブリショ/.test(text)) return 'ブリティッシュ・ショートヘア';
+  if(/アビシニアン/.test(text)) return 'アビシニアン';
+  if(/ベンガル/.test(text)) return 'ベンガル';
   if(/猫/.test(text)) return '猫（雑種）';
   if(/雑種/.test(text)) return '雑種（中型）';
-  if(/犬/.test(text)) return 'その他';
   return '';
 }
 
@@ -522,7 +534,7 @@ function initOwnerPage(){
   }
 
   function showRegister(){
-    ownerState = { photos: [], color: null, specie: '', other: '', phone: '', lostPlace: '' };
+    ownerState = { photos: [], color: null, specie: '', otherSpecie: '', other: '', phone: '', lostPlace: '' };
     ownerScreen.innerHTML = `${ownerAppbar('ペット情報を登録')}
       <div class="pad stack fade">
         <div><div class="eyebrow">STEP 1 / 撮影</div><h2 class="title">手持ちの写真をアップ</h2><div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。</div></div>
@@ -533,7 +545,8 @@ function initOwnerPage(){
         <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         <div class="field"><label>連絡先電話番号</label><input class="input" id="ownerPhone" type="tel" placeholder="090-0000-0000" value="${ownerState.phone}"></div>
         <div class="field"><label>紛失場所</label><input class="input" id="ownerLostPlace" placeholder="市区町村" value="${ownerState.lostPlace}"></div>
-        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>雑種（中型）</option><option>猫（雑種）</option><option>その他</option></select></div>
+        <div class="field"><label>種類・犬種</label><select class="input" id="ownerSpecie"><option value="" selected>選択してください</option><optgroup label="🐕 犬"><option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option><option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option><option>パグ</option><option>秋田犬</option><option>雑種（中型）</option></optgroup><optgroup label="🐈 猫"><option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option><option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option><option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option><option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option><option>猫（雑種）</option></optgroup></select></div>
+        <div class="field"><label>上記にない犬種・品種（任意）</label><input class="input" id="ownerOtherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など" value="${ownerState.otherSpecie}"></div>
         <div class="field"><label>毛色（1色選択）</label><div class="swatches" id="ownerSwatches">${petColors.map((color, index) => `<div class="sw" style="background:${color}" data-owner-color="${index}"></div>`).join('')}</div></div>
         <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label><textarea class="input" id="ownerOther" placeholder="例）左耳が欠けている。人懐っこい。"></textarea></div>
         <button class="btn btn-magenta" type="button" id="ownerSubmitBtn" data-owner-action="submit-lost">🐾 登録情報を登録してAIマッチングを開始</button>
@@ -558,6 +571,7 @@ function initOwnerPage(){
     document.getElementById('ownerPhone').addEventListener('input', (e) => { ownerState.phone = e.target.value; });
     document.getElementById('ownerLostPlace').addEventListener('input', (e) => { ownerState.lostPlace = e.target.value; });
     document.getElementById('ownerSpecie').addEventListener('change', (e) => { ownerState.specie = e.target.value; });
+    document.getElementById('ownerOtherSpecie').addEventListener('input', (e) => { ownerState.otherSpecie = e.target.value; });
     document.getElementById('ownerOther').addEventListener('input', (e) => { ownerState.other = e.target.value; });
   }
 
@@ -572,6 +586,11 @@ function initOwnerPage(){
         ownerState.specie = guess;
         const sel = document.getElementById('ownerSpecie');
         if(sel) sel.value = guess;
+      } else if(tags.breed && !ownerState.otherSpecie){
+        // 選択肢にない犬種はテキスト欄に入れる
+        ownerState.otherSpecie = [tags.animalType, tags.breed].filter(Boolean).join(' ');
+        const inp = document.getElementById('ownerOtherSpecie');
+        if(inp) inp.value = ownerState.otherSpecie;
       }
     }
 
@@ -643,8 +662,8 @@ function initOwnerPage(){
       alert('紛失場所を入力してください。');
       return;
     }
-    if(!ownerState.specie){
-      alert('種類・犬種を選択してください。');
+    if(!ownerState.specie && !ownerState.otherSpecie){
+      alert('種類・犬種を選択するか、上記にない犬種・品種欄に入力してください。');
       return;
     }
     if(ownerState.color === null){
@@ -669,7 +688,7 @@ function initOwnerPage(){
         body: JSON.stringify({
           photoUrls,
           phoneNumber: ownerState.phone,
-          specie: ownerState.specie,
+          specie: ownerState.specie || ownerState.otherSpecie,
           color: colorNames[ownerState.color],
           other: ownerState.other || null,
           lostPlace: ownerState.lostPlace,
@@ -763,8 +782,13 @@ function initOwnerPage(){
       : `<div class="card" style="background:#f2f4ff;border-color:#d8ddfb"><b style="color:var(--navy)">${list.length}件ヒットしました</b><div class="lede">マッチ率が高い順に表示しています。</div></div>
         ${list.map((item, i) => {
           const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見された個体';
+          const firstPhoto = item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls[0] : null;
+          const thumbStyle = firstPhoto
+            ? `background-image:url('${firstPhoto}');background-size:cover;background-position:center`
+            : `background:${petSwatch(i)}`;
+          const thumbContent = firstPhoto ? '' : '🐕';
           return `<div class="match-card" data-owner-action="pet-detail" data-match-index="${i}">
-            <div class="ph" style="background:${petSwatch(i)}">🐕</div>
+            <div class="ph" style="${thumbStyle}">${thumbContent}</div>
             <div><div class="name">${sourceLabel} #${item.protectedPetId}</div><div class="meta">${item.reason ? item.reason : ''}</div></div>
             <div class="score"><b>${Math.round(item.matchScore)}%</b><span>マッチ率</span></div>
           </div>`;
@@ -777,9 +801,15 @@ function initOwnerPage(){
     const item = ownerMatchResults[index];
     if (!item) { ownerScreen.innerHTML = homeMarkup; return; }
     const sourceLabel = item.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見者に保護されている個体';
+    const photos = item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls : [];
+    const photoSwiperHtml = photos.length > 0
+      ? photos.map(url =>
+          `<img src="${url}" alt="ペット画像" style="width:100%;max-height:300px;object-fit:contain;border-radius:16px;background:#f5f5f5;scroll-snap-align:start">`
+        ).join('')
+      : `<div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>`;
     ownerScreen.innerHTML = `${ownerAppbar('保護ペットの詳細', 'results')}
       <div class="pad stack fade">
-        <div class="owner-pet-photo" style="background:${petSwatch(index)}">🐕</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">${photoSwiperHtml}</div>
         <div class="owner-pet-title"><h2 class="title">${sourceLabel} #${item.protectedPetId}</h2><span class="pill mag">マッチ率 ${Math.round(item.matchScore)}%</span></div>
         <div class="card owner-info-card"><div><span>AIの判定理由</span><b>${item.reason || '（コメントなし）'}</b></div></div>
         <div class="card">
@@ -994,6 +1024,7 @@ const S = {
   foundPlace: '',
   foundDate: '',
   specie: '',
+  otherSpecie: '',
   other: '',
 };
 
@@ -1074,9 +1105,22 @@ const screens = {
       <div class="field"><label>種類・犬種</label>
         <select class="input" id="specie" onchange="setSpecie(this.value)">
           <option value="">選択してください</option>
-          <option>柴犬</option><option>トイプードル</option><option>雑種（中型）</option>
-          <option>猫（雑種）</option><option>その他</option>
+          <optgroup label="🐕 犬">
+            <option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option>
+            <option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option>
+            <option>パグ</option><option>秋田犬</option><option>雑種（中型）</option>
+          </optgroup>
+          <optgroup label="🐈 猫">
+            <option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option>
+            <option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option>
+            <option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option>
+            <option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option>
+            <option>猫（雑種）</option>
+          </optgroup>
         </select></div>
+
+      <div class="field"><label>上記にない犬種・品種（任意）</label>
+        <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など" value="${S.otherSpecie||''}" oninput="setOtherSpecie(this.value)"></div>
 
       <div class="field"><label>毛色（複数選択可）</label>
         <div class="swatches" id="swatches">
@@ -1511,6 +1555,7 @@ if (name === 'step2' && typeof initStep2 === 'function') initStep2();
 function setFoundPlace(v){ S.foundPlace = v; }
 function setFoundDate(v){ S.foundDate = v; }
 function setSpecie(v){ S.specie = v; }
+function setOtherSpecie(v){ S.otherSpecie = v; }
 function setOther(v){ S.other = v; }
 
 // STEP1(register画面)の「🐾 登録」ボタンから呼ばれる。
@@ -1533,8 +1578,8 @@ function goToStep2(){
     alert('発見日時を入力してください。');
     return;
   }
-  if(!S.specie){
-    alert('種類・犬種を選択してください。');
+  if(!S.specie && !S.otherSpecie){
+    alert('種類・犬種を選択するか、上記にない犬種・品種欄に入力してください。');
     return;
   }
   if(S.regColors.length === 0){
@@ -1622,6 +1667,11 @@ function applyAiTags(tags){
       S.specie = guess;
       const sel = document.getElementById('specie');
       if(sel) sel.value = guess;
+    } else if(tags.breed && !S.otherSpecie){
+      // 選択肢にない犬種はテキスト欄に入れる
+      S.otherSpecie = [tags.animalType, tags.breed].filter(Boolean).join(' ');
+      const inp = document.getElementById('otherSpecie');
+      if(inp) inp.value = S.otherSpecie;
     }
   }
 
@@ -1665,8 +1715,8 @@ async function submitFound(){
     alert('発見日時を入力してください。');
     return;
   }
-  if(!S.specie){
-    alert('種類・犬種を選択してください。');
+  if(!S.specie && !S.otherSpecie){
+    alert('種類・犬種を選択するか、上記にない犬種・品種欄に入力してください。');
     return;
   }
   if(S.regColors.length === 0){
@@ -1705,7 +1755,7 @@ async function submitFound(){
         photoUrls,
         foundPlace: S.foundPlace,
         foundDate: S.foundDate,
-        specie: S.specie,
+        specie: S.specie || S.otherSpecie,
         color: S.regColors.map(i => colorNames[i]).join('・'),
         other: otherText,
       }),

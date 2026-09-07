@@ -8,8 +8,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import java.util.*
 import com.services.StorageService
-import com.services.AiExtractionService
 import com.services.AiSimilarityService // ★新規追加：AI類似度判定サービスをimport
+
+// ↓↓↓ 既存のimportに追加 ↓↓↓
+import com.services.GeocodingService
 
 // --- 設定値 ---
 val securityDotenv = dotenv()
@@ -26,17 +28,17 @@ val storageService = StorageService(
     serviceRoleKey = securityDotenv["SUPABASE_SERVICE_ROLE_KEY"] ?: error("SUPABASE_SERVICE_ROLE_KEY が設定されていません")
 )
 
-// ↓↓↓ 追加:AI特徴抽出(match_api.py, ブランチAI_JSONAPI)へ写真を転送するためのサービス
+// ★新規追加：類似度判定(match_api.py の /compare-photos)へ写真URLを送るためのサービス
 // AI_API_BASEは.envで上書きできるが、必須ではない(未設定ならローカルのuvicornデフォルトを使う)。
 // ローカルで `uvicorn match_api:app --host 0.0.0.0 --port 8000` を起動しておく必要がある。
-val aiExtractionService = AiExtractionService(
+// (aiExtractionServiceがまだこのファイルに存在しないため、AI_API_BASEの読み込みはここで単独に行っている)
+val aiSimilarityService = AiSimilarityService(
     aiApiBase = securityDotenv["AI_API_BASE"] ?: "http://localhost:8000"
 )
 
-// ★新規追加：類似度判定(match_api.py の /compare-photos)へ写真URLを送るためのサービス
-// AI_API_BASEの読み込みは上のaiExtractionServiceと同じ値を再利用する
-val aiSimilarityService = AiSimilarityService(
-    aiApiBase = securityDotenv["AI_API_BASE"] ?: "http://localhost:8000"
+// ★新規追加：Google Geocoding APIを叩くためのサービス
+val geocodingService = GeocodingService(
+    apiKey = securityDotenv["GOOGLE_MAPS_API_KEY"] ?: error("GOOGLE_MAPS_API_KEY が設定されていません")
 )
 
 

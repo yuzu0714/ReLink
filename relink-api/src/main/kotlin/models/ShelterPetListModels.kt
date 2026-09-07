@@ -14,7 +14,10 @@ data class ShelterPetListItem(
     val date: String,       // found_date に対応(ISO8601形式の文字列。例: "2026-07-07T09:30:00")
     val specie: String,
     val color: String,
-    val other: String? = null
+    val other: String? = null,
+    // ★新規追加：地図表示用の緯度経度(変換に失敗している場合はnull)
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 // GET /shelter/pets 全体のレスポンス

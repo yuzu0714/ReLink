@@ -1,6 +1,10 @@
 ### ============================================================
 ### Day3-3 動作確認用：迷子ペット登録 → 発見ペット登録 → マッチング実行
 ### ============================================================
+### ★修正：ログインリクエストは既に # @name で名前が付いていたのに、
+###        すぐ下のAuthorizationヘッダーには古い(期限切れ確実な)トークンが直書きされたままだった。
+###        {{xxxLogin.response.body.$.token}} で自動参照するように統一し、
+###        毎回手動でコピー&貼り付けする手間を無くした。
 
 ### ① owner権限でログイン
 # @name ownerLogin
@@ -9,9 +13,11 @@ POST http://localhost:8080/auth/test-login?role=owner
 ###
 
 ### ② 迷子ペットの写真をアップロード
+### ★注意：VS Codeでこのファイルを開いているワークスペース(フォルダ)を基準に
+###        ./test-assets/test.jpg が実在している必要があります。無いとファイルが見つからずエラーになります。
 # @name lostPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -24,15 +30,13 @@ Content-Type: image/jpeg
 ###
 
 ### ③ 迷子ペット本体を登録（/pets/lost）
-# ★修正：photoUrl(単数) → photoUrls(配列)に変更。モデル側がList<String>を要求するようになったため、
-# 1枚しかなくても配列 [ ] で囲んで送る必要がある
 # @name lostPetRegister
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/ac0a2474-e097-4d07-bb7e-c5eaedd6f2fb_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/1e206a7f-fa28-4644-9985-9e8c87ca975a_test.jpg"],
   "phoneNumber": "090-1234-5678",
   "specie": "柴犬",
   "color": "茶色",
@@ -51,7 +55,7 @@ POST http://localhost:8080/auth/test-login?role=finder
 ### ⑤ 発見ペットの写真をアップロード
 # @name foundPhotoUpload
 POST http://localhost:8080/pets/photos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -64,14 +68,13 @@ Content-Type: image/jpeg
 ###
 
 ### ⑥ 発見ペット本体を登録（/pets/found）
-# ★修正：photoUrl(単数) → photoUrls(配列)に変更
 # @name foundPetRegister
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg4MjE3NDI2fQ.m7y_23V9oRzs25I8a99ZaFTCeLusVn_aTQe-589y89c
+Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/c20c95f5-39f5-4e1c-bd93-42cfd469d020_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/f5d496bb-483a-4395-9f45-044b6a88f515_test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-24T09:30:00",
   "specie": "柴犬",
@@ -94,8 +97,9 @@ POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.bod
 ### 3,上のやつ実行
 
 ### 枚数制限テスト：11枚の写真URLを送って400が返ることを確認
+### ★修正：①で取得済みのownerLoginを再利用する形に変更(古い直書きトークンを削除)
 POST http://localhost:8080/pets/lost
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODgyMTczOTN9.yDFF24omselwqO_PEY5OcX1ll9xpDBI10vgxU56jmc8
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {

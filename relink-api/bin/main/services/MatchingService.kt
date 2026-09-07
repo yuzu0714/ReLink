@@ -68,7 +68,8 @@ object MatchingService {
                     protectedSource = candidate.source,
                     protectedPetId = candidate.id,
                     matchScore = scorePercent,
-                    reason = aiResponse.reason
+                    reason = aiResponse.reason,
+                    photoUrls = candidatePhotoUrls   // ← この行を追加
                 )
             )
         }
