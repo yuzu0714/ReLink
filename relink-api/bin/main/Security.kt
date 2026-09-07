@@ -44,7 +44,7 @@ val aiSimilarityService = AiSimilarityService(
 
 // ★新規追加：Google Geocoding APIを叩くためのサービス
 val geocodingService = GeocodingService(
-    apiKey = securityDotenv["GOOGLE_MAPS_API_KEY"] ?: error("GOOGLE_MAPS_API_KEY が設定されていません")
+    apiKey = securityDotenv.getOrElse("GOOGLE_MAPS_API_KEY") { "" }
 )
 
 
