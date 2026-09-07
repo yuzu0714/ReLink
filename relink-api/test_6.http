@@ -36,7 +36,7 @@ Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/1e206a7f-fa28-4644-9985-9e8c87ca975a_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/8628b8c9-40c8-4782-a14e-30cf179be451_test.jpg"],
   "phoneNumber": "090-1234-5678",
   "specie": "柴犬",
   "color": "茶色",
@@ -74,7 +74,7 @@ Authorization: Bearer {{finderLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/f5d496bb-483a-4395-9f45-044b6a88f515_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/4eb0d01a-930f-478e-9a3f-18041afdd4c9_test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-24T09:30:00",
   "specie": "柴犬",
@@ -95,6 +95,8 @@ POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.bod
 ###   .\gradlew.bat run 
 
 ### 3,上のやつ実行
+
+
 
 ### 枚数制限テスト：11枚の写真URLを送って400が返ることを確認
 ### ★修正：①で取得済みのownerLoginを再利用する形に変更(古い直書きトークンを削除)

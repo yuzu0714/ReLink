@@ -39,7 +39,7 @@ POST http://localhost:8080/auth/test-login?role=owner
 ### ↑のレスポンスのtokenをコピーして、すぐ下のAuthorizationヘッダーに貼り付ける
 ### (role判定は本文を読む前に行われるため、photoUrlsの中身自体はダミーのままでOK)
 POST http://localhost:8080/pets/found
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODkxNzMzMTh9.azO1z1_zjpXSfM3de5a_RzZMbhX_F5XqOkTPO_6QTMk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODkzNTc3NDJ9.ud6TS3dG0nR-tYXZ-N8k65e9C65a0hdW2BTLrfJ53pY
 Content-Type: application/json
 
 {
@@ -73,7 +73,7 @@ POST http://localhost:8080/auth/test-login?role=shelter
 
 ### ⑥ 保護API:正常系(201が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4OTE3MzM4Mn0.xId0kNRVELbllo1lxp0ZKv3IWMP-no6jpNxsMNHVPBk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4OTM1Nzc4OH0.9C3BDvKv3qCTF8pBRiSl9luhFmBpgxg_v382WSHbSlY
 Content-Type: application/json
 
 {
