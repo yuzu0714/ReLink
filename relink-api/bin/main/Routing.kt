@@ -31,6 +31,7 @@ import com.repositories.RescuedPetRepository
 // ★修正：ContactRequest / ContactRepository の import が漏れていたため追加
 import com.models.ContactRequest
 import com.repositories.ContactRepository
+import com.models.toResponse
 
 // 委任タスク: 保護ペット一覧取得API(GET /shelter/pets、shelter向け)
 import com.models.ShelterPetListResponse
@@ -72,7 +73,13 @@ fun Application.configureRouting() {
 
                 multipart.forEachPart { part ->
                     if (part is PartData.FileItem) {
-                        fileName = "${java.util.UUID.randomUUID()}_${part.originalFileName}"
+                        // 元のファイル名にスペース・日本語・括弧などが入っていると、
+                        // StorageService側でURLに未エンコードのまま組み込まれてしまい、
+                        // Supabase Storageへのアップロードが400 Bad Requestになることがあるため、
+                        // URLに安全な文字(英数字・.・_・-)だけに置き換えてから使う
+                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
                         contentType = part.contentType?.toString() ?: contentType
                         fileBytes = part.provider().readRemaining().readBytes()
                     }
@@ -85,6 +92,29 @@ fun Application.configureRouting() {
 
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
+            }
+            
+                        // 追加:登録フォームで未入力の項目(犬種・そのほか欄など)を、写真からAIで自動入力するための下準備。
+            post("/pets/extract-features") {
+                val multipart = call.receiveMultipart()
+                val photos = mutableListOf<Pair<String, ByteArray>>()
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        val bytes = part.provider().readRemaining().readBytes()
+                        photos.add(safeOriginalName to bytes)
+                    }
+                    part.dispose()
+                }
+
+                if (photos.isEmpty()) {
+                    throw IllegalArgumentException("画像ファイルが見つかりません")
+                }
+
+                val raw = aiExtractionService.extractFeatures(photos)
+                call.respond(HttpStatusCode.OK, raw.toResponse())
             }
 
             post("/pets/lost") {
