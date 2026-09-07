@@ -1854,7 +1854,7 @@ async function submitFound(){
 
 // 初期表示も動的な finder 画面を表示して、login.html から入った場合と内部遷移で戻った場合で同じ見た目にする
 window.finderInit = () => go('finder');
-if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', window.finderInit); } else { window.finderInit(); }
+if (isFinderPage) { if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', window.finderInit); } else { window.finderInit(); } }
 
 // step2 初期化: 保護方法に応じて引き渡し予定のフィールド表示を切り替える
 function initStep2(){
