@@ -881,92 +881,121 @@ if (!isFinderPage && isLoginPage) {
 }
 
 // 保護ペットの情報
-const petData = {
+let petData = null;
+async function loadPetDetail() {
+  const params = new URLSearchParams(window.location.search);
+  const petId = params.get("id");
+  const petSource = params.get("source");
 
-  id: "A21",
-
-  name: "保護 #A21",
-
-  status: "照合中",
-
-  breed: "柴犬 / オス",
-
-  color: "薄い茶色・白",
-
-  collar: "赤い革製",
-
-  location: "○○市○○町",
-
-  date: "2026/07/06"
-
-};
-
-
-
-// 保護ペット詳細画面
-const petName = document.getElementById("petName");
-
-if (petName) {
-
-  // 名前
-  petName.textContent = petData.name;
-
-  // 状態
-  const petStatus =
-    document.getElementById("petStatus");
-
-  petStatus.textContent = petData.status;
-
-
-  // 種類
-  document.getElementById("petBreed").textContent =
-    petData.breed;
-
-
-  // 毛色
-  document.getElementById("petColor").textContent =
-    petData.color;
-
-
-  // 首輪
-  document.getElementById("petCollar").textContent =
-    petData.collar;
-
-
-  // 発見場所
-  document.getElementById("petLocation").textContent =
-    petData.location;
-
-
-  // 保護日
-  document.getElementById("petDate").textContent =
-    petData.date;
-
-  // 状態によってラベルの見た目を変更
-
-  if (
-    petData.status === "新規" ||
-    petData.status === "一致"
-  ) {
-
-    petStatus.className = "pill mag";
-
-  } else {
-
-    petStatus.className = "pill";
-
+  if (!petId || !petSource) {
+    console.error("ペットIDまたはsourceがありません");
+    return;
   }
 
+  try {
+    const response = await fetch(`${API_BASE}/shelter/pets`);
+
+    if (!response.ok) {
+      throw new Error("保護ペット情報の取得に失敗しました");
+    }
+
+    const pets = await response.json();
+
+    petData = pets.find(
+      pet => String(pet.id) === String(petId) &&
+             pet.source === petSource
+    );
+
+    if (!petData) {
+      console.error("該当するペットが見つかりません");
+      return;
+    }
+
+    console.log("取得したペット情報:", petData);
+    if (window.google?.maps) {
+      initMap();
+    }
+      
+    // 保護ペット詳細画面
+    const petName = document.getElementById("petName");
+
+    if (petName) {
+
+      // 名前
+      petName.textContent = petData.name;
+
+      // 状態
+      const petStatus =
+        document.getElementById("petStatus");
+
+      petStatus.textContent = petData.status;
+
+
+      // 種類
+      document.getElementById("petBreed").textContent =
+        petData.breed;
+
+
+      // 毛色
+      document.getElementById("petColor").textContent =
+        petData.color;
+
+
+      // 首輪
+      document.getElementById("petCollar").textContent =
+        petData.collar;
+
+
+      // 発見場所
+      document.getElementById("petLocation").textContent =
+        petData.location;
+
+
+      // 保護日
+      document.getElementById("petDate").textContent =
+        petData.date;
+
+      // 状態によってラベルの見た目を変更
+
+      if (
+        petData.status === "新規" ||
+        petData.status === "一致"
+      ) {
+
+        petStatus.className = "pill mag";
+
+      } else {
+
+        petStatus.className = "pill";
+
+      }
+
+    }
+
+  } catch (error) {
+    console.error(error);
+  }
 }
+loadPetDetail();
+
+
+
+
 
 // Google Maps
 
 function initMap() {
 
+  if (!petData || petData.latitude == null || petData.longitude == null) {
+    document.getElementById("map").textContent =
+      "この場所の地図情報は取得できませんでした";
+    return;
+  }
+
   // 仮の発見場所
   const location = {
-    lat: 34.0703,
-    lng: 134.5549
+    lat: petData.latitude,
+    lng: petData.longitude
   };
 
   const map = new google.maps.Map(
@@ -1772,3 +1801,12 @@ function initStep2(){
     window.setOther = setOther;
   }
 })();
+
+// 保護ペット詳細画面
+const params = new URLSearchParams(window.location.search);
+
+const petId = params.get("id");
+const petSource = params.get("source");
+
+console.log("ペットID:", petId);
+console.log("source:", petSource);
