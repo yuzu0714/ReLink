@@ -12,6 +12,10 @@ import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
+import com.models.RegisterRequest
+import com.models.LoginRequest
+import com.models.AuthResponse
+import com.repositories.UserRepository
 import com.services.StorageService
 import com.exceptions.ForbiddenException
 
@@ -57,6 +61,24 @@ fun Application.configureRouting() {
         }
         // 本物のユーザー認証(パスワード照合など)はこれ以降に追加する。
         // 今は「roleを渡したらトークンが返ってくる」動作確認用の仮ルート
+        // 新規ユーザー登録
+        post("/auth/register") {
+            val request = call.receive<RegisterRequest>()
+            val userId = UserRepository.register(request).toString()
+            val token = generateToken(userId = userId, role = request.role)
+            call.respond(HttpStatusCode.Created, AuthResponse(token = token, userId = userId, role = request.role))
+        }
+
+        // ログイン
+        post("/auth/login") {
+            val request = call.receive<LoginRequest>()
+            val result = UserRepository.login(request.email, request.password)
+                ?: throw IllegalArgumentException("メールアドレスまたはパスワードが正しくありません")
+            val (userId, role) = result
+            val token = generateToken(userId = userId, role = role)
+            call.respond(HttpStatusCode.OK, AuthResponse(token = token, userId = userId, role = role))
+        }
+
         post("/auth/test-login") {
             val role = call.request.queryParameters["role"] ?: "owner"
             val token = generateToken(userId = "test-user-1", role = role)
