@@ -488,15 +488,51 @@ const screens = {
   },
 
   notify(){
-    const items = [
-      {t:'似たペットが保護されました', b:'マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。詳細を確認してください。', tm:'たった今', read:false, to:'petDetail'},
-      {t:'AIマッチングが完了', b:'登録したペットについて6件の候補が見つかりました。', tm:'5分前', read:false, to:'results'},
-      {t:'受け渡し記録の共有', b:'発見者から飼い主へ直接引き渡された記録が保健所に共有されました。', tm:'2時間前', read:true, to:null},
-      {t:'新しい保護情報', b:'△△市でトイプードルが保護されました。登録内容と照合中です。', tm:'昨日', read:true, to:null},
-    ];
+    // まずローディング状態を返し、その後APIで実データを差し込む
+    setTimeout(function(){
+      const token = sessionStorage.getItem('authToken');
+      const el = document.getElementById('notify-rows');
+      if (!el) return;
+      if (!token) {
+        el.innerHTML = '<div style="text-align:center;padding:32px;color:#888;font-size:14px">ログインが必要です。</div>';
+        return;
+      }
+      function relTime(isoStr){
+        const diff = Date.now() - new Date(isoStr).getTime();
+        const min = Math.floor(diff/60000);
+        if(min<1) return 'たった今';
+        if(min<60) return min+'分前';
+        const h=Math.floor(min/60);
+        if(h<24) return h+'時間前';
+        const d=Math.floor(h/24);
+        return d<7?d+'日前':new Date(isoStr).toLocaleDateString('ja-JP');
+      }
+      fetch(API_BASE+'/notifications',{headers:{'Authorization':'Bearer '+token}})
+        .then(function(r){return r.json();})
+        .then(function(data){
+          const list=(data&&data.notifications)||[];
+          if(!el) return;
+          if(list.length===0){
+            el.innerHTML='<div style="text-align:center;padding:32px;color:#888;font-size:14px">通知はまだありません。</div>';
+            return;
+          }
+          el.innerHTML=list.map(function(n){
+            const msg=n.message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return '<div class="notif'+(n.isRead?' read':'')+'">'+
+              '<div class="dot"></div>'+
+              '<div><div class="nt">ペットのマッチング通知</div>'+
+              '<div class="nb">'+msg+'</div>'+
+              '<div class="tm">'+relTime(n.createdAt)+'</div>'+
+              '</div></div>';
+          }).join('');
+        })
+        .catch(function(){
+          if(el) el.innerHTML='<div style="text-align:center;padding:32px;color:#888;font-size:14px">取得に失敗しました。</div>';
+        });
+    },0);
     return renderTemplate('notify-template', {
       appbar: buildAppbar('お知らせ', 'home', S.role),
-      rows: items.map(renderNotifItem).join(''),
+      rows: '<div id="notify-rows" style="text-align:center;padding:32px;color:#888;font-size:14px">読み込み中...</div>',
     });
   },
 };
@@ -787,13 +823,58 @@ function initOwnerPage(){
     }
   }
 
+  function relativeTime(isoStr) {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1)  return 'たった今';
+    if (min < 60) return min + '分前';
+    const h = Math.floor(min / 60);
+    if (h < 24)   return h + '時間前';
+    const d = Math.floor(h / 24);
+    return d < 7 ? d + '日前' : new Date(isoStr).toLocaleDateString('ja-JP');
+  }
+
   function showNotify(){
+    // まずローディング表示
     ownerScreen.innerHTML = `${ownerAppbar('お知らせ')}
-      <div class="pad stack fade">
-        <div class="notif"><div class="dot"></div><div><div class="nt">似たペットが保護されました</div><div class="nb">マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。</div><div class="tm">たった今</div></div></div>
-        <div class="notif"><div class="dot"></div><div><div class="nt">AIマッチングが完了</div><div class="nb">登録したペットについて候補が見つかりました。</div><div class="tm">5分前</div></div></div>
-        <div class="notif read"><div class="dot"></div><div><div class="nt">受け渡し記録の共有</div><div class="nb">発見者から飼い主へ引き渡された記録が共有されました。</div><div class="tm">2時間前</div></div></div>
+      <div class="pad stack fade" id="notif-list">
+        <div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">読み込み中...</div>
       </div>`;
+
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      document.getElementById('notif-list').innerHTML =
+        '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">ログインが必要です。</div>';
+      return;
+    }
+
+    fetch(API_BASE + '/notifications', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      const list = (data && data.notifications) || [];
+      const el = document.getElementById('notif-list');
+      if (!el) return;
+      if (list.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">通知はまだありません。</div>';
+        return;
+      }
+      el.innerHTML = list.map(function(n){
+        const readCls = n.isRead ? ' read' : '';
+        return '<div class="notif' + readCls + '">' +
+          '<div class="dot"></div>' +
+          '<div><div class="nt">ペットのマッチング通知</div>' +
+          '<div class="nb">' + n.message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+          '<div class="tm">' + relativeTime(n.createdAt) + '</div>' +
+          '</div></div>';
+      }).join('');
+    })
+    .catch(function(e){
+      const el = document.getElementById('notif-list');
+      if (el) el.innerHTML = '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">通知の取得に失敗しました。</div>';
+      console.error(e);
+    });
   }
 
   // 実際のバックエンド(/matching/run)を呼び出してマッチングを実行する。

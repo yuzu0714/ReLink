@@ -8,13 +8,12 @@ import com.repositories.MatchingRepository
 import com.repositories.NotificationRepository
 import com.repositories.PetPhotoRepository
 import com.repositories.UserRepository
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
 
-// SQL絞り込み(MatchingRepository)→AI類似度判定(AiSimilarityService)
-// →matchesテーブルへの保存、をひとつなぎにするサービス。
-// ★追加：マッチ率70%以上の場合、飼い主へメール送信＆通知履歴を保存する
 object MatchingService {
 
     suspend fun runMatching(lostPetId: Long): List<MatchResultItem> {
@@ -27,8 +26,8 @@ object MatchingService {
         }
 
         val candidates = MatchingRepository.findCandidates(
-            specie = lostPet.specie,
-            color = lostPet.color,
+            specie    = lostPet.specie,
+            color     = lostPet.color,
             lostPlace = lostPet.lostPlace
         )
 
@@ -43,7 +42,7 @@ object MatchingService {
 
             val aiResponse = try {
                 aiSimilarityService.comparePhotos(
-                    photoUrls = lostPhotoUrls,
+                    photoUrls          = lostPhotoUrls,
                     candidatePhotoUrls = candidatePhotoUrls
                 )
             } catch (e: AiServiceException) {
@@ -53,28 +52,39 @@ object MatchingService {
 
             val scorePercent = aiResponse.similarityScore * 100
 
-            val insertedMatchId = transaction {
-                MatchesTable.insert {
+            // ★修正：uq_match制約（lost_pet_id, protected_source, protected_pet_id）の重複を回避する。
+            // 同じ組み合わせが既にあればそのIDを使い、なければINSERTする。
+            val matchId = transaction {
+                val existing = MatchesTable.selectAll()
+                    .where {
+                        (MatchesTable.lostPetId      eq lostPetId)       and
+                        (MatchesTable.protectedSource eq candidate.source) and
+                        (MatchesTable.protectedPetId  eq candidate.id)
+                    }
+                    .map { it[MatchesTable.id] }
+                    .firstOrNull()
+
+                existing ?: MatchesTable.insert {
                     it[MatchesTable.lostPetId]       = lostPetId
                     it[MatchesTable.protectedSource]  = candidate.source
                     it[MatchesTable.protectedPetId]   = candidate.id
                     it[MatchesTable.matchScore]        = BigDecimal.valueOf(scorePercent)
-                } get MatchesTable.id
+                }[MatchesTable.id]
             }
 
             // ★新規追加：マッチ率70%以上の場合に飼い主へ通知する
             if (scorePercent >= 70.0) {
                 notifyOwner(
-                    lostPet       = lostPet,
-                    matchId       = insertedMatchId,
-                    scorePercent  = scorePercent,
+                    lostPet         = lostPet,
+                    matchId         = matchId,
+                    scorePercent    = scorePercent,
                     protectedSource = candidate.source
                 )
             }
 
             results.add(
                 MatchResultItem(
-                    matchId         = insertedMatchId,
+                    matchId         = matchId,
                     protectedSource = candidate.source,
                     protectedPetId  = candidate.id,
                     matchScore      = scorePercent,
@@ -87,8 +97,7 @@ object MatchingService {
         return results.sortedByDescending { it.matchScore }
     }
 
-    // ★新規追加：飼い主へのメール送信＆通知履歴保存
-    // どちらが失敗してもマッチング全体を止めない
+    // 飼い主へのメール送信＆通知履歴保存（失敗してもマッチング全体を止めない）
     private suspend fun notifyOwner(
         lostPet        : com.repositories.LostPetRegisterRow,
         matchId        : Long,
@@ -103,14 +112,19 @@ object MatchingService {
         val sourceLabel = if (protectedSource == "rescued") "保護施設" else "発見者"
         val message = "マッチ率${scorePercent.toInt()}%：${sourceLabel}によって似たペットが保護されました。マッチング結果を確認してください。"
 
-        // 通知履歴をDBに保存
+        // 通知履歴をDBに保存（重複チェック：同じmatchIdの通知がなければINSERT）
         try {
-            NotificationRepository.insert(
-                userId  = userId,
-                matchId = matchId,
-                message = message
-            )
-            println("🔔 通知保存完了 (userId=$userId, matchId=$matchId)")
+            val alreadyNotified = transaction {
+                com.db.NotificationTable.selectAll()
+                    .where { com.db.NotificationTable.matchId eq matchId }
+                    .count() > 0
+            }
+            if (!alreadyNotified) {
+                NotificationRepository.insert(userId = userId, matchId = matchId, message = message)
+                println("🔔 通知保存完了 (userId=$userId, matchId=$matchId)")
+            } else {
+                println("ℹ️ 通知済みのためスキップ (matchId=$matchId)")
+            }
         } catch (e: Exception) {
             println("⚠️ 通知保存失敗 (userId=$userId): ${e.message}")
         }
@@ -122,7 +136,6 @@ object MatchingService {
             println("⚠️ メールアドレス取得失敗 (userId=$userId): ${e.message}")
             null
         }
-
         if (email != null) {
             EmailService.sendMatchNotification(
                 toEmail         = email,
