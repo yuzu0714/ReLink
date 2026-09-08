@@ -13,6 +13,7 @@ const S = {
 
 const isLoginPage = document.body && document.body.dataset.page === 'login';
 const isOwnerPage = document.body && document.body.dataset.page === 'owner';
+const isOwnerRegisterPage = document.body && document.body.dataset.page === 'owner-register';
 const isFinderPage = document.body && document.body.dataset.page === 'finder';
 const screen = document.getElementById('screen');
 let templates = {};
@@ -867,6 +868,8 @@ function initOwnerPage(){
       </div>`;
   }
 
+  const _urlParams = new URLSearchParams(window.location.search);
+  if (isOwnerRegisterPage || _urlParams.get("action") === "register") showRegister();
   ownerScreen.addEventListener('click', (event) => {
     const action = event.target.closest('[data-owner-action]');
     if (action) {
@@ -895,7 +898,7 @@ function initOwnerPage(){
 
 if (!isFinderPage && isLoginPage) {
   initLoginPage();
-} else if (!isFinderPage && isOwnerPage) {
+} else if (!isFinderPage && (isOwnerPage || isOwnerRegisterPage)) {
   initOwnerPage();
 } else if (!isFinderPage && screen) {
   loadTemplates()
