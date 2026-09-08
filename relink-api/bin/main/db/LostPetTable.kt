@@ -12,6 +12,8 @@ object LostPetRegisterTable : Table("lostpet_register") {
     val color = text("color").nullable()
     val other = text("other").nullable()
     val lostPlace = text("lost_place").nullable()
+    // 登録したユーザーのID（usersテーブルの外部キー）
+    val userId = long("user_id").references(UserTable.id).nullable()
     // created_at は DBの DEFAULT now() に任せたいので、
     // ここでは列を定義せず(INSERT時に触らない)、Kotlin側からは扱わない
 

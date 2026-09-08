@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 // lostpet_register への書き込みだけを担当するクラス
 object LostPetRepository {
-    fun insert(request: LostPetRegisterRequest): Long {
+    fun insert(request: LostPetRegisterRequest, userId: Long? = null): Long {
         return transaction {
             val insertedId = LostPetRegisterTable.insert {
                 // ★修正：photoUrlカラムがDB側でDROP COLUMN済み(pet_photosテーブルへ移管)のため、
@@ -18,6 +18,8 @@ object LostPetRepository {
                 it[color] = request.color
                 it[other] = request.other
                 it[lostPlace] = request.lostPlace
+                // ★新規追加：登録したユーザーのIDを保存
+                it[LostPetRegisterTable.userId] = userId
             } get LostPetRegisterTable.id
 
             // ★新規追加：FoundPetRepositoryと同じく、本体INSERT成功後のidを使って
@@ -43,7 +45,8 @@ object LostPetRepository {
                     id = it[LostPetRegisterTable.id],
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
-                    lostPlace = it[LostPetRegisterTable.lostPlace]
+                    lostPlace = it[LostPetRegisterTable.lostPlace],
+                    userId = it[LostPetRegisterTable.userId]   // ★追加
                 )
             }
             .firstOrNull()
@@ -55,5 +58,6 @@ data class LostPetRegisterRow(
     val id: Long,
     val specie: String?,
     val color: String?,
-    val lostPlace: String?
+    val lostPlace: String?,
+    val userId: Long?    // ★追加：通知送信時に飼い主を特定するために必要
 )

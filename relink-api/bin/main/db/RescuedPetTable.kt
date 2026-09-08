@@ -17,6 +17,12 @@ object RescuedPetRegisterTable : Table("rescuedpet_register") {
     val other = text("other").nullable()
     // 委任タスク(GET /shelter/pets)で新しい順に並べ替えるために追加。読み取り専用として使う。
     val createdAt = timestampWithTimeZone("created_at")
+    
+    // ★新規追加
+    val latitude = double("latitude").nullable()
+    val longitude = double("longitude").nullable()
+    // 登録したユーザーのID（usersテーブルの外部キー）
+    val userId = long("user_id").references(UserTable.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

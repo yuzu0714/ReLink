@@ -1,15 +1,30 @@
+### ============================================================
+### ★修正点まとめ(2点)
+### ① photoUrl(単数・String) → photoUrls(複数・配列)に変更
+###    現在のFoundPetRegisterRequest/RescuedPetRegisterRequestは
+###    photoUrlsが必須項目のため、旧形式のままだと「写真URLが無い」エラー(400)が
+###    先に発生してしまい、②や⑥のような正常系テストでも201が返らなくなる。
+###    (④のfoundDate不正テストも、直さないと「日付エラーの400」ではなく
+###    「必須項目不足の400」が返ってしまい、意図したテストになっていなかった)
+### ② Authorization: Bearer (finderToken) のような「かっこ書きプレースホルダー」を
+###    実際のトークンではない単なる文字列として送ってしまい、401になる不具合を修正。
+###    → 「①でログイン→②で発行されたtokenをコピーして貼り付け」という手順を
+###       各リクエストの直前に明記する形に統一した。
+### ============================================================
+
 ### ① finder権限でログイン
 POST http://localhost:8080/auth/test-login?role=finder
 
-### ↑のレスポンスのtokenをコピーして、下の {{finderToken}} 部分に貼る
+### ↑のレスポンスのtokenをコピーして、すぐ下の②のAuthorizationヘッダーに貼り付ける
+### (トークンは発行から7日で失効するので、実行するたびに①→②の順で取り直すこと)
 
 ### ② 発見API:正常系(201が返るはず)
 POST http://localhost:8080/pets/found
-Authorization: Bearer (finderToken)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg5MTczMjk2fQ._PWCh_C5L2KSEew6S5O3PuTlQP4QWOes7fDUPW0-2-o
 Content-Type: application/json
 
 {
-  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "photoUrls": ["https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg"],
   "foundPlace": "石川県 輪島市 ○○町",
   "foundDate": "2026-08-17T15:04:05",
   "specie": "柴犬",
@@ -20,13 +35,14 @@ Content-Type: application/json
 ### ③ 発見API:owner権限で叩いてみる(403が返るはず)
 POST http://localhost:8080/auth/test-login?role=owner
 
-###
+### ↑のレスポンスのtokenをコピーして、すぐ下のAuthorizationヘッダーに貼り付ける
+### (role判定は本文を読む前に行われるため、photoUrlsの中身自体はダミーのままでOK)
 POST http://localhost:8080/pets/found
-Authorization: Bearer (ownerToken)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoib3duZXIiLCJleHAiOjE3ODkxNzMzMTh9.azO1z1_zjpXSfM3de5a_RzZMbhX_F5XqOkTPO_6QTMk
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026-08-17T15:04:05",
   "specie": "test",
@@ -34,12 +50,14 @@ Content-Type: application/json
 }
 
 ### ④ 発見API:foundDateの形式がおかしい場合(400が返るはず ← 今回直した①の確認ポイント!)
+### ★修正：photoUrlsを配列で入れておくことで、本文の必須項目チェックを通過させ、
+###        本来テストしたい「日付フォーマットのチェック」まで確実に到達させるようにした
 POST http://localhost:8080/pets/found
-Authorization: Bearer (finderToken)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg5MTczMjk2fQ._PWCh_C5L2KSEew6S5O3PuTlQP4QWOes7fDUPW0-2-o
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026年8月17日",
   "specie": "test",
@@ -49,13 +67,15 @@ Content-Type: application/json
 ### ⑤ shelter権限でログイン
 POST http://localhost:8080/auth/test-login?role=shelter
 
+### ↑のレスポンスのtokenをコピーして、すぐ下の⑥のAuthorizationヘッダーに貼り付ける
+
 ### ⑥ 保護API:正常系(201が返るはず)
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer (shelterToken)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoic2hlbHRlciIsImV4cCI6MTc4OTE3MzM4Mn0.xId0kNRVELbllo1lxp0ZKv3IWMP-no6jpNxsMNHVPBk
 Content-Type: application/json
 
 {
-  "photoUrl": "https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg",
+  "photoUrls": ["https://xxxxx.supabase.co/storage/v1/object/public/pet-photos/test.jpg"],
   "foundPlace": "石川県 輪島市 △△町",
   "foundDate": "2026-08-17T09:30:00",
   "specie": "猫",
@@ -64,12 +84,13 @@ Content-Type: application/json
 }
 
 ### ⑦ 保護API:finder権限で叩いてみる(403が返るはず)
+### ★修正：③と同じ考え方で、finderのトークンを実際に取得して貼り付ける形に変更
 POST http://localhost:8080/pets/rescued
-Authorization: Bearer (finderToken)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJyZWxpbmstYXBpIiwiYXVkIjoicmVsaW5rLXVzZXJzIiwidXNlcklkIjoidGVzdC11c2VyLTEiLCJyb2xlIjoiZmluZGVyIiwiZXhwIjoxNzg5MTczMjk2fQ._PWCh_C5L2KSEew6S5O3PuTlQP4QWOes7fDUPW0-2-o
 Content-Type: application/json
 
 {
-  "photoUrl": "test",
+  "photoUrls": ["test"],
   "foundPlace": "test",
   "foundDate": "2026-08-17T09:30:00",
   "specie": "test",

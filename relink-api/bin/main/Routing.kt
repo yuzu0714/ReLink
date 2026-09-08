@@ -12,52 +12,63 @@ import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
+import com.models.RegisterRequest
+import com.models.LoginRequest
+import com.models.AuthResponse
+import com.repositories.UserRepository
 import com.services.StorageService
 import com.exceptions.ForbiddenException
-
-// 追加:ペット登録API本体で使うDTOとリポジトリ
 import com.models.LostPetRegisterRequest
 import com.models.LostPetRegisterResponse
 import com.repositories.LostPetRepository
-
-// Part 2で追加:発見API(finder向け)・保護API(shelter向け)
 import com.models.FoundPetRegisterRequest
 import com.models.FoundPetRegisterResponse
 import com.repositories.FoundPetRepository
 import com.models.RescuedPetRegisterRequest
 import com.models.RescuedPetRegisterResponse
 import com.repositories.RescuedPetRepository
-
-// ★修正：ContactRequest / ContactRepository の import が漏れていたため追加
 import com.models.ContactRequest
 import com.repositories.ContactRepository
 import com.models.toResponse
-
-// 委任タスク: 保護ペット一覧取得API(GET /shelter/pets、shelter向け)
 import com.models.ShelterPetListResponse
 import com.repositories.ShelterPetListRepository
-
-// ★新規追加：Day3のマッチング絞り込み機能の動作確認用
 import com.repositories.MatchingRepository
-
-// ↓↓↓ 既存のimportに追加 ↓↓↓
 import com.services.MatchingService
 import com.models.MatchingRunResponse
+import com.models.ContactStatusUpdateRequest
+import com.models.MatchResultItem
+import com.repositories.NotificationRepository
+import com.repositories.MatchDetailRepository
+import kotlinx.serialization.Serializable
 
 fun Application.configureRouting() {
     routing {
         get("/health") {
             call.respond(HttpStatusCode.OK, HealthResponse(status = "ok", service = "relink-api"))
         }
-        // 本物のユーザー認証(パスワード照合など)はこれ以降に追加する。
-        // 今は「roleを渡したらトークンが返ってくる」動作確認用の仮ルート
+
+        post("/auth/register") {
+            val request = call.receive<RegisterRequest>()
+            val userId = UserRepository.register(request).toString()
+            val token = generateToken(userId = userId, role = request.role)
+            call.respond(HttpStatusCode.Created, AuthResponse(token = token, userId = userId, role = request.role))
+        }
+
+        post("/auth/login") {
+            val request = call.receive<LoginRequest>()
+            val result = UserRepository.login(request.email, request.password)
+                ?: throw IllegalArgumentException("メールアドレスまたはパスワードが正しくありません")
+            val (userId, role) = result
+            val token = generateToken(userId = userId, role = role)
+            call.respond(HttpStatusCode.OK, AuthResponse(token = token, userId = userId, role = role))
+        }
+
         post("/auth/test-login") {
             val role = call.request.queryParameters["role"] ?: "owner"
             val token = generateToken(userId = "test-user-1", role = role)
             call.respond(mapOf("token" to token))
         }
 
-        // 認証保護されたルートの例(トークンが必須になる)
         authenticate("auth-jwt") {
             post("/pets/photos") {
                 val multipart = call.receiveMultipart()
@@ -67,10 +78,6 @@ fun Application.configureRouting() {
 
                 multipart.forEachPart { part ->
                     if (part is PartData.FileItem) {
-                        // 元のファイル名にスペース・日本語・括弧などが入っていると、
-                        // StorageService側でURLに未エンコードのまま組み込まれてしまい、
-                        // Supabase Storageへのアップロードが400 Bad Requestになることがあるため、
-                        // URLに安全な文字(英数字・.・_・-)だけに置き換えてから使う
                         val safeOriginalName = (part.originalFileName ?: "photo.jpg")
                             .replace(Regex("[^A-Za-z0-9._-]"), "_")
                         fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
@@ -87,8 +94,7 @@ fun Application.configureRouting() {
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
             }
-            
-                        // 追加:登録フォームで未入力の項目(犬種・そのほか欄など)を、写真からAIで自動入力するための下準備。
+
             post("/pets/extract-features") {
                 val multipart = call.receiveMultipart()
                 val photos = mutableListOf<Pair<String, ByteArray>>()
@@ -111,7 +117,6 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, raw.toResponse())
             }
 
-            // authenticate{} 直下の兄弟ルートとして外に出した
             post("/pets/lost") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -120,15 +125,23 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはowner権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<LostPetRegisterRequest>()
-                val insertedId = LostPetRepository.insert(request)
+                val insertedId = LostPetRepository.insert(request, userId)
 
-                call.respond(HttpStatusCode.Created, LostPetRegisterResponse(id = insertedId))
+                val matchResults: List<MatchResultItem> = try {
+                    MatchingService.runMatching(insertedId)
+                } catch (e: Exception) {
+                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
+                    emptyList()
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                )
             }
 
-            // Part 2 追加①: 発見API(foundpet_register へのINSERT、finder向け)
-            // /pets/lost と同じ形。authenticate{} 直下の兄弟として並べること
-            // (他のルートの中にネストすると、ビルドは通ってもルートが認識されず404になるので注意)
             post("/pets/found") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -137,13 +150,13 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはfinder権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<FoundPetRegisterRequest>()
-                val insertedId = FoundPetRepository.insert(request)
+                val insertedId = FoundPetRepository.insert(request, userId)
 
                 call.respond(HttpStatusCode.Created, FoundPetRegisterResponse(id = insertedId))
             }
 
-            // Part 2 追加②: 保護API(rescuedpet_register へのINSERT、shelter向け)
             post("/pets/rescued") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -152,16 +165,13 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<RescuedPetRegisterRequest>()
-                val insertedId = RescuedPetRepository.insert(request)
+                val insertedId = RescuedPetRepository.insert(request, userId)
 
                 call.respond(HttpStatusCode.Created, RescuedPetRegisterResponse(id = insertedId))
             }
 
-            // 委任タスク: 保護ペット一覧取得API(shelter向け)
-            // foundpet_register・rescuedpet_registerの両方から全件取得して1つにまとめて返す(単純なSELECTのみ、
-            // matchesテーブル関連の絞り込みは含まない)。/pets/rescued と同じく authenticate{} 直下の兄弟として置くこと
-            // (他のルートの中にネストするとビルドは通ってもルートが404になるので注意)
             get("/shelter/pets") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString()
@@ -173,12 +183,24 @@ fun Application.configureRouting() {
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
             }
+
+            get("/notifications") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userId が取得できません")
+                val notifications = NotificationRepository.findByUser(userId)
+                call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
+            }
+
+            get("/matches/{matchId}/detail") {
+                val matchId = call.parameters["matchId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("matchIdは数値で指定してください")
+                val detail = MatchDetailRepository.findById(matchId)
+                    ?: throw NoSuchElementException("指定されたmatchIdが見つかりません: $matchId")
+                call.respond(HttpStatusCode.OK, detail)
+            }
         }
-        
-        // ★新規追加：Day3 SQL絞り込みロジックの動作確認用エンドポイント
-        // クエリパラメータでspecie・color・lostPlaceを受け取り、
-        // MatchingRepository.findCandidates()で絞り込んだ結果をそのまま返すだけの仮実装
-        // (本番では/pets/lostの登録時などに自動で走らせる想定。今は単体動作確認が目的)
+
         get("/matching/test") {
             val specie = call.request.queryParameters["specie"]
             val color = call.request.queryParameters["color"]
@@ -187,10 +209,7 @@ fun Application.configureRouting() {
             val candidates = MatchingRepository.findCandidates(specie, color, lostPlace)
             call.respond(HttpStatusCode.OK, candidates)
         }
-        
-        // ★修正：/contacts を authenticate ブロックの外に移動
-        // 決定事項③（JWT認証なし、match_idの実在チェックのみ）を反映するため
-        // authenticate の"外"にあるルートは、トークン無しで誰でも呼び出せる
+
         post("/contacts") {
             val request = call.receive<ContactRequest>()
 
@@ -201,10 +220,19 @@ fun Application.configureRouting() {
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
         }
-        
-        // ★新規追加(Day3-3)：SQL絞り込み→AI類似度判定→matches保存、の一連の流れを動作確認するための仮エンドポイント
-        // /matching/testと同じく認証なし(authenticateブロックの外)に置いている
-        // 本番実装時は/pets/lost登録時などに自動で呼ばれる形に置き換える予定
+
+        patch("/contacts/{id}/status") {
+            val id = call.parameters["id"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("idは数値で指定してください")
+
+            val request = call.receive<ContactStatusUpdateRequest>()
+
+            val updated = ContactRepository.updateStatus(id, request.status)
+                ?: throw NoSuchElementException("指定されたcontacts.idが見つかりません: $id")
+
+            call.respond(HttpStatusCode.OK, updated)
+        }
+
         post("/matching/run") {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
@@ -222,3 +250,6 @@ fun Application.configureRouting() {
         }
     }
 }
+
+@Serializable
+data class NotificationsResponse(val notifications: List<com.repositories.NotificationRow>)
