@@ -11,7 +11,8 @@ const S = {
   cancelMatch: false,
 };
 
-const isLoginPage = document.body && document.body.dataset.page === 'login';
+const isLoginPage  = document.body && document.body.dataset.page === 'login';
+const isSignupPage = document.body && document.body.dataset.page === 'signup';
 const isOwnerPage = document.body && document.body.dataset.page === 'owner';
 const isOwnerRegisterPage = document.body && document.body.dataset.page === 'owner-register';
 const isFinderPage = document.body && document.body.dataset.page === 'finder';
@@ -57,15 +58,16 @@ function initLoginPage(){
       loginButton.disabled = true;
 
       try {
-        // 3. バックエンドAPI呼び出し（/auth/test-loginを実際に叩く）
+        // 3. バックエンドAPI(/auth/login)呼び出し
         const result = await apiLogin(email, password, selectedRole);
 
         if (result.success) {
-          // ログインで受け取ったトークンとroleを保存(ページ遷移しても使えるように)
+          // DBから返ってきたroleを使って遷移先を決定する
+          const roleUrlMap = { owner: 'owner.html', finder: 'finder.html', shelter: 'shelter.html' };
+          const destUrl = roleUrlMap[result.role] || selectedUrl;
           sessionStorage.setItem('authToken', result.token);
-          sessionStorage.setItem('selectedRole', selectedRole);
-          // ログイン成功したら指定の画面へ移動
-          window.location.href = selectedUrl;
+          sessionStorage.setItem('selectedRole', result.role);
+          window.location.href = destUrl;
         }
       } catch (error) {
         alert(error.message);
@@ -78,23 +80,93 @@ function initLoginPage(){
 }
 
 async function apiLogin(email, password, role) {
-  // 注意: /auth/test-login は「roleを渡したらトークンが返ってくる」だけの
-  // 動作確認用エンドポイントで、email/passwordの照合はまだしていない
-  // (本物のログイン機能がバックエンド側にできたら、ここをそのAPIに差し替える)
   if (!email || !password) {
     throw new Error('メールアドレスとパスワードを入力してください。');
   }
 
-  const response = await fetch(`${API_BASE}/auth/test-login?role=${encodeURIComponent(role)}`, {
+  const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
   });
 
+  if (response.status === 400) {
+    throw new Error('メールアドレスまたはパスワードが正しくありません。');
+  }
   if (!response.ok) {
     throw new Error('ログインに失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
   }
 
   const data = await response.json();
-  return { success: true, token: data.token };
+  return { success: true, token: data.token, role: data.role };
+}
+
+// 新規登録API
+async function apiRegister(email, password, role, displayName) {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role, displayName: displayName || null }),
+  });
+
+  if (response.status === 400) {
+    const data = await response.json();
+    throw new Error(data.message || '登録に失敗しました。');
+  }
+  if (!response.ok) {
+    throw new Error('登録に失敗しました。バックエンド(relink-api)が起動しているか確認してください。');
+  }
+
+  const data = await response.json();
+  return { success: true, token: data.token, role: data.role };
+}
+
+// 新規登録ページの初期化
+function initSignupPage() {
+  const roleButtons = Array.from(document.querySelectorAll('.role'));
+  const signupButton = document.getElementById('signupButton');
+  const signupForm = document.getElementById('signupForm');
+  let selectedRole = null;
+
+  roleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      roleButtons.forEach((b) => b.classList.remove('on'));
+      button.classList.add('on');
+      selectedRole = button.getAttribute('data-role');
+    });
+  });
+
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selectedRole) {
+      alert('利用者の種類を選択してください。');
+      return;
+    }
+    const email       = signupForm.email.value;
+    const password    = signupForm.password.value;
+    const displayName = signupForm.displayName.value;
+
+    if (password.length < 6) {
+      alert('パスワードは6文字以上にしてください。');
+      return;
+    }
+
+    signupButton.disabled = true;
+    signupButton.textContent = '登録中…';
+
+    try {
+      const result = await apiRegister(email, password, selectedRole, displayName);
+      sessionStorage.setItem('authToken', result.token);
+      sessionStorage.setItem('selectedRole', result.role);
+
+      const urlMap = { owner: 'owner.html', finder: 'finder.html', shelter: 'shelter.html' };
+      window.location.href = urlMap[result.role] || 'login.html';
+    } catch (error) {
+      alert(error.message);
+      signupButton.disabled = false;
+      signupButton.textContent = '登録する';
+    }
+  });
 }
 
 /* ---------------- AI特徴抽出(共通) ----------------
@@ -417,15 +489,51 @@ const screens = {
   },
 
   notify(){
-    const items = [
-      {t:'似たペットが保護されました', b:'マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。詳細を確認してください。', tm:'たった今', read:false, to:'petDetail'},
-      {t:'AIマッチングが完了', b:'登録したペットについて6件の候補が見つかりました。', tm:'5分前', read:false, to:'results'},
-      {t:'受け渡し記録の共有', b:'発見者から飼い主へ直接引き渡された記録が保健所に共有されました。', tm:'2時間前', read:true, to:null},
-      {t:'新しい保護情報', b:'△△市でトイプードルが保護されました。登録内容と照合中です。', tm:'昨日', read:true, to:null},
-    ];
+    // まずローディング状態を返し、その後APIで実データを差し込む
+    setTimeout(function(){
+      const token = sessionStorage.getItem('authToken');
+      const el = document.getElementById('notify-rows');
+      if (!el) return;
+      if (!token) {
+        el.innerHTML = '<div style="text-align:center;padding:32px;color:#888;font-size:14px">ログインが必要です。</div>';
+        return;
+      }
+      function relTime(isoStr){
+        const diff = Date.now() - new Date(isoStr).getTime();
+        const min = Math.floor(diff/60000);
+        if(min<1) return 'たった今';
+        if(min<60) return min+'分前';
+        const h=Math.floor(min/60);
+        if(h<24) return h+'時間前';
+        const d=Math.floor(h/24);
+        return d<7?d+'日前':new Date(isoStr).toLocaleDateString('ja-JP');
+      }
+      fetch(API_BASE+'/notifications',{headers:{'Authorization':'Bearer '+token}})
+        .then(function(r){return r.json();})
+        .then(function(data){
+          const list=(data&&data.notifications)||[];
+          if(!el) return;
+          if(list.length===0){
+            el.innerHTML='<div style="text-align:center;padding:32px;color:#888;font-size:14px">通知はまだありません。</div>';
+            return;
+          }
+          el.innerHTML=list.map(function(n){
+            const msg=n.message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return '<div class="notif'+(n.isRead?' read':'')+'">'+
+              '<div class="dot"></div>'+
+              '<div><div class="nt">ペットのマッチング通知</div>'+
+              '<div class="nb">'+msg+'</div>'+
+              '<div class="tm">'+relTime(n.createdAt)+'</div>'+
+              '</div></div>';
+          }).join('');
+        })
+        .catch(function(){
+          if(el) el.innerHTML='<div style="text-align:center;padding:32px;color:#888;font-size:14px">取得に失敗しました。</div>';
+        });
+    },0);
     return renderTemplate('notify-template', {
       appbar: buildAppbar('お知らせ', 'home', S.role),
-      rows: items.map(renderNotifItem).join(''),
+      rows: '<div id="notify-rows" style="text-align:center;padding:32px;color:#888;font-size:14px">読み込み中...</div>',
     });
   },
 };
@@ -716,13 +824,126 @@ function initOwnerPage(){
     }
   }
 
+  function relativeTime(isoStr) {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1)  return 'たった今';
+    if (min < 60) return min + '分前';
+    const h = Math.floor(min / 60);
+    if (h < 24)   return h + '時間前';
+    const d = Math.floor(h / 24);
+    return d < 7 ? d + '日前' : new Date(isoStr).toLocaleDateString('ja-JP');
+  }
+
   function showNotify(){
+    // まずローディング表示
     ownerScreen.innerHTML = `${ownerAppbar('お知らせ')}
-      <div class="pad stack fade">
-        <div class="notif"><div class="dot"></div><div><div class="nt">似たペットが保護されました</div><div class="nb">マッチ率95%：柴犬「ぽん太」が○○保健所で保護されました。</div><div class="tm">たった今</div></div></div>
-        <div class="notif"><div class="dot"></div><div><div class="nt">AIマッチングが完了</div><div class="nb">登録したペットについて候補が見つかりました。</div><div class="tm">5分前</div></div></div>
-        <div class="notif read"><div class="dot"></div><div><div class="nt">受け渡し記録の共有</div><div class="nb">発見者から飼い主へ引き渡された記録が共有されました。</div><div class="tm">2時間前</div></div></div>
+      <div class="pad stack fade" id="notif-list">
+        <div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">読み込み中...</div>
       </div>`;
+
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      document.getElementById('notif-list').innerHTML =
+        '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">ログインが必要です。</div>';
+      return;
+    }
+
+    fetch(API_BASE + '/notifications', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      const list = (data && data.notifications) || [];
+      const el = document.getElementById('notif-list');
+      if (!el) return;
+      if (list.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">通知はまだありません。</div>';
+        return;
+      }
+      el.innerHTML = list.map(function(n){
+        const readCls = n.isRead ? ' read' : '';
+        return '<div class="notif' + readCls + '" style="cursor:pointer" data-match-id="' + n.matchId + '">' +
+          '<div class="dot"></div>' +
+          '<div><div class="nt">ペットのマッチング通知</div>' +
+          '<div class="nb">' + n.message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+          '<div class="tm">' + relativeTime(n.createdAt) + '</div>' +
+          '</div></div>';
+      }).join('');
+      el.querySelectorAll('[data-match-id]').forEach(function(card){
+        card.addEventListener('click', function(){
+          showMatchDetail(Number(card.dataset.matchId));
+        });
+      });
+    })
+    .catch(function(e){
+      const el = document.getElementById('notif-list');
+      if (el) el.innerHTML = '<div style="text-align:center;padding:48px 16px;color:#888;font-size:14px">通知の取得に失敗しました。</div>';
+      console.error(e);
+    });
+  }
+
+
+  function showMatchDetail(matchId){
+    const token = sessionStorage.getItem('authToken');
+    const overlay = document.createElement('div');
+    overlay.id = 'match-detail-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;position:relative"><div style="text-align:center;padding:32px 0;color:#888">読み込み中...</div></div>';
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+    document.body.appendChild(overlay);
+    fetch(API_BASE+'/matches/'+matchId+'/detail',{headers:{'Authorization':'Bearer '+token}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      const box = overlay.querySelector('div');
+      const isShelter = d.protectedSource === 'rescued';
+      const srcLabel = isShelter ? '保護団体' : '発見者';
+      const score = Math.round(d.matchScore);
+      const photos = (d.pet.photoUrls||[]).map(function(u){
+        return '<img src="'+u+'" style="width:100%;border-radius:12px;margin-bottom:8px">';
+      }).join('');
+      const contactName = d.contact.displayName || (isShelter ? '保護団体' : '発見者');
+      const contactEmail = d.contact.email || '';
+
+      box.innerHTML =
+        '<button id="md-close" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888">✕</button>'
+        +'<div style="font-size:13px;color:#888;margin-bottom:4px">'+srcLabel+'が保護中</div>'
+        +'<div style="font-size:20px;font-weight:700;margin-bottom:16px">マッチ率 '+score+'%</div>'
+        +photos
+        +'<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px">'
+        +'<tr><td style="padding:8px 0;color:#888;width:80px">種類</td><td>'+(d.pet.specie||'—')+'</td></tr>'
+        +'<tr><td style="padding:8px 0;color:#888">毛色</td><td>'+(d.pet.color||'—')+'</td></tr>'
+        +'<tr><td style="padding:8px 0;color:#888">発見場所</td><td>'+(d.pet.foundPlace||'—')+'</td></tr>'
+        +'<tr><td style="padding:8px 0;color:#888">その他</td><td>'+(d.pet.other||'—')+'</td></tr>'
+        +'</table>'
+        +'<button id="md-claim-btn" style="margin-top:20px;width:100%;padding:14px;background:var(--magenta,#e040fb);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">🐾 飼い犬です</button>'
+        +'<div id="md-contact" style="display:none;margin-top:16px;padding:16px;background:#f8fafb;border-radius:12px">'
+        +'<div style="font-weight:600;margin-bottom:8px">📞 '+srcLabel+'の連絡先</div>'
+        +'<div style="font-size:14px;color:#444;margin-bottom:6px">'+contactName+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span id="md-email-text" style="font-size:13px;color:#555;flex:1">'+( contactEmail || '（連絡先なし）')+'</span>'
+        +(contactEmail ? '<button id="md-copy-btn" style="padding:6px 12px;border:1px solid var(--line,#e0e0e0);background:#fff;border-radius:8px;font-size:12px;cursor:pointer">コピー</button>' : '')
+        +'</div>'
+        +'</div>';
+
+      box.querySelector('#md-close').addEventListener('click', function(){ overlay.remove(); });
+      box.querySelector('#md-claim-btn').addEventListener('click', function(){
+        document.getElementById('md-contact').style.display = 'block';
+        this.style.display = 'none';
+      });
+      const copyBtn = box.querySelector('#md-copy-btn');
+      if(copyBtn){
+        copyBtn.addEventListener('click', function(){
+          navigator.clipboard.writeText(contactEmail).then(function(){
+            copyBtn.textContent = 'コピーしました！';
+            setTimeout(function(){ copyBtn.textContent = 'コピー'; }, 2000);
+          });
+        });
+      }
+    }).catch(function(){
+      const box = overlay.querySelector('div');
+      if(box) box.innerHTML='<div style="padding:32px;text-align:center;color:#888">詳細の取得に失敗しました</div>';
+    });
   }
 
   // 実際のバックエンド(/matching/run)を呼び出してマッチングを実行する。
@@ -900,7 +1121,7 @@ if (!isFinderPage && isLoginPage) {
   initLoginPage();
 } else if (!isFinderPage && (isOwnerPage || isOwnerRegisterPage)) {
   initOwnerPage();
-} else if (!isFinderPage && screen) {
+} else if (!isFinderPage && !isSignupPage && screen) {
   loadTemplates()
     .then(() => {
       const pageRole = document.body.dataset.page || sessionStorage.getItem('selectedRole') || 'owner';
@@ -1540,6 +1761,7 @@ const screens = {
 };
 
 function go(name){
+if (!screen) return;
 screen.scrollTop = 0;
 screen.innerHTML = screens[name]();
 if (name === 'step2' && typeof initStep2 === 'function') initStep2();
@@ -1825,3 +2047,4 @@ function initStep2(){
     window.setOther = setOther;
   }
 })();
+if (isSignupPage) { initSignupPage(); }
