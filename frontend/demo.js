@@ -2013,6 +2013,9 @@ async function submitFound(){
 
 // 初期表示も動的な finder 画面を表示して、login.html から入った場合と内部遷移で戻った場合で同じ見た目にする
 
+function escapeHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 async function matchLostPets(){
   if(S.regPhotos.length === 0){
     alert('先に写真を1枚以上追加してください。');
