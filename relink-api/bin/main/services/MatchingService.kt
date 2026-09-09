@@ -4,6 +4,7 @@ import com.aiSimilarityService
 import com.db.MatchesTable
 import com.models.MatchResultItem
 import com.repositories.LostPetRepository
+import com.repositories.MatchCandidateRow
 import com.repositories.MatchingRepository
 import com.repositories.NotificationRepository
 import com.repositories.PetPhotoRepository
@@ -25,55 +26,93 @@ object MatchingService {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
 
-        val candidates = MatchingRepository.findCandidates(
+        // ── 1回目：犬種・毛色・場所すべてで絞り込み ──────────────────
+        val firstCandidates = MatchingRepository.findCandidates(
             specie    = lostPet.specie,
             color     = lostPet.color,
             lostPlace = lostPet.lostPlace
         )
 
         val results = mutableListOf<MatchResultItem>()
+        // 処理済みの候補を記録しておく（2回目で重複しないよう）
+        val processedKeys = mutableSetOf<Pair<String, Long>>()
 
-        for (candidate in candidates) {
-            val candidatePhotoUrls = PetPhotoRepository
-                .findByPet(candidate.source, candidate.id)
-                .map { it.photoUrl }
+        for (candidate in firstCandidates) {
+            processedKeys.add(Pair(candidate.source, candidate.id))
+            processCandidate(lostPetId, lostPhotoUrls, candidate, results)
+        }
 
-            if (candidatePhotoUrls.isEmpty()) continue
+        // ── 2回目：3件未満なら場所条件を外して再検索 ──────────────────
+        if (results.size < 3 && !lostPet.lostPlace.isNullOrBlank()) {
+            println("ℹ️ 1回目のマッチング結果が${results.size}件のため、発見場所を除いて再マッチングします")
 
-            val aiResponse = try {
-                aiSimilarityService.comparePhotos(
-                    photoUrls          = lostPhotoUrls,
-                    candidatePhotoUrls = candidatePhotoUrls
-                )
-            } catch (e: AiServiceException) {
-                call_log_skip(candidate.source, candidate.id, e.message)
-                continue
+            val fallbackCandidates = MatchingRepository.findCandidates(
+                specie    = lostPet.specie,
+                color     = lostPet.color,
+                lostPlace = null   // ← 場所条件を除外
+            ).filter { candidate ->
+                // 1回目で既に処理した候補は除く
+                Pair(candidate.source, candidate.id) !in processedKeys
             }
 
-            val scorePercent = aiResponse.similarityScore * 100
+            println("ℹ️ 発見場所なし再検索：追加候補${fallbackCandidates.size}件")
 
-            // ★修正：uq_match制約（lost_pet_id, protected_source, protected_pet_id）の重複を回避する。
-            // 同じ組み合わせが既にあればそのIDを使い、なければINSERTする。
-            val matchId = transaction {
-                val existing = MatchesTable.selectAll()
-                    .where {
-                        (MatchesTable.lostPetId      eq lostPetId)       and
-                        (MatchesTable.protectedSource eq candidate.source) and
-                        (MatchesTable.protectedPetId  eq candidate.id)
-                    }
-                    .map { it[MatchesTable.id] }
-                    .firstOrNull()
-
-                existing ?: MatchesTable.insert {
-                    it[MatchesTable.lostPetId]       = lostPetId
-                    it[MatchesTable.protectedSource]  = candidate.source
-                    it[MatchesTable.protectedPetId]   = candidate.id
-                    it[MatchesTable.matchScore]        = BigDecimal.valueOf(scorePercent)
-                }[MatchesTable.id]
+            for (candidate in fallbackCandidates) {
+                processCandidate(lostPetId, lostPhotoUrls, candidate, results)
             }
+        }
 
-            // ★新規追加：マッチ率70%以上の場合に飼い主へ通知する
-            if (scorePercent >= 70.0) {
+        return results.sortedByDescending { it.matchScore }
+    }
+
+    // 候補1件に対してAI比較→matches保存→通知、を行う共通処理
+    private suspend fun processCandidate(
+        lostPetId: Long,
+        lostPhotoUrls: List<String>,
+        candidate: MatchCandidateRow,
+        results: MutableList<MatchResultItem>
+    ) {
+        val candidatePhotoUrls = PetPhotoRepository
+            .findByPet(candidate.source, candidate.id)
+            .map { it.photoUrl }
+
+        if (candidatePhotoUrls.isEmpty()) return
+
+        val aiResponse = try {
+            aiSimilarityService.comparePhotos(
+                photoUrls          = lostPhotoUrls,
+                candidatePhotoUrls = candidatePhotoUrls
+            )
+        } catch (e: AiServiceException) {
+            call_log_skip(candidate.source, candidate.id, e.message)
+            return
+        }
+
+        val scorePercent = aiResponse.similarityScore * 100
+
+        // uq_match制約（lost_pet_id, protected_source, protected_pet_id）の重複を回避
+        val matchId = transaction {
+            val existing = MatchesTable.selectAll()
+                .where {
+                    (MatchesTable.lostPetId      eq lostPetId)        and
+                    (MatchesTable.protectedSource eq candidate.source) and
+                    (MatchesTable.protectedPetId  eq candidate.id)
+                }
+                .map { it[MatchesTable.id] }
+                .firstOrNull()
+
+            existing ?: MatchesTable.insert {
+                it[MatchesTable.lostPetId]      = lostPetId
+                it[MatchesTable.protectedSource] = candidate.source
+                it[MatchesTable.protectedPetId]  = candidate.id
+                it[MatchesTable.matchScore]       = BigDecimal.valueOf(scorePercent)
+            }[MatchesTable.id]
+        }
+
+        // マッチ率70%以上の場合に飼い主へ通知する
+        if (scorePercent >= 70.0) {
+            val lostPet = LostPetRepository.findById(lostPetId)
+            if (lostPet != null) {
                 notifyOwner(
                     lostPet         = lostPet,
                     matchId         = matchId,
@@ -81,20 +120,18 @@ object MatchingService {
                     protectedSource = candidate.source
                 )
             }
-
-            results.add(
-                MatchResultItem(
-                    matchId         = matchId,
-                    protectedSource = candidate.source,
-                    protectedPetId  = candidate.id,
-                    matchScore      = scorePercent,
-                    reason          = aiResponse.reason,
-                    photoUrls       = candidatePhotoUrls
-                )
-            )
         }
 
-        return results.sortedByDescending { it.matchScore }
+        results.add(
+            MatchResultItem(
+                matchId         = matchId,
+                protectedSource = candidate.source,
+                protectedPetId  = candidate.id,
+                matchScore      = scorePercent,
+                reason          = aiResponse.reason,
+                photoUrls       = candidatePhotoUrls
+            )
+        )
     }
 
     // 飼い主へのメール送信＆通知履歴保存（失敗してもマッチング全体を止めない）
