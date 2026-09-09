@@ -52,6 +52,12 @@ object LostPetMatchRepository {
     private fun containsAny(value: String?, vararg terms: String?): Boolean {
         val normalizedValue = value?.lowercase()?.replace(" ", "") ?: return false
         return terms.filterNot { it.isNullOrBlank() }
-            .any { normalizedValue.contains(it!!.lowercase().replace(" ", "")) }
+            .any { term ->
+                val normalizedTerm = term!!.lowercase().replace(" ", "")
+                // 2文字以下の汎用語（"犬"・"猫"・"dog"など）は完全一致のみ
+                // 3文字以上は部分一致（"ゴールデン"が"ゴールデンレトリバー"にヒットなど）
+                if (normalizedTerm.length <= 2) normalizedValue == normalizedTerm
+                else normalizedValue.contains(normalizedTerm)
+            }
     }
 }
