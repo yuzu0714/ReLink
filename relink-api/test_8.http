@@ -1,0 +1,80 @@
+### ============================================================
+### 事前準備(データ作成)：
+### 1. test_6.http の①〜⑥を実行 → matchesテーブルにレコードができる
+### 2. test_2.http の①を実行 → contactsテーブルにレコードができる(そのidを②以降のcontactIdに使う)
+### ============================================================
+
+### ★新規追加：shelter権限でログイン(受け渡し記録の登録にはトークンが必要になったため)
+# @name shelterLogin
+POST http://localhost:8080/auth/test-login?role=shelter
+
+###
+
+### ①正常系：matches.id=1に対応するcontact(id=1、実際は環境によって変わるので要確認)へ受け渡し記録を登録
+# ★修正：Authorizationヘッダーを追加(権限チェックが付いたため必須になった)
+POST http://localhost:8080/handovers
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "contactId": 33,
+  "handoverPlace": "○○保健所",
+  "handoverDatetime": "2026-09-09T15:00:00",
+  "handedOverTo": "山田様（090-1234-5678）",
+  "note": "元気そうな様子でした"
+}
+
+### ②正常系：finder権限でも登録できることを確認
+# @name finderLogin
+POST http://localhost:8080/auth/test-login?role=finder
+
+###
+
+POST http://localhost:8080/handovers
+Authorization: Bearer {{finderLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "contactId": 33,
+  "handedOverTo": "田中様"
+}
+
+### ③異常系：owner権限で叩くと403が返るはず
+# @name ownerLogin
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+
+POST http://localhost:8080/handovers
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "contactId": 33,
+  "handedOverTo": "テスト"
+}
+
+### ④異常系：トークン無しで叩くと401が返るはず
+POST http://localhost:8080/handovers
+Content-Type: application/json
+
+{
+  "contactId": 33,
+  "handedOverTo": "テスト"
+}
+
+### ⑤異常系：存在しないcontactId → 404が返るはず(shelterトークンありでもcontactIdが無ければ404)
+POST http://localhost:8080/handovers
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "contactId": 99999,
+  "handedOverTo": "テスト"
+}
+
+### ⑥共有確認：GETはトークン無しでも見れるはず(閲覧は誰でもOKの方針のため)
+GET http://localhost:8080/handovers/33
+
+### ⑦保護団体向け：全件一覧取得(こちらもトークン無しでOK)
+GET http://localhost:8080/handovers

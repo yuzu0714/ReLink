@@ -40,15 +40,19 @@ import com.repositories.ShelterPetListRepository
 // ★新規追加：Day3のマッチング絞り込み機能の動作確認用
 import com.repositories.MatchingRepository
 
-// ↓↓↓ 既存のimportに追加 ↓↓↓
+// マッチング処理、マッチング結果のレスポンスの箱
 import com.services.MatchingService
 import com.models.MatchingRunResponse
 
-// ↓↓↓ 既存のimportに追加 ↓↓↓
+// 連絡（通知）用
 import com.models.ContactStatusUpdateRequest
 
-// ↓↓↓ 既存のimportに追加 ↓↓↓
+// マッチング結果1件分
 import com.models.MatchResultItem
+
+// ★新規追加：受け渡し記録共有API用
+import com.models.HandoverRequest
+import com.repositories.HandoverRepository
 
 fun Application.configureRouting() {
     routing {
@@ -194,6 +198,31 @@ fun Application.configureRouting() {
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
             }
+            
+            // ★修正：POST /handoversをauthenticateブロックの外から中へ移動
+            // 理由：受け渡し記録は「もう実際にペットを渡した」という確定情報のため、
+            // 誰でも書き込める状態だと嘘の記録が登録されてしまう危険があるため、
+            // 実際に引き渡し作業を行うshelter・finderの2ロールだけに書き込みを絞る
+            post("/handovers") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                // ★新規追加：shelter(保護団体)・finder(発見者、自宅保護からの直接引き渡しを想定)の
+                // どちらか一方であればOKとする権限チェック
+                // (owner(飼い主)は「受け取る側」であって「引き渡す側」ではないため対象外)
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverRequest>()
+
+                if (!HandoverRepository.contactExists(request.contactId)) {
+                    throw NoSuchElementException("指定されたcontactIdが見つかりません: ${request.contactId}")
+                }
+
+                val response = HandoverRepository.insert(request)
+                call.respond(HttpStatusCode.Created, response)
+            }
         }
         
         // ★新規追加：Day3 SQL絞り込みロジックの動作確認用エンドポイント
@@ -221,6 +250,22 @@ fun Application.configureRouting() {
 
             val response = ContactRepository.insert(request)
             call.respond(HttpStatusCode.Created, response)
+        }
+        
+                // ★修正：POST /handoversはauthenticateブロック内(shelter/finder限定)に移動したため、ここから削除
+        // GET系(/handovers/{contactId}, /handovers)は、閲覧は誰でもできてよい(/contactsと同じ方針)ため
+        // 権限チェックなしのまま、authenticateブロックの外に残す
+        get("/handovers/{contactId}") {
+            val contactId = call.parameters["contactId"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("contactId(数値)をパスパラメータで指定してください")
+
+            val records = HandoverRepository.findByContactId(contactId)
+            call.respond(HttpStatusCode.OK, records)
+        }
+
+        get("/handovers") {
+            val records = HandoverRepository.getAll()
+            call.respond(HttpStatusCode.OK, records)
         }
         
         // ★新規追加：contactsのステータスを更新するAPI(認証なし、matches.idの実在チェックと同じノリ)

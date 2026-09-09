@@ -36,7 +36,7 @@ Authorization: Bearer {{ownerLogin.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/8628b8c9-40c8-4782-a14e-30cf179be451_test.jpg"],
+  "photoUrls": ["https://cdjilctcmrzyijttaqnu.supabase.co/storage/v1/object/public/pet-photos/68ff247b-a7d1-4c32-a26c-1dbb3d9171aa_test.jpg"],
   "phoneNumber": "090-1234-5678",
   "specie": "柴犬",
   "color": "茶色",
