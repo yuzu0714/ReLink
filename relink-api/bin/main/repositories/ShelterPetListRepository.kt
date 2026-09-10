@@ -9,44 +9,58 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object ShelterPetListRepository {
     fun getAll(): List<ShelterPetListItem> {
         return transaction {
+            // ★修正：ここではまだ写真を取りに行かず、photoUrlを仮で空文字("")にしたまま本体データだけを集める
+            // (N+1解消のため、写真の取得は全件集め終わった後にまとめて1回だけ行う)
             val foundRows = FoundPetRegisterTable.selectAll().map { row ->
-                val id = row[FoundPetRegisterTable.id]
                 val item = ShelterPetListItem(
-                    id = id,
+                    id = row[FoundPetRegisterTable.id],
                     source = "found",
-                    // ★修正：FoundPetRegisterTable.photoUrl(存在しないカラム)ではなく、
-                    // pet_photosテーブルから代表写真(sort_order=0の1枚目)を取得するように変更
-                    photoUrl = PetPhotoRepository.findByPet("found", id).firstOrNull()?.photoUrl ?: "",
+                    photoUrl = "", // ★修正：後段でまとめて取得した写真URLに差し替える(ここでは仮値)
                     place = row[FoundPetRegisterTable.foundPlace] ?: "",
                     date = row[FoundPetRegisterTable.foundDate]?.toString() ?: "",
                     specie = row[FoundPetRegisterTable.specie] ?: "",
                     color = row[FoundPetRegisterTable.color] ?: "",
                     other = row[FoundPetRegisterTable.other],
-                    latitude = row[FoundPetRegisterTable.latitude],
-                    longitude = row[FoundPetRegisterTable.longitude],
                 )
                 item to row[FoundPetRegisterTable.createdAt]
             }
 
             val rescuedRows = RescuedPetRegisterTable.selectAll().map { row ->
-                val id = row[RescuedPetRegisterTable.id]
                 val item = ShelterPetListItem(
-                    id = id,
+                    id = row[RescuedPetRegisterTable.id],
                     source = "rescued",
-                    // ★修正：同上。pet_photosテーブルから代表写真を取得する
-                    photoUrl = PetPhotoRepository.findByPet("rescued", id).firstOrNull()?.photoUrl ?: "",
+                    photoUrl = "", // ★修正：同上
                     place = row[RescuedPetRegisterTable.foundPlace] ?: "",
                     date = row[RescuedPetRegisterTable.foundDate]?.toString() ?: "",
                     specie = row[RescuedPetRegisterTable.specie] ?: "",
                     color = row[RescuedPetRegisterTable.color] ?: "",
                     other = row[RescuedPetRegisterTable.other],
-                    latitude = row[RescuedPetRegisterTable.latitude],
-                    longitude = row[RescuedPetRegisterTable.longitude],
                 )
                 item to row[RescuedPetRegisterTable.createdAt]
             }
 
-            (foundRows + rescuedRows)
+            // ★新規追加：foundpet_register・rescuedpet_registerそれぞれのIDだけを先に集めておく
+            // (この時点ではまだDBへは1回もアクセスしていない、単なるKotlin側のリスト操作)
+            val foundIds = foundRows.map { (item, _) -> item.id }
+            val rescuedIds = rescuedRows.map { (item, _) -> item.id }
+
+            // ★新規追加：ここでようやくPetPhotoRepositoryへ問い合わせる。
+            // 以前は「件数分」クエリが飛んでいたが、ここではfound用に1回・rescued用に1回、
+            // 合計たった2回のクエリで全ペットの代表写真が揃う
+            val foundPhotoMap = PetPhotoRepository.findRepresentativePhotos("found", foundIds)
+            val rescuedPhotoMap = PetPhotoRepository.findRepresentativePhotos("rescued", rescuedIds)
+
+            // ★修正：仮で空文字にしていたphotoUrlを、さっき取得したMapから引いた実際のURLに差し替える
+            // (copy()を使うことで、ShelterPetListItemの他のフィールドはそのまま、photoUrlだけ置き換えられる)
+            val foundResolved = foundRows.map { (item, createdAt) ->
+                item.copy(photoUrl = foundPhotoMap[item.id] ?: "") to createdAt
+            }
+            val rescuedResolved = rescuedRows.map { (item, createdAt) ->
+                item.copy(photoUrl = rescuedPhotoMap[item.id] ?: "") to createdAt
+            }
+
+            // found由来・rescued由来をまとめて、created_atの新しい順(降順)に並べる(ここは元のロジックのまま)
+            (foundResolved + rescuedResolved)
                 .sortedByDescending { (_, createdAt) -> createdAt }
                 .map { (item, _) -> item }
         }

@@ -47,4 +47,26 @@ object PetPhotoRepository {
                 )
             }
     }
+    
+    // ★新規追加：N+1問題解消用の関数
+    // 複数のpetIdをまとめて受け取り、「pet_id → 代表写真URL(sort_order=0のもの)」のMapを1回のクエリで作る
+    // 呼び出し側(ShelterPetListRepository)は、1件ずつfindByPet()を呼ぶ代わりにこれを1回だけ呼べばよくなる
+    //
+    // 考え方：SQLのIN句(petId inList petIds)を使うことで、
+    // 「WHERE pet_id = 1」を10回投げる代わりに「WHERE pet_id IN (1,2,3,...,10)」を1回投げるだけで済む。
+    // 戻り値をMapにしてるのは、呼び出し側が「このpetIdの写真は？」と聞いた時に
+    // 一覧を毎回線形探索(List.find)せず、Mapのキー検索(平均O(1))で一瞬で引けるようにするため
+    fun findRepresentativePhotos(petSource: String, petIds: List<Long>): Map<Long, String> = transaction {
+        // ★新規追加：petIdsが空の場合、inList()に空リストを渡すとSQL構文エラーになる環境があるため、
+        // クエリを投げずに空のMapを返して早期リターンする(found側だけ0件、みたいなケースの安全対策)
+        if (petIds.isEmpty()) return@transaction emptyMap()
+
+        PetPhotoTable.selectAll()
+            .where {
+                (PetPhotoTable.petSource eq petSource) and
+                (PetPhotoTable.petId inList petIds) and
+                (PetPhotoTable.sortOrder eq 0) // 代表写真(0番目)のみに絞り込む
+            }
+            .associate { row -> row[PetPhotoTable.petId] to row[PetPhotoTable.photoUrl] }
+    }
 }

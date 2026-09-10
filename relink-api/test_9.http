@@ -1,0 +1,66 @@
+### ============================================================
+### AiExtractionService(/pets/extract-features)の動作確認用
+### 事前準備：
+### 1. 別ターミナルでAIサーバーを起動しておくこと
+###    uvicorn match_api:app --host 0.0.0.0 --port 8000
+### 2. このファイルと同じ階層に test-assets/test.jpg があることを確認
+### ============================================================
+
+### ①owner権限でログイン(finder/shelterでもOK、役割チェックは特に無いエンドポイントのため)
+# @name ownerLogin
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+
+### ②正常系：写真1枚を送って特徴抽出(200 OKで解析結果が返るはず)
+POST http://localhost:8080/pets/extract-features
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photos"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
+
+###
+
+### ③正常系：写真を2枚まとめて送る(同じ1匹を別角度から撮った想定、200 OKで統合された結果が返るはず)
+POST http://localhost:8080/pets/extract-features
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photos"; filename="test1.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary
+Content-Disposition: form-data; name="photos"; filename="test2.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
+
+###
+
+### ④異常系：写真を1枚も付けずに送る(400 Bad Requestが返るはず)
+POST http://localhost:8080/pets/extract-features
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary--
+
+###
+
+### ⑤異常系：トークン無しで送る(401 Unauthorizedが返るはず)
+POST http://localhost:8080/pets/extract-features
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photos"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
