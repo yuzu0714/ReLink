@@ -1,6 +1,7 @@
 package com
 
 import com.exceptions.ForbiddenException
+import com.exceptions.ConflictException // ★新規追加
 import com.models.ErrorResponse
 import com.services.AiServiceException
 import io.ktor.http.*
@@ -15,6 +16,14 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.Forbidden,
                 ErrorResponse("FORBIDDEN", cause.message ?: "この操作を行う権限がありません")
+            )
+        }
+        // ★新規追加：状態の競合エラー(409)
+        // 例:既に連絡済み/確定済みのmatchへ重複して連絡登録しようとした場合
+        exception<ConflictException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorResponse("CONFLICT", cause.message ?: "既に処理が進行中のため、この操作はできません")
             )
         }
         // ↓↓↓ 追加:AI特徴抽出サーバー(match_api.py)との通信に失敗した場合(502)
