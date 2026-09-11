@@ -1,0 +1,176 @@
+### ============================================================
+### パフォーマンス計測用：候補データをまとめて登録するファイル
+### 目的：MatchingServiceの並列化(async/awaitAll化)による速度改善を実感するために、
+###       候補(保護ペット)をあらかじめ複数件登録しておく
+### 事前準備：test-assets/test.jpg が実在していること(test_6.httpと同じ)
+### ============================================================
+
+### ① 写真を1枚だけアップロードして、実際に使えるphotoUrlを手に入れる
+### (候補全部でこのURLを使い回す。ダミーURL(https://example.com/...)だと
+###  AIサーバー側のダウンロードで失敗し、AiServiceExceptionでスキップされてしまうため、
+###  速度計測には必ず実在するURLを使う必要がある)
+# @name shelterLogin
+POST http://localhost:8080/auth/test-login?role=shelter
+
+###
+# @name photoUpload
+POST http://localhost:8080/pets/photos
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="photo"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-assets/test.jpg
+--WebAppBoundary--
+
+### ② 迷子ペットを1件登録(この子を探す設定にする)
+# @name ownerLogin
+POST http://localhost:8080/auth/test-login?role=owner
+
+###
+# @name lostPetRegister
+POST http://localhost:8080/pets/lost
+Authorization: Bearer {{ownerLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "phoneNumber": "090-1234-5678",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "パフォーマンス計測用",
+  "lostPlace": "石川県 輪島市"
+}
+
+### ③ 候補となる保護ペットを8件登録
+### specie・colorは②と完全一致、foundPlaceは②のlostPlaceと部分一致するようにしている
+### (MatchingRepository.findCandidatesの絞り込み条件がspecie=完全一致、color/lostPlace=部分一致のため)
+
+### 候補1
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 ○○町",
+  "foundDate": "2026-08-20T10:00:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補1"
+}
+
+### 候補2
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 △△町",
+  "foundDate": "2026-08-20T10:05:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補2"
+}
+
+### 候補3
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 □□町",
+  "foundDate": "2026-08-20T10:10:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補3"
+}
+
+### ★修正：候補4・5は /pets/found を使うのに、shelterLoginのトークンのままになっていたため
+### 403(finder権限が必要)になってしまっていた。finder権限でログインし直して、
+### そのトークンを使うように修正した。
+
+### finder権限でログイン(候補4・5専用)
+# @name finderLogin
+POST http://localhost:8080/auth/test-login?role=finder
+
+### 候補4
+POST http://localhost:8080/pets/found
+Authorization: Bearer {{finderLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 △△町",
+  "foundDate": "2026-08-20T10:15:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補4"
+}
+
+### 候補5
+POST http://localhost:8080/pets/found
+Authorization: Bearer {{finderLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 ○○町",
+  "foundDate": "2026-08-20T10:20:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補5"
+}
+
+### 候補6
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 ××町",
+  "foundDate": "2026-08-20T10:25:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補6"
+}
+
+### 候補7
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 ◇◇町",
+  "foundDate": "2026-08-20T10:30:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補7"
+}
+
+### 候補8
+POST http://localhost:8080/pets/rescued
+Authorization: Bearer {{shelterLogin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "photoUrls": ["{{photoUpload.response.body.$.photoUrl}}"],
+  "foundPlace": "石川県 輪島市 ▽▽町",
+  "foundDate": "2026-08-20T10:35:00",
+  "specie": "柴犬",
+  "color": "茶色",
+  "other": "候補8"
+}
+
+### ④ マッチング実行(ここの応答時間を計測する！)
+### REST Clientはレスポンスが返ってきた後、レスポンス画面の右上あたりに
+### かかった時間(例:「2.3s」のような表示)が出るので、そこを見るのが一番手軽。
+### もしくは別ウィンドウのPowerShellで以下を実行して計測してもOK：
+###   Measure-Command { curl -X POST "http://localhost:8080/matching/run?lostPetId=<lostPetRegisterのid>" }
+POST http://localhost:8080/matching/run?lostPetId={{lostPetRegister.response.body.$.id}}
