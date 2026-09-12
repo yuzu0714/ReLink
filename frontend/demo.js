@@ -2,7 +2,6 @@
 // Kotlinバックエンド(relink-api)のURL。
 // ローカルで `./gradlew run` した状態だとデフォルトで8080番なのでこれで動く。
 // どこかにデプロイしたら、ここをそのURLに書き換える。
-const API_BASE = 'http://localhost:8080';
 
 const S = {
   role: null,
