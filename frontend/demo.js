@@ -22,6 +22,7 @@ let templates = {};
 function initLoginPage(){
   const roleButtons = Array.from(document.querySelectorAll('.role'));
   const roleChip = document.getElementById('roleChip');
+  const loginForm = document.getElementById('loginForm');
   const loginButton = document.getElementById('loginButton');
   let selectedUrl = null;
 
@@ -84,11 +85,16 @@ async function apiLogin(email, password, role) {
     throw new Error('メールアドレスとパスワードを入力してください。');
   }
 
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role }),
+    });
+  } catch (_error) {
+    throw new Error('バックエンドAPIに接続できません。relink-apiと.envの設定を確認してください。');
+  }
 
   if (response.status === 400) {
     throw new Error('メールアドレスまたはパスワードが正しくありません。');
@@ -103,11 +109,16 @@ async function apiLogin(email, password, role) {
 
 // 新規登録API
 async function apiRegister(email, password, role, displayName) {
-  const response = await fetch(`${API_BASE}/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, role, displayName: displayName || null }),
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role, displayName: displayName || null }),
+    });
+  } catch (_error) {
+    throw new Error('バックエンドAPIに接続できません。relink-apiと.envの設定を確認してください。');
+  }
 
   if (response.status === 400) {
     const data = await response.json();
@@ -540,6 +551,7 @@ const screens = {
 
 /* ---------------- Router & actions ---------------- */
 function go(name){
+  if (!screen) return;
   screen.scrollTop = 0;
   screen.innerHTML = screens[name]();
   if (name === 'matching') startMatch();

@@ -56,7 +56,7 @@ fun Application.configureRouting() {
 
         post("/auth/login") {
             val request = call.receive<LoginRequest>()
-            val result = UserRepository.login(request.email, request.password)
+            val result = UserRepository.login(request.email, request.password, request.role)
                 ?: throw IllegalArgumentException("メールアドレスまたはパスワードが正しくありません")
             val (userId, role) = result
             val token = generateToken(userId = userId, role = role)

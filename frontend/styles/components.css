@@ -70,7 +70,7 @@
   font-weight: 700;
   font-family: inherit;
   text-decoration: none;
-  transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition: transform 0.08s ease, background 0.15s ease;
 }
 
 .btn:active {
@@ -80,13 +80,11 @@
 .btn-primary {
   background: var(--navy);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(20, 20, 102, 0.28);
 }
 
 .btn-magenta {
   background: var(--magenta);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.30);
 }
 
 .btn-ghost {
@@ -107,12 +105,11 @@
   border:1px solid var(--line);
   border-radius:18px;
   padding:16px;
-  box-shadow:var(--shadow);
 }
 
 .card-nav {
   cursor:pointer;
-  transition:transform .12s, box-shadow .15s;
+  transition:transform .12s;
   display:flex;
   align-items:center;
   gap:14px;
@@ -120,7 +117,6 @@
 
 .card-nav:hover {
   transform:translateY(-2px);
-  box-shadow:0 16px 34px rgba(20,20,102,.16);
 }
 
 .card-nav .ic {
@@ -198,7 +194,6 @@
   border-radius: 16px;
   padding: 12px;
   background: #fff;
-  box-shadow: var(--shadow);
 }
 
 .match-card .ph {
