@@ -1419,6 +1419,80 @@ function initOwnerPage() {
   );
 }
 
+/* ---------------- 登録ペット情報---------------- */
+
+async function initOwnerPetsPage() {
+  const list = document.getElementById('owner-pet-list');
+
+  if (!list) return;
+
+  const token = sessionStorage.getItem('authToken');
+
+  if (!token) {
+    list.innerHTML = `
+      <div class="card">
+        <div class="lede">
+          ログイン情報がありません。
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/pets/lost`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('ペット情報の取得に失敗しました');
+    }
+
+    const data = await response.json();
+
+    if (!data.pets || data.pets.length === 0) {
+      list.innerHTML = `
+        <div class="card">
+          <div class="lede">
+            登録したペットはいません。
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = data.pets.map(pet => `
+      <div class="card">
+        ${pet.photoUrl ? `
+          <img
+            src="${pet.photoUrl}"
+            alt="${pet.specie || '登録したペット'}"
+            style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 12px;"
+          >
+        ` : ''}
+
+        <div class="t">${pet.specie || '種類未登録'}</div>
+        <div class="d">毛色：${pet.color || '未登録'}</div>
+        <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
+      </div>
+    `).join('');
+
+  } catch (error) {
+    console.error(error);
+
+    list.innerHTML = `
+      <div class="card">
+        <div class="lede">
+          ペット情報を取得できませんでした。
+        </div>
+      </div>
+    `;
+  }
+}
+
 
 /* ---------------- 飼い主ページを初期化 ---------------- */
 
@@ -1429,11 +1503,13 @@ document.addEventListener(
     const page =
       document.body.dataset.page;
 
-    if (
-      page === 'owner' ||
-      page === 'owner-register'
-    ) {
+    if (page === 'owner' ||page === 'owner-register') {
       initOwnerPage();
+    }
+
+    //★新規追加：initOwnerPetsPage() を実行
+    if (page === 'owner-pets') {
+      initOwnerPetsPage();
     }
 
   }

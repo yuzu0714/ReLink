@@ -2,8 +2,7 @@ package com.repositories
 
 import com.db.LostPetRegisterTable
 import com.models.LostPetRegisterRequest
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.*//★修正：org.jetbrains.exposed.sql の機能をまとめて読み込む
 import org.jetbrains.exposed.sql.transactions.transaction
 
 // lostpet_register への書き込みだけを担当するクラス
@@ -61,3 +60,26 @@ data class LostPetRegisterRow(
     val lostPlace: String?,
     val userId: Long?    // ★追加：通知送信時に飼い主を特定するために必要
 )
+
+
+/*★新規追加：
+指定されたユーザーIDのペットを探して、ペットのリストとして返す
+「lostpet_registerから全部取得
+ただし、その中から指定したユーザーIDのものだけにして
+新しく登録した順番に並べてデータベースの行を LostPetRegisterRow に変換して
+ペット一覧として返す
+ */
+fun findByUserId(userId: Long): List<LostPetRegisterRow> = transaction {
+    LostPetRegisterTable.selectAll()
+        .where { LostPetRegisterTable.userId eq userId }
+        .orderBy(LostPetRegisterTable.id to SortOrder.DESC)
+        .map {
+            LostPetRegisterRow(
+                id = it[LostPetRegisterTable.id],
+                specie = it[LostPetRegisterTable.specie],
+                color = it[LostPetRegisterTable.color],
+                lostPlace = it[LostPetRegisterTable.lostPlace],
+                userId = it[LostPetRegisterTable.userId]
+            )
+        }
+}
