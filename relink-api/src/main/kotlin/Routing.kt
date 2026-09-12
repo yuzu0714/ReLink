@@ -39,6 +39,8 @@ import com.models.ContactStatusUpdateRequest
 import com.models.MatchResultItem
 import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
+import com.models.LostPetMatchResponse
+import com.repositories.LostPetMatchRepository
 import kotlinx.serialization.Serializable
 
 fun Application.configureRouting() {
@@ -115,6 +117,33 @@ fun Application.configureRouting() {
 
                 val raw = aiExtractionService.extractFeatures(photos)
                 call.respond(HttpStatusCode.OK, raw.toResponse())
+            }
+
+            // 追加: 発見者の保護写真をAI解析し、既存の迷子報告と照合するAPI
+            post("/pets/match-lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "finder") {
+                    throw ForbiddenException("この操作にはfinder権限が必要です")
+                }
+
+                val multipart = call.receiveMultipart()
+                val photos = mutableListOf<Pair<String, ByteArray>>()
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "photo.jpg")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        photos.add(safeOriginalName to part.provider().readRemaining().readBytes())
+                    }
+                    part.dispose()
+                }
+                if (photos.isEmpty()) {
+                    throw IllegalArgumentException("画像ファイルが見つかりません")
+                }
+
+                val features = aiExtractionService.extractFeatures(photos)
+                val candidates = LostPetMatchRepository.findMatches(features)
+                call.respond(HttpStatusCode.OK, LostPetMatchResponse(candidates.isNotEmpty(), candidates))
             }
 
             post("/pets/lost") {

@@ -98,6 +98,7 @@ async def extract_features(photos: List[UploadFile] = File(...)):
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
+    print(f"[extract-features] tags={tags}", flush=True)
     return ExtractedFeatures(**tags)
 
 
