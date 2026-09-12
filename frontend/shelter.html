@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
 </head>
-<body>
+<body class="shelter-page">
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
@@ -65,12 +65,8 @@
       </div>
     </div>
   </div>
-  <script>
-    function switchRole() {
-      sessionStorage.removeItem('selectedRole');
-      window.location.href = 'login.html';
-    }
-  </script>
-</body>
+  <script src="scripts/common.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script src="scripts/shelter.js"></script>
 </body>
 </html>

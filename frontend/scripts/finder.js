@@ -10,6 +10,7 @@ const S = {
   specie: '',
   otherSpecie: '',
   other: '',
+  lostMatches: null,
 };
 
 const screen = document.getElementById('screen');
@@ -81,6 +82,11 @@ const screens = {
         <input class="input" id="foundPlace" value="${S.foundPlace||''}" placeholder="市区町村" oninput="setFoundPlace(this.value)"></div>
       <div class="field"><label>発見日時</label>
         <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate||''}" oninput="setFoundDate(this.value)"></div>
+      <button class="btn btn-primary btn-sm" id="lostMatchBtn" style="width:100%" onclick="matchLostPets()">
+        🔎 迷子報告を照合する
+      </button>
+      <div class="footnote" style="padding:0 0 4px">保護したペットの写真を迷子報告と照合します。候補が見つかった場合は登録前に確認できます。</div>
+      <div id="lostMatchResults"></div>
       ` : `
       <div class="field"><label>連絡先電話番号</label>
         <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
@@ -802,6 +808,50 @@ window.go = go;
 window.addPhoto = addPhoto;
 window.rmPhoto = rmPhoto;
 window.pickColor = pickColor;
+
+async function matchLostPets(){
+  if(S.regPhotos.length === 0){
+    alert('先に写真を1枚以上追加してください。');
+    return;
+  }
+  const token = sessionStorage.getItem('authToken');
+  if(!token){ alert('ログインが必要です。'); return; }
+  const btn = document.getElementById('lostMatchBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '照合中…'; }
+  try {
+    const form = new FormData();
+    S.regPhotos.forEach(p => form.append('photo', p.file));
+    const res = await fetch(`${API_BASE}/pets/match-lost`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
+    });
+    if(!res.ok) throw new Error('照合に失敗しました。(status ' + res.status + ')');
+    const data = await res.json();
+    S.lostMatches = data.candidates;
+    const el = document.getElementById('lostMatchResults');
+    if(!el) return;
+    if(!data.matched || data.candidates.length === 0){
+      el.innerHTML = '<p style="color:var(--ink-2);font-size:14px;padding:8px 0">一致する迷子報告は見つかりませんでした。</p>';
+      return;
+    }
+    el.innerHTML = `<div style="margin:12px 0;padding:12px;border:1px solid #f97316;border-radius:10px;background:#fff7ed">
+      <p style="color:#c2410c;font-weight:700;margin:0 0 8px">迷子報告の候補 ${data.candidates.length}件</p>
+      <p style="color:#9a3412;font-size:13px;margin:0 0 10px">一致度が高い順です。写真や発見場所を確認してから登録してください。</p>
+      ${data.candidates.map(c => `
+      <div style="padding:8px 0;border-top:1px solid #fed7aa">
+        <div style="display:flex;justify-content:space-between;gap:10px"><b>${escapeHtml(c.specie||'種類不明')}</b><strong style="color:#c2410c">一致度 ${c.score}%</strong></div>
+        <div class="lede" style="margin-top:4px">${escapeHtml(c.color||'毛色不明')} / 迷子場所: ${escapeHtml(c.lostPlace||'不明')}</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--ink)">${c.reasons.map(escapeHtml).join('・')}</div>
+      </div>`).join('')}
+    </div>`;
+  } catch(err) {
+    alert(err.message || '照合中にエラーが発生しました。');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '🔎 迷子報告を照合する'; }
+  }
+}
+window.matchLostPets = matchLostPets;
 window.aiAutoFill = aiAutoFill;
 window.submitFound = submitFound;
 window.goToStep2 = goToStep2;

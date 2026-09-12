@@ -98,19 +98,20 @@
   align-items: center;
   gap: 14px;
   background: #fff;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   width: 100%;
   text-align: left;
   font: inherit;
 }
 
 .role:hover {
-  border-color: var(--cyan-soft);
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange);
 }
 
 .role.on {
-  border-color: var(--navy);
-  background: #f2f4ff;
+  border-color: var(--orange);
+  background: #fff7ed;
 }
 
 .role .emo {
@@ -141,8 +142,8 @@
 }
 
 .role.on .tick {
-  background: var(--navy);
-  border-color: var(--navy);
+  background: var(--orange);
+  border-color: var(--orange);
 }
 
 .field {
@@ -165,13 +166,36 @@
   font-size: 14px;
   font-family: inherit;
   background: #fbfcff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+  border-color: var(--orange);
+}
+
+.login-page .login-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.login-page .btn-accent {
+  background: var(--orange);
+  color: #fff;
+}
+
+.login-page .btn-accent:hover {
+  background: var(--orange-dark);
+}
+
+.login-page .signup-link {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  text-underline-offset: 4px;
 }
 
 .footnote {
@@ -206,6 +230,18 @@
   font-size: 24px;
   background: linear-gradient(140deg, var(--navy), var(--navy-2));
   color: var(--cyan-soft);
+}
+
+.owner-page .hero-banner .hs,
+.shelter-page .hero-banner .hs {
+  font-weight: 600;
+  color: #d8dcf7;
+}
+
+.owner-page .owner-action .d,
+.shelter-page .card-nav .d {
+  color: #58627f;
+  font-weight: 600;
 }
 
 .owner-notice-icon {
@@ -349,7 +385,6 @@
 .owner-page .paw-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 4px 12px rgba(20, 20, 102, .08));
 }
 
 .owner-page .mm {
@@ -645,5 +680,281 @@ h2.title {
   .pet-photo {
     height: 200px;
     flex: none;
+  }
+}
+
+.login-page {
+  background: #fff;
+}
+
+.login-page .appbar {
+  justify-content: flex-start;
+  padding: 14px 20px;
+  background: var(--navy);
+}
+
+.login-page .brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-page .brand-mark img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+.login-page .brand-mark h1 {
+  font-size: 21px;
+  letter-spacing: 0;
+}
+
+.login-page .hero-banner {
+  padding: 26px 24px;
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--orange);
+}
+
+.login-page .hero-banner::after {
+  content: none;
+}
+
+.login-page .hero-banner .hi {
+  color: var(--orange-dark);
+}
+
+.login-page .hero-banner .hn {
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.login-page .hero-banner .hs {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.login-page .login-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.login-page .login-card {
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+
+.login-page .eyebrow {
+  font-size: 14px;
+  color: var(--orange-dark);
+}
+
+.login-page .login-card .title {
+  color: #fff;
+}
+
+.login-page .login-card .lede {
+  color: #e5efff;
+  font-weight: 600;
+}
+
+.login-page .login-card .field label {
+  color: #fff;
+}
+
+.login-page .roles {
+  margin-top: 18px;
+}
+
+.login-page .role {
+  min-height: 84px;
+}
+
+.login-page .role .rd {
+  color: #58627f;
+  font-weight: 600;
+}
+
+.login-page .role-visual {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.finder-page {
+  background: #fff;
+}
+
+.finder-page .phone {
+  width: 100%;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.finder-page .notch {
+  display: none;
+}
+
+.finder-page .appbar {
+  justify-content: flex-start;
+  padding: 14px 20px;
+  background: var(--navy);
+}
+
+.finder-page .hero-banner {
+  padding: 26px 24px;
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--orange);
+  border-radius: 12px;
+}
+
+.finder-page .hero-banner::after {
+  content: none;
+}
+
+.finder-page .hero-banner .hi {
+  color: var(--orange-dark);
+}
+
+.finder-page .hero-banner .hn {
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.finder-page .hero-banner .hs {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.finder-page .role-list {
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 20px;
+  background: var(--navy);
+  border-radius: 0;
+}
+
+.finder-page .role-item {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #fff;
+}
+
+.finder-page .role-item .title {
+  color: var(--navy);
+}
+
+.finder-page .role-item .desc {
+  color: #58627f;
+  font-weight: 600;
+}
+
+.finder-page .role-item[style*="cursor:pointer"]:hover {
+  border-color: var(--orange);
+  background: #fff7ed;
+}
+
+.finder-page .btn-primary {
+  background: var(--orange);
+}
+
+.finder-page .btn-primary:hover {
+  background: var(--orange-dark);
+}
+
+@media (min-width: 768px) {
+  .finder-page .pad {
+    padding: 36px 32px 48px;
+  }
+
+  .finder-page .pad {
+    max-width: none;
+  }
+
+  .finder-page .role-list {
+    width: auto;
+    margin-left: -32px;
+    margin-right: -32px;
+    padding: 28px 32px;
+    background: var(--navy);
+    grid-template-columns: repeat(3, minmax(0, 220px));
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .finder-page .role-item {
+    min-height: 180px;
+    padding: 24px 18px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
+  }
+
+  .finder-page .role-item .emo {
+    font-size: 32px;
+  }
+
+  .finder-page .role-item .title {
+    font-size: 18px;
+  }
+
+  .finder-page .role-item .desc {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .finder-page .pad > .stack:last-child {
+    width: min(100%, 620px);
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .finder-page .pad > .stack:last-child > * + * {
+    margin-top: 0;
+  }
+
+  .finder-page .hero-banner {
+    width: min(100%, 620px);
+    margin-left: auto;
+    margin-right: auto;
+    padding: 32px;
+  }
+
+  .finder-page .hero-banner .hn {
+    font-size: 28px;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-page .pad {
+    max-width: 980px;
+  }
+
+  .login-page .hero-banner {
+    padding: 32px;
+  }
+
+  .login-page .hero-banner .hn {
+    font-size: 28px;
+  }
+
+  .login-page .login-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
   }
 }
