@@ -242,3 +242,170 @@
   color: var(--magenta);
   border-color: #fbcfe8;
 }
+/* ---- フィルター ---- */
+
+/* 一番外側の背景エリア */
+.filter-bg {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1.5px solid #ccc;
+}
+
+/* 外側の大枠（タイトルつき） */
+.filter-wrapper {
+  border: 1.5px solid #c8cde0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.filter-wrapper-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy, #1a2357);
+  padding: 9px 14px;
+  border-bottom: 1.5px solid #c8cde0;
+  background: #f4f6fb;
+}
+
+/* 内側の枠（各行をまとめる） */
+.filter-outer {
+  border: none;
+}
+
+/* 2列レイアウト（左＝地域、右＝犬種＋毛色） */
+.filter-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.filter-col-left {
+  border-right: 1px solid #e0e4ef;
+}
+
+.filter-col-left .filter-row,
+.filter-col-right .filter-row {
+  height: 100%;
+}
+
+/* 各行（上：ラベル、下：選択肢の縦並び） */
+.filter-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  border-bottom: 1px solid #e0e4ef;
+}
+
+.filter-row:last-child {
+  border-bottom: none;
+}
+
+/* 縦向き行（ラベル左＝縦書き、選択肢右） */
+.filter-row-vertical {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  height: 100%;
+}
+
+.filter-row-vertical .filter-row-label {
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  border-bottom: none;
+  height: 100%;
+  box-sizing: border-box;
+  letter-spacing: 0.1em;
+}
+
+.filter-row-vertical .filter-row-body {
+  padding: 10px 10px;
+}
+
+/* 右カラム：犬種→毛色を縦に積む */
+.filter-col-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-col-right .filter-row-vertical {
+  flex: 1;
+}
+
+/* 左側：項目名（上下中央） */
+.filter-row-label {
+  background: var(--navy, #1a2357);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  text-align: center;
+  line-height: 1.4;
+  writing-mode: horizontal-tb;
+}
+
+/* 右側：選択肢エリア */
+.filter-row-body {
+  padding: 10px 12px;
+}
+
+/* 地方グループ */
+.filter-region {
+  margin-bottom: 8px;
+}
+.filter-region:last-child { margin-bottom: 0; }
+
+.filter-region-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 4px;
+  letter-spacing: .04em;
+}
+
+/* 犬種グループ */
+.filter-specie-group {
+  margin-bottom: 8px;
+}
+.filter-specie-group:last-child { margin-bottom: 0; }
+
+.filter-specie-group-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 4px;
+  letter-spacing: .04em;
+}
+
+/* チェックボックス・ラジオ共通 */
+.filter-check-group,
+.filter-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.filter-check-label,
+.filter-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--navy, #1a2357);
+  cursor: pointer;
+}
+
+.filter-check-label input[type="checkbox"],
+.filter-radio-label input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--navy, #1a2357);
+  cursor: pointer;
+  flex-shrink: 0;
+}
