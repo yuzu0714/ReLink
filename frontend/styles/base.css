@@ -6,13 +6,13 @@
   --cyan-soft: #67e8f9;
   --magenta: #ec4899;
   --magenta-soft: #f9a8d4;
+  --orange: #f97316;
+  --orange-dark: #c2410c;
   --ink: #1a1a2e;
   --paper: #f4f6fb;
   --card: #ffffff;
   --line: #dfe3f0;
   --muted: #6b7096;
-  --shadow: 0 10px 30px rgba(20, 20, 102, 0.10);
-  --shadow-strong: 0 16px 34px rgba(20, 20, 102, 0.16);
 }
 
 * {
