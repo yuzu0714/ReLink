@@ -26,11 +26,14 @@ object MatchingService {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
 
-        // テキスト特徴（種類・毛色・場所）で事前絞り込み
+        // テキスト特徴（種類・毛色・場所）＋距離で事前絞り込み
+        // ★変更：lostPetの座標も渡して距離ベースフィルタリングを有効化
         val candidates = MatchingRepository.findCandidates(
-            specie    = lostPet.specie,
-            color     = lostPet.color,
-            lostPlace = lostPet.lostPlace
+            specie        = lostPet.specie,
+            color         = lostPet.color,
+            lostPlace     = lostPet.lostPlace,
+            lostLatitude  = lostPet.latitude,
+            lostLongitude = lostPet.longitude
         )
 
         if (candidates.isEmpty()) {
