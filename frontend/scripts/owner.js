@@ -73,9 +73,7 @@ function initOwnerPage() {
             手持ちの写真をアップ
           </h2>
 
-          <div class="lede">
-            全体像と、首輪がはっきり写った写真があるほど精度が上がります。
-          </div>
+          <div class="lede" style="color:#e91e8c;font-weight:600">角度を変えた写真（正面、横、斜めなど）を複数枚登録すると精度が上がります。</div>
         </div>
 
         <input
