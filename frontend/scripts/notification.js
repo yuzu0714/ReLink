@@ -37,34 +37,20 @@
 
   // 通知カードのHTML生成
   function buildCard(n) {
-    const dotClass =
-      n.isRead
-        ? 'notify-dot'
-        : 'notify-dot unread';
+    const cardClass = n.isRead ? 'notif read' : 'notif';
 
     return `
       <div
-        class="notify-card"
+        class="${cardClass}"
         data-id="${n.id}"
         onclick="markRead(${n.id}, this)"
       >
-        <div
-          class="${dotClass}"
-          id="dot-${n.id}"
-        ></div>
+        <div class="dot" id="dot-${n.id}"></div>
 
-        <div class="notify-content">
-          <div class="notify-title">
-            ペットのマッチング通知
-          </div>
-
-          <div class="notify-body">
-            ${escHtml(n.message)}
-          </div>
-
-          <div class="notify-time">
-            ${relativeTime(n.createdAt)}
-          </div>
+        <div>
+          <div class="nt">ペットのマッチング通知</div>
+          <div class="nb">${escHtml(n.message)}</div>
+          <div class="tm">${relativeTime(n.createdAt)}</div>
         </div>
       </div>
     `;
@@ -76,7 +62,11 @@
     const dot = document.getElementById('dot-' + id);
 
     if (dot) {
-      dot.className = 'notify-dot';
+      dot.className = 'dot';
+    }
+
+    if (cardEl) {
+      cardEl.classList.add('read');
     }
 
     const token =
