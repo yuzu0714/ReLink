@@ -320,6 +320,8 @@ function initOwnerPage() {
       });
     }
 
+    if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('ownerLostPlace');
+
 
     const other = document.getElementById('ownerOther');
 
