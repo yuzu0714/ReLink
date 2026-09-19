@@ -21,11 +21,13 @@ import json
 import mimetypes
 import os
 import sys
+import io
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from dotenv import load_dotenv
+from PIL import Image
 from openai import OpenAI, OpenAIError
 
 load_dotenv()
@@ -164,14 +166,26 @@ COMPARE_SYSTEM_PROMPT = """あなたは2つの写真グループが同じ1匹の
 """
 
 
+def to_grayscale_jpeg(data: bytes) -> bytes:
+    """画像をグレースケール（明度のみ）に変換し、JPEG バイト列で返す。
+    照明・色かぶり・撮影環境の違いを除去して、形状・模様・体型の比較精度を上げるために使用。
+    compare_photo_urls（写真同士の一致判定）にのみ適用し、
+    extract_tags（特徴抽出）はカラーのまま維持する（coat_color の正確な判定が必要なため）。"""
+    img = Image.open(io.BytesIO(data)).convert("L")  # "L" = 8-bit グレースケール
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=90)
+    return buf.getvalue()
+
+
 def download_image_as_data_url(url: str) -> str:
     """写真URL（Supabase Storageなどの公開URL）をダウンロードして、
-    data URL（base64）に変換する。AIへは data URL の形で渡す。"""
+    グレースケールに変換したうえで data URL（base64）に変換する。
+    グレースケール化により照明・色かぶりの影響を除去し、形状・模様の比較精度を向上させる。"""
     response = requests.get(url, timeout=60)
     if response.status_code >= 300:
         raise RuntimeError(f"写真のダウンロードに失敗しました (status={response.status_code}): {url}")
-    filename = url.split("/")[-1].split("?")[0] or "photo.jpg"
-    return encode_image_bytes(response.content, filename)
+    gray_data = to_grayscale_jpeg(response.content)  # グレースケール変換
+    return encode_image_bytes(gray_data, "photo.jpg")  # JPEG固定（グレースケール済み）
 
 
 def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
