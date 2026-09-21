@@ -12,6 +12,7 @@ import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
+import com.models.VoiceUploadResponse
 import com.models.RegisterRequest
 import com.models.LoginRequest
 import com.models.AuthResponse
@@ -47,7 +48,6 @@ import com.repositories.PetPhotoRepository
 import kotlinx.serialization.Serializable
 
 fun Application.configureRouting() {
-    println("★ configureRouting が読み込まれました")
     routing {
         get("/health") {
             call.respond(HttpStatusCode.OK, HealthResponse(status = "ok", service = "relink-api"))
@@ -99,6 +99,40 @@ fun Application.configureRouting() {
 
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
+            }
+            
+            post("/pets/voice") {
+                val multipart = call.receiveMultipart()
+                var fileBytes: ByteArray? = null
+                var fileName = ""
+                var contentType = "audio/webm"
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "voice.webm")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        contentType = part.contentType?.toString() ?: contentType
+                        fileBytes = part.provider().readRemaining().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (fileBytes == null) {
+                    throw IllegalArgumentException("音声ファイルが見つかりません")
+                }
+
+                val voiceUrl = storageService.uploadVoice(
+                    fileName,
+                    fileBytes!!,
+                    contentType
+                )
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    VoiceUploadResponse(voiceUrl)
+                )
             }
 
             post("/pets/extract-features") {
@@ -162,16 +196,9 @@ fun Application.configureRouting() {
                 val request = call.receive<LostPetRegisterRequest>()
                 val insertedId = LostPetRepository.insert(request, userId)
 
-                val matchResults: List<MatchResultItem> = try {
-                    MatchingService.runMatching(insertedId)
-                } catch (e: Exception) {
-                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
-                    emptyList()
-                }
-
                 call.respond(
                     HttpStatusCode.Created,
-                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                    LostPetRegisterResponse(id = insertedId, matchResults = emptyList())
                 )
             }
 
