@@ -41,9 +41,13 @@ import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
+import com.models.OwnerPetListItem
+import com.models.OwnerPetListResponse
+import com.repositories.PetPhotoRepository
 import kotlinx.serialization.Serializable
 
 fun Application.configureRouting() {
+    println("★ configureRouting が読み込まれました")
     routing {
         get("/health") {
             call.respond(HttpStatusCode.OK, HealthResponse(status = "ok", service = "relink-api"))
@@ -211,6 +215,42 @@ fun Application.configureRouting() {
 
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+            }
+            
+            /*★新規追加
+             * JWTトークンからログイン情報を取得
+             * 飼い主のペットを取得
+             */
+            get("/pets/lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "owner") {
+                    throw ForbiddenException("この操作にはowner権限が必要です")
+                }
+
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()//ログイン中のユーザーIDを取得
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val pets = LostPetRepository.findByUserId(userId)
+
+                val petItems = pets.map { pet ->
+                    val photos = PetPhotoRepository.findByPet("lost", pet.id)//ペットの写真を取得
+                    val firstPhoto = photos.firstOrNull()?.photoUrl
+                    OwnerPetListItem(
+                        photoUrl = firstPhoto,
+                        id = pet.id,
+                        specie = pet.specie,
+                        color = pet.color,
+                        lostPlace = pet.lostPlace,
+                        other = null
+                    )
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    OwnerPetListResponse(pets = petItems)
+                )
             }
 
             get("/notifications") {
