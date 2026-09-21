@@ -82,5 +82,16 @@
     <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
+  <script>
+    // URLパラメータ ?role=shelter のとき保護団体を自動選択
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(location.search);
+      const preRole = params.get('role');
+      if (preRole) {
+        const btn = document.querySelector(`.role[data-role="${preRole}"]`);
+        if (btn) btn.click();
+      }
+    });
+  </script>
 </body>
 </html>
