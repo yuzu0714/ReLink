@@ -1,6 +1,78 @@
 /* ---------------- rescue register ---------------- */
 (() => {
   // このJSは register.html 専用
+
+  const MAX_PHOTOS_PER_PET = 10;
+
+  const colorNames = [
+    '茶色',
+    'クリーム色',
+    'こげ茶色',
+    '黒',
+    '白',
+    'グレー'
+  ];
+
+  // 犬種・動物種のAI結果を、固定セレクトの選択肢に寄せる
+  function guessSpecieOption(animalType, breed) {
+    const text = `${animalType || ''} ${breed || ''}`;
+
+    if (/柴/.test(text)) return '柴犬';
+    if (/プードル/.test(text)) return 'トイプードル';
+    if (/ドーベルマン/.test(text)) return 'ドーベルマン';
+    if (/チワワ/.test(text)) return 'チワワ';
+    if (/ゴールデン・レトリバー/.test(text)) return 'ゴールデン・レトリバー';
+    if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
+    if (/ハスキー/.test(text)) return 'ハスキー';
+    if (/パグ/.test(text)) return 'パグ';
+
+    if (/アメリカン.?ショートヘア|アメショ/.test(text)) {
+      return 'アメリカン・ショートヘア';
+    }
+
+    if (/スコティッシュ.?フォールド|スコ折/.test(text)) {
+      return 'スコティッシュ・フォールド';
+    }
+
+    if (/マンチカン/.test(text)) return 'マンチカン';
+    if (/ペルシャ/.test(text)) return 'ペルシャ';
+    if (/ロシアン.?ブルー/.test(text)) return 'ロシアン・ブルー';
+    if (/シャム/.test(text)) return 'シャム';
+    if (/ノルウェージアン/.test(text)) {
+      return 'ノルウェージアン・フォレスト・キャット';
+    }
+
+    if (/メインクーン/.test(text)) return 'メインクーン';
+    if (/ラグドール/.test(text)) return 'ラグドール';
+
+    if (/ブリティッシュ.?ショートヘア|ブリショ/.test(text)) {
+      return 'ブリティッシュ・ショートヘア';
+    }
+
+    if (/アビシニアン/.test(text)) return 'アビシニアン';
+    if (/ベンガル/.test(text)) return 'ベンガル';
+    if (/猫/.test(text)) return '猫（雑種）';
+    if (/雑種/.test(text)) return '雑種（中型）';
+
+    return '';
+  }
+
+  // AIが返した毛色から、毛色スウォッチの番号を探す
+  function colorKeywordIndex(text) {
+    for (let i = 0; i < colorNames.length; i++) {
+      if (text.includes(colorNames[i])) {
+        return i;
+      }
+    }
+
+    if (/黒/.test(text)) return 3;
+    if (/白/.test(text)) return 4;
+    if (/(グレー|灰)/.test(text)) return 5;
+    if (/茶/.test(text)) return 0;
+
+    return -1;
+  }
+
   const fileInput = document.getElementById('fileInput');
   const addPhotoBox = document.getElementById('addPhotoBox');
 

@@ -1,3 +1,156 @@
+// ---- フィルター機能 ----
+
+const REGION_MAP = [
+  { name: "北海道", prefs: ["北海道"] },
+  { name: "東北",   prefs: ["青森","岩手","宮城","秋田","山形","福島"] },
+  { name: "関東",   prefs: ["茨城","栃木","群馬","埼玉","千葉","東京","神奈川"] },
+  { name: "中部",   prefs: ["新潟","富山","石川","福井","山梨","長野","岐阜","静岡","愛知"] },
+  { name: "近畿",   prefs: ["三重","滋賀","京都","大阪","兵庫","奈良","和歌山"] },
+  { name: "中国",   prefs: ["鳥取","島根","岡山","広島","山口"] },
+  { name: "四国",   prefs: ["徳島","香川","愛媛","高知"] },
+  { name: "九州・沖縄", prefs: ["福岡","佐賀","長崎","熊本","大分","宮崎","鹿児島","沖縄"] },
+];
+
+let allPets = [];
+// 地域: Set（複数選択）、犬種: string|null（単一）、毛色: Set（複数選択）
+const activeFilters = { places: new Set(), specie: null, colors: new Set() };
+
+function splitColors(colorStr) {
+  if (!colorStr) return [];
+  return colorStr.split(/[とと、,・\/\s]+/).map(s => s.trim()).filter(Boolean);
+}
+
+function unique(arr) {
+  return [...new Set(arr.filter(Boolean))];
+}
+
+/* ---- 地域フィルター（都道府県チェックボックス・全47都道府県） ---- */
+function renderPlaceFilter(pets) {
+  const el = document.getElementById("filterPlace");
+  if (!el) return;
+
+  el.innerHTML = REGION_MAP.map(region => `
+    <div class="filter-region">
+      <div class="filter-region-name">${region.name}</div>
+      <div class="filter-check-group">
+        ${region.prefs.map(pref => `
+          <label class="filter-check-label">
+            <input type="checkbox" value="${pref}"
+              ${activeFilters.places.has(pref) ? "checked" : ""}
+              onchange="togglePlace('${pref}', this.checked)">
+            <span>${pref}</span>
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function togglePlace(pref, checked) {
+  if (checked) activeFilters.places.add(pref);
+  else activeFilters.places.delete(pref);
+  applyFilters();
+}
+
+/* ---- 犬種フィルター（ラジオボタン・単一選択） ---- */
+const SPECIE_MAP = [
+  { group: "🐕 犬", items: [
+    "柴犬","トイプードル","ドーベルマン","チワワ","ゴールデン・レトリバー",
+    "ボーダー・コリー","ハスキー","パグ","秋田犬","雑種（中型）"
+  ]},
+  { group: "🐈 猫", items: [
+    "アメリカン・ショートヘア","スコティッシュ・フォールド","マンチカン","ペルシャ",
+    "ロシアン・ブルー","シャム","ノルウェージアン・フォレスト・キャット","メインクーン",
+    "ラグドール","ブリティッシュ・ショートヘア","アビシニアン","ベンガル","猫（雑種）"
+  ]},
+];
+
+function renderSpecieFilter(pets) {
+  const el = document.getElementById("filterSpecie");
+  if (!el) return;
+
+  // DBにあるが固定リストにない種類を「その他」として追加
+  const knownItems = SPECIE_MAP.flatMap(g => g.items);
+  const extraItems = unique(pets.map(p => p.specie)).filter(s => s && !knownItems.includes(s));
+
+  const groups = [...SPECIE_MAP];
+  if (extraItems.length) groups.push({ group: "その他", items: extraItems });
+
+  el.innerHTML = groups.map(group => `
+    <div class="filter-specie-group">
+      <div class="filter-specie-group-name">${group.group}</div>
+      <div class="filter-radio-group">
+        ${group.items.map(s => `
+          <label class="filter-radio-label">
+            <input type="radio" name="specieRadio" value="${s}"
+              ${activeFilters.specie === s ? "checked" : ""}
+              onchange="selectSpecie('${s.replace(/'/g, "\'")}')">
+            <span>${s}</span>
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function selectSpecie(value) {
+  activeFilters.specie = activeFilters.specie === value ? null : value;
+  renderSpecieFilter(allPets);
+  applyFilters();
+}
+
+/* ---- 毛色フィルター（チェックボックス・複数選択・部分一致） ---- */
+function renderColorFilter(pets) {
+  const el = document.getElementById("filterColor");
+  if (!el) return;
+  const allColors = unique(pets.flatMap(p => splitColors(p.color)));
+  el.innerHTML = allColors.map(c => `
+    <label class="filter-check-label">
+      <input type="checkbox" value="${c}"
+        ${activeFilters.colors.has(c) ? "checked" : ""}
+        onchange="toggleColor('${c.replace(/'/g, "\'")}', this.checked)">
+      <span>${c}</span>
+    </label>`).join("");
+}
+
+function toggleColor(color, checked) {
+  if (checked) activeFilters.colors.add(color);
+  else activeFilters.colors.delete(color);
+  applyFilters();
+}
+
+/* ---- フィルター描画まとめ ---- */
+function renderFilters(pets) {
+  const filtersEl = document.getElementById("shelterFilters");
+  if (filtersEl) filtersEl.style.display = "";
+  renderPlaceFilter(pets);
+  renderSpecieFilter(pets);
+  renderColorFilter(pets);
+}
+
+/* ---- 絞り込み適用 ---- */
+function applyFilters() {
+  const bodyEl = document.getElementById("shelterListBody");
+  if (!bodyEl) return;
+
+  const filtered = allPets.filter(pet => {
+    // 地域（複数選択・OR）
+    if (activeFilters.places.size > 0 && !activeFilters.places.has(pet.place)) return false;
+    // 犬種（単一）
+    if (activeFilters.specie && pet.specie !== activeFilters.specie) return false;
+    // 毛色（複数選択・部分一致OR）
+    if (activeFilters.colors.size > 0) {
+      const petColors = new Set(splitColors(pet.color));
+      const matched = [...activeFilters.colors].some(c => petColors.has(c));
+      if (!matched) return false;
+    }
+    return true;
+  });
+
+  bodyEl.innerHTML = filtered.length
+    ? filtered.map((item, i) => renderShelterCard(item, i)).join("")
+    : "<div class=\"lede\" style=\"color:var(--magenta)\">該当するペットがいません。</div>";
+}
+
+// ---- フィルター機能 ここまで ----
+
+
 // 注意: バックエンドにはまだ「照合状況」を表す項目が無いため、実データの一覧でも
 // 元のデザイン通り4種類のタグを順番に割り当てて表示している(見た目優先の暫定対応)。
 // // 実際の照合状況をAPIが返せるようになったら、ここをそのフィールドに置き換える。
@@ -59,7 +212,12 @@ async function loadShelterList(){
 
         const waitingCount = pets.filter((_, i) => statusCycle[i % statusCycle.length] === '照合中').length;
         countEl.innerHTML = `現在の保護： <b style="color:var(--navy)">${pets.length}頭</b>／照合待ち： <b style="color:var(--magenta)">${waitingCount}頭</b>`;
-        bodyEl.innerHTML = pets.map((item, i) => renderShelterCard(item, i)).join('');
+
+        // フィルター初期化
+        allPets = pets;
+        renderFilters(pets);
+        applyFilters();
+
         }catch (err) {
             console.error(err);
             countEl.textContent = '';

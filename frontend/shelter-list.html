@@ -3,60 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>ReLINK — 保護ペット一覧</title>
-
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
 </head>
-
 <body>
-
   <div class="stage">
     <div class="phone">
-
       <div class="notch"></div>
-
       <div class="screen">
-
-        <!-- アプリバー -->
         <div class="appbar">
           <a class="back" href="shelter.html">‹</a>
-
           <h1>保護ペット一覧</h1>
-
           <div class="spacer"></div>
-
           <span class="role-chip">保護団体</span>
         </div>
 
-
-        <!-- メインコンテンツ -->
         <div class="pad stack fade">
+          <div class="lede" style="margin-top:2px" id="shelterCount">読み込み中…</div>
 
-          <!-- 件数 -->
-          <div class="lede" style="margin-top:2px" id="shelterCount">
-            読み込み中…
+          <!-- フィルター外枠 -->
+          <div id="shelterFilters" style="display:none" class="filter-bg">
+          <div class="filter-wrapper">
+            <div class="filter-wrapper-title">絞り込み条件を選択してください</div>
+
+            <div class="filter-outer">
+
+              <!-- 横2列：左＝地域、右＝犬種＋毛色 -->
+              <div class="filter-cols">
+
+                <!-- 左：地域 -->
+                <div class="filter-col-left">
+                  <div class="filter-row filter-row-vertical">
+                    <div class="filter-row-label">地域</div>
+                    <div class="filter-row-body" id="filterPlace"></div>
+                  </div>
+                </div>
+
+                <!-- 右：犬種・毛色（縦に並ぶ） -->
+                <div class="filter-col-right">
+                  <div class="filter-row filter-row-vertical" style="border-bottom:1px solid #e0e4ef">
+                    <div class="filter-row-label">犬種・種類</div>
+                    <div class="filter-row-body" id="filterSpecie"></div>
+                  </div>
+                  <div class="filter-row filter-row-vertical">
+                    <div class="filter-row-label">毛色</div>
+                    <div class="filter-row-body" id="filterColor"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
+          </div><!-- /.filter-bg -->
 
-          <!-- ここに /shelter/pets の結果を差し込む -->
           <div id="shelterListBody"></div>
-
-          <!-- 新しい保護を登録 -->
-          <a
-            class="btn btn-primary"
-            href="register.html"
-          >
-            ＋ 新しい保護を登録
-          </a>
-
+          <a class="btn btn-primary" href="register.html">＋ 新しい保護を登録</a>
         </div>
-
       </div>
     </div>
   </div>
 
+  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/shelter.js"></script>
