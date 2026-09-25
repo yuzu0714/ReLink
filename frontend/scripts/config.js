@@ -6,4 +6,4 @@
 // const API_BASE = 'http://localhost:8080';
 
 // 本番サーバー
-const API_BASE = 'http://157.17.49.232:8080';
+const API_BASE = `http://${location.hostname}:8080`;
