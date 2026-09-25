@@ -12,7 +12,7 @@
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>飼い主向け</h1>
@@ -27,42 +27,39 @@
             <div class="hs">通知とマッチングの状況を確認して、安心して待てます。</div>
           </div>
 
-          <div class="owner-actions">
-            <a class="card card-nav owner-action" href="owner-register.html">
+          <div class="role-list">
+            <a class="role-item" style="cursor:pointer" href="owner-register.html">
               <div class="emo">📷</div>
               <div>
-                <div class="t">ペット情報を登録</div>
-                <div class="d">迷子のペットの写真をアップして照合を開始</div>
+                <div class="title">ペット情報を登録</div>
+                <div class="desc">迷子のペットの写真をアップして照合を開始</div>
               </div>
-              <div class="arr">›</div>
             </a>
-            <div class="card card-nav owner-action" data-owner-action="notify">
+            <div class="role-item" style="cursor:pointer" data-owner-action="notify">
               <div class="emo">🔔</div>
               <div>
-                <div class="t">通知を確認</div>
-                <div class="d">似たペットが保護されたらここに届きます。</div>
+                <div class="title">通知を確認</div>
+                <div class="desc">似たペットが保護されたらここに届きます。</div>
               </div>
-              <div class="arr">›</div>
             </div>
-            <div class="card card-nav owner-action" data-owner-action="notice-list">
-              <div class="ic owner-notice-icon">🐕</div>
+            <div class="role-item" style="cursor:pointer" data-owner-action="notice-list">
+              <div class="emo">🐕</div>
               <div>
-                <div class="t">お知らせ一覧</div>
-                <div class="d">最新の照合・保護情報をまとめて確認</div>
+                <div class="title">お知らせ一覧</div>
+                <div class="desc">最新の照合・保護情報をまとめて確認</div>
               </div>
-              <div class="arr">›</div>
             </div>
           </div>
 
           <div class="stack">
-          <a class="btn btn-primary" data-owner-action="logout" href="login.html">
-            ログアウト
-          </a>
+            <a class="btn btn-primary" data-owner-action="logout" href="login.html">
+              ログアウト
+            </a>
 
-          <button class="btn btn-ghost" data-owner-action="switch-role">
-            役割を切り替える
-          </button>
-        </div>
+            <button class="btn btn-ghost" data-owner-action="switch-role">
+              役割を切り替える
+            </button>
+          </div>
         </div>
       </div>
     </div>
