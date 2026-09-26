@@ -45,7 +45,10 @@ import com.repositories.LostPetMatchRepository
 import com.models.OwnerPetListItem
 import com.models.OwnerPetListResponse
 import com.repositories.PetPhotoRepository
+import com.db.LostPetRegisterTable
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureRouting() {
     routing {
@@ -132,6 +135,24 @@ fun Application.configureRouting() {
                 call.respond(
                     HttpStatusCode.Created,
                     VoiceUploadResponse(voiceUrl)
+                )
+            }
+            
+            get("/pets/{petId}/voice") {
+                val petId = call.parameters["petId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("petIdは数値で指定してください")
+
+                val voiceUrl = transaction {
+                    LostPetRegisterTable
+                        .selectAll()
+                        .where { LostPetRegisterTable.id eq petId }
+                        .firstOrNull()
+                        ?.get(LostPetRegisterTable.voiceUrl)
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf("voiceUrl" to voiceUrl)
                 )
             }
 

@@ -47,7 +47,6 @@ object MatchingService {
             val urls = PetPhotoRepository.findByPet(candidate.source, candidate.id).map { it.photoUrl }
             if (urls.isEmpty()) null else CandidateWithPhotos(candidate.source, candidate.id, urls)
         }
-
         if (candidatesWithPhotos.isEmpty()) {
             return emptyList()
         }

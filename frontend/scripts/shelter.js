@@ -166,7 +166,7 @@ function renderShelterCard(item, index){
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
     return `
-        <div class="match-card" onclick="location.href='pet_detail.html'">
+        <div class="match-card" onclick="location.href='pet_detail.html?id=${item.id}&source=${item.source}&matchId=${item.matchId}&lostPetId=${item.lostPetId ?? ''}'">
             <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
@@ -225,12 +225,27 @@ async function loadShelterList(){
         }
     }
 
-    loadShelterList();
+    //修正：pet_detail.htmlに対応させるため
+    if (document.getElementById('shelterListBody')) {
+      loadShelterList();
+  }
 
 /* ---------------- pet detail ---------------- */
-(() => {
+( async () => {
   const isPetDetailPage = document.getElementById('petPhoto');
   if (!isPetDetailPage) return;
+ 
+  //追加：URLのペットのidを読み取る
+  const params = new URLSearchParams(window.location.search);
+  const petId = params.get('id');
+  const source = params.get('source');
+  const matchId = params.get('matchId');
+  const lostPetId = params.get('lostPetId');
+
+  //正しいかデータか確認
+  console.log('保護ペットID:', petId);
+  console.log('保護元:', source);
+  console.log('照合ID:', matchId);
 
   const token = sessionStorage.getItem('authToken');
 
@@ -238,6 +253,58 @@ async function loadShelterList(){
     alert('ログインが必要です。');
     window.location.href = 'login.html';
     return;
+  }
+
+  try {
+    // 照合IDがある場合だけ照合詳細を取得
+    if (matchId && matchId !== 'null') {
+      const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error(`照合詳細の取得に失敗しました。status: ${res.status}`);
+      }
+
+      const detail = await res.json();
+
+      console.log('照合詳細:', detail);
+      console.log('音声URL:', detail.pet?.voiceUrl);
+    }
+
+    // 音声を取得
+    const voiceSection = document.getElementById('petVoiceSection');
+    const voicePlayer = document.getElementById('petVoicePlayer');
+
+    if (lostPetId) {
+      const voiceRes = await fetch(`${API_BASE}/pets/${lostPetId}/voice`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!voiceRes.ok) {
+        throw new Error(`音声取得に失敗しました。status: ${voiceRes.status}`);
+      }
+
+      const voiceData = await voiceRes.json();
+
+      console.log('取得した音声URL:', voiceData.voiceUrl);
+
+      if (voiceData.voiceUrl) {
+        voicePlayer.src = voiceData.voiceUrl;
+        voiceSection.style.display = 'block';
+      } else {
+        voiceSection.style.display = 'none';
+      }
+    } else {
+      voiceSection.style.display = 'none';
+    }
+
+  } catch (err) {
+      console.error('詳細・音声取得エラー:', err);
   }
 
   // Google Maps
