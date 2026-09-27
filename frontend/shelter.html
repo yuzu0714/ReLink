@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 </head>
 <body>
   <div class="stage">
@@ -17,17 +18,17 @@
           <a class="back" href="login.html">‹</a>
           <h1>保護団体向け</h1>
           <div class="spacer"></div>
-          <span class="role-chip">Shelter</span>
+          <span class="role-chip">保護団体</span>
         </div>
 
         <div class="pad stack">
-          <div class="hero-banner">
+          <div class="hero-banner login-welcome">
             <div class="hi">保護団体向け機能</div>
             <div class="hn">保護中のペットを一覧で管理できます。</div>
             <div class="hs">照合状況やお知らせをまとめて確認できます。</div>
           </div>
 
-          <div class="stack">
+          <div class="stack nav-grid">
             <div class="card card-nav" onclick="location.href='shelter-list.html'">
               <div class="ic">📋</div>
               <div>
@@ -57,9 +58,14 @@
 
           </div>
 
-          <div class="stack">
-            <a class="btn btn-primary" href="login.html">ログアウト</a>
-            <button class="btn btn-ghost" type="button" onclick="switchRole()">役割を切り替える</button>
+          <div class="link-row">
+            <a class="btn btn-orange" data-owner-action="logout" href="login.html">
+              ログアウト
+            </a>
+
+            <button class="btn btn-orange" data-owner-action="switch-role">
+              役割を切り替える
+            </button>
           </div>
         </div>
       </div>

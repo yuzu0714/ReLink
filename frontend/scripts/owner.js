@@ -41,7 +41,7 @@ function initOwnerPage() {
 
         <div class="spacer"></div>
 
-        <span class="role-chip">Owner</span>
+        <span class="role-chip">飼い主</span>
       </div>
     `;
   }
@@ -49,7 +49,7 @@ function initOwnerPage() {
 
   /* ---------------- ペット登録画面 ---------------- */
 
-  function showRegister() {
+    function showRegister() {
 
     ownerState = {
       photos: [],
@@ -78,165 +78,176 @@ function initOwnerPage() {
           </div>
         </div>
 
-        <input
-          type="file"
-          id="ownerFileInput"
-          accept="image/*"
-          multiple
-          hidden
-        >
+        <div class="register-grid">
 
-        <div class="imgbox" data-owner-file>
-          <div class="big">📸</div>
+          <div class="register-photo">
 
-          <div class="cap">
-            <b style="color:var(--navy)">
-              タップして写真を追加
-            </b>
-            <br>
-            全体像 ＋ 首輪アップがおすすめ
+            <input
+              type="file"
+              id="ownerFileInput"
+              accept="image/*"
+              multiple
+              hidden
+            >
+
+            <div class="imgbox" data-owner-file>
+              <div class="big">📸</div>
+
+              <div class="cap">
+                <b style="color:var(--navy)">
+                  タップして写真を追加
+                </b>
+                <br>
+                全体像 ＋ 首輪アップがおすすめ
+              </div>
+            </div>
+
+            <div
+              class="owner-thumbs"
+              id="ownerThumbs"
+            ></div>
+
+            <button
+              class="btn btn-ghost btn-sm"
+              id="ownerAiFillBtn"
+              type="button"
+              style="width:100%"
+              data-owner-action="ai-fill"
+            >
+              🤖 写真からAIで自動入力（未入力の項目のみ）
+            </button>
+
+            <div
+              class="footnote"
+              style="padding:0 0 4px"
+            >
+              写真を追加した後に押すと、種類・毛色・そのほか欄のうち、
+              まだ入力していない項目だけをAIが推定して埋めます。
+              すでに入力した項目は変更しません。
+            </div>
+
           </div>
-        </div>
 
-        <div
-          class="owner-thumbs"
-          id="ownerThumbs"
-        ></div>
+          <div class="register-fields">
 
-        <button
-          class="btn btn-ghost btn-sm"
-          id="ownerAiFillBtn"
-          type="button"
-          style="width:100%"
-          data-owner-action="ai-fill"
-        >
-          🤖 写真からAIで自動入力（未入力の項目のみ）
-        </button>
+            <div class="field">
+              <label>連絡先電話番号</label>
 
-        <div
-          class="footnote"
-          style="padding:0 0 4px"
-        >
-          写真を追加した後に押すと、種類・毛色・そのほか欄のうち、
-          まだ入力していない項目だけをAIが推定して埋めます。
-          すでに入力した項目は変更しません。
-        </div>
+              <input
+                class="input"
+                id="ownerPhone"
+                type="tel"
+                placeholder="090-0000-0000"
+              >
+            </div>
 
 
-        <div class="field">
-          <label>連絡先電話番号</label>
+            <div class="field">
+              <label>紛失場所</label>
 
-          <input
-            class="input"
-            id="ownerPhone"
-            type="tel"
-            placeholder="090-0000-0000"
-          >
-        </div>
-
-
-        <div class="field">
-          <label>紛失場所</label>
-
-          <input
-            class="input"
-            id="ownerLostPlace"
-            type="text"
-            placeholder="市区町村"
-          >
-        </div>
+              <input
+                class="input"
+                id="ownerLostPlace"
+                type="text"
+                placeholder="市区町村"
+              >
+            </div>
 
 
-        <div class="field">
-          <label>種類・犬種</label>
+            <div class="field">
+              <label>種類・犬種</label>
 
-          <select
-            class="input"
-            id="ownerSpecie"
-          >
-            <option value="">選択してください</option>
+              <select
+                class="input"
+                id="ownerSpecie"
+              >
+                <option value="">選択してください</option>
 
-            <optgroup label="🐕 犬">
-              <option>柴犬</option>
-              <option>トイプードル</option>
-              <option>ドーベルマン</option>
-              <option>チワワ</option>
-              <option>ゴールデン・レトリバー</option>
-              <option>ボーダー・コリー</option>
-              <option>ハスキー</option>
-              <option>パグ</option>
-              <option>秋田犬</option>
-              <option>雑種（中型）</option>
-            </optgroup>
+                <optgroup label="🐕 犬">
+                  <option>柴犬</option>
+                  <option>トイプードル</option>
+                  <option>ドーベルマン</option>
+                  <option>チワワ</option>
+                  <option>ゴールデン・レトリバー</option>
+                  <option>ボーダー・コリー</option>
+                  <option>ハスキー</option>
+                  <option>パグ</option>
+                  <option>秋田犬</option>
+                  <option>雑種（中型）</option>
+                </optgroup>
 
-            <optgroup label="🐈 猫">
-              <option>アメリカン・ショートヘア</option>
-              <option>スコティッシュ・フォールド</option>
-              <option>マンチカン</option>
-              <option>ペルシャ</option>
-              <option>ロシアン・ブルー</option>
-              <option>シャム</option>
-              <option>ノルウェージアン・フォレスト・キャット</option>
-              <option>メインクーン</option>
-              <option>ラグドール</option>
-              <option>ブリティッシュ・ショートヘア</option>
-              <option>アビシニアン</option>
-              <option>ベンガル</option>
-              <option>猫（雑種）</option>
-            </optgroup>
-          </select>
-        </div>
-
-
-        <div class="field">
-          <label>上記にない犬種・品種（任意）</label>
-
-          <input
-            class="input"
-            id="ownerOtherSpecie"
-            type="text"
-            placeholder="例）ビーグル、ミックス犬など"
-          >
-        </div>
+                <optgroup label="🐈 猫">
+                  <option>アメリカン・ショートヘア</option>
+                  <option>スコティッシュ・フォールド</option>
+                  <option>マンチカン</option>
+                  <option>ペルシャ</option>
+                  <option>ロシアン・ブルー</option>
+                  <option>シャム</option>
+                  <option>ノルウェージアン・フォレスト・キャット</option>
+                  <option>メインクーン</option>
+                  <option>ラグドール</option>
+                  <option>ブリティッシュ・ショートヘア</option>
+                  <option>アビシニアン</option>
+                  <option>ベンガル</option>
+                  <option>猫（雑種）</option>
+                </optgroup>
+              </select>
+            </div>
 
 
-        <div class="field">
-          <label>毛色</label>
+            <div class="field">
+              <label>上記にない犬種・品種（任意）</label>
 
-          <div
-            class="swatches"
-            id="ownerSwatches"
-          >
-            ${petColors.map((color, index) => `
+              <input
+                class="input"
+                id="ownerOtherSpecie"
+                type="text"
+                placeholder="例）ビーグル、ミックス犬など"
+              >
+            </div>
+
+
+            <div class="field">
+              <label>毛色</label>
+
               <div
-                class="sw"
-                data-owner-color="${index}"
-                style="background:${color}"
-              ></div>
-            `).join('')}
+                class="swatches"
+                id="ownerSwatches"
+              >
+                ${petColors.map((color, index) => `
+                  <div
+                    class="sw"
+                    data-owner-color="${index}"
+                    style="background:${color}"
+                  ></div>
+                `).join('')}
+              </div>
+            </div>
+
+
+            <div class="field">
+              <label>そのほか</label>
+
+              <textarea
+                class="input"
+                id="ownerOther"
+                placeholder="例）左耳が欠けている。人懐っこい。"
+              ></textarea>
+            </div>
+
+
+            <button
+              class="btn btn-orange"
+              type="button"
+              id="ownerSubmitBtn"
+              data-owner-action="submit-lost"
+            >
+              🐾 登録
+            </button>
+
           </div>
+
         </div>
-
-
-        <div class="field">
-          <label>そのほか</label>
-
-          <textarea
-            class="input"
-            id="ownerOther"
-            placeholder="例）左耳が欠けている。人懐っこい。"
-          ></textarea>
-        </div>
-
-
-        <button
-          class="btn btn-magenta"
-          type="button"
-          id="ownerSubmitBtn"
-          data-owner-action="submit-lost"
-        >
-          🐾 登録
-        </button>
 
         <div class="footnote">
           条件で絞り込んだ後、画像識別モデルが特徴を照合します。

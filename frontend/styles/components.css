@@ -53,7 +53,7 @@
 }
 
 .stack > * + * {
-  margin-top: 14px;
+  margin-top: 30px;
 }
 
 .btn {
@@ -89,6 +89,16 @@
   box-shadow: 0 8px 20px rgba(236, 72, 153, 0.30);
 }
 
+.btn-orange {
+  background: #f57c23;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(245, 124, 35, 0.30);
+}
+
+.btn-orange:hover {
+  background: #e06818;
+}
+
 .btn-ghost {
   background: #eef1fa;
   color: var(--navy);
@@ -116,6 +126,8 @@
   display:flex;
   align-items:center;
   gap:14px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .card-nav:hover {
