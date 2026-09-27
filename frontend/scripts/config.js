@@ -3,7 +3,10 @@
    ===================================================== */
 
 // ローカル開発
-// const API_BASE = 'http://localhost:8080';
+//const API_BASE = 'http://localhost:8080';
 
 // 本番サーバー
-const API_BASE = 'http://157.17.49.232:8080';
+//const API_BASE = 'http://157.17.49.232:8080';
+
+// PCのLAN内IPアドレスに変更(スマホ検証用)
+const API_BASE = 'http://172.20.10.2:8080';
