@@ -165,8 +165,10 @@ function renderShelterCard(item, index){
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
+    
+    // item.matchId が null / undefined のときでも、そのままURLに入れないよう変更
     return `
-        <div class="match-card" onclick="location.href='pet_detail.html?id=${item.id}&source=${item.source}&matchId=${item.matchId}&lostPetId=${item.lostPetId ?? ''}'">
+        <div class="match-card" onclick="location.href='pet_detail.html?id=${item.id}&source=${item.source}&matchId=${item.matchId ?? ''}&lostPetId=${item.lostPetId ?? ''}'">
             <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
@@ -257,7 +259,7 @@ async function loadShelterList(){
 
   try {
     // 照合IDがある場合だけ照合詳細を取得
-    if (matchId && matchId !== 'null') {
+    if (matchId && matchId !== 'null' && matchId !== 'undefined') {
       const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
         headers: {
           'Authorization': `Bearer ${token}`
