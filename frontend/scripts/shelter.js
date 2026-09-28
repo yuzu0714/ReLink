@@ -248,6 +248,7 @@ async function loadShelterList(){
   console.log('保護ペットID:', petId);
   console.log('保護元:', source);
   console.log('照合ID:', matchId);
+  console.log('LostPetID:', lostPetId);
 
   const token = sessionStorage.getItem('authToken');
 
@@ -271,73 +272,90 @@ async function loadShelterList(){
       }
 
       const detail = await res.json();
-
       console.log('照合詳細:', detail);
-      console.log('音声URL:', detail.pet?.voiceUrl);
-    }
 
-    // 音声を取得
-    const voiceSection = document.getElementById('petVoiceSection');
-    const voicePlayer = document.getElementById('petVoicePlayer');
+      //修正：実際の保護ペット情報に変更
+      const pet = detail.pet;
 
-    if (lostPetId) {
-      const voiceRes = await fetch(`${API_BASE}/pets/${lostPetId}/voice`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      if (pet) {
+        // ペットの名前・ID
+        const petName = document.getElementById('petName');
+        if (petName) {
+          petName.textContent = `保護 #${detail.matchId}`;
         }
-      });
 
-      if (!voiceRes.ok) {
-        throw new Error(`音声取得に失敗しました。status: ${voiceRes.status}`);
+        // 種類
+        const petBreed = document.getElementById('petBreed');
+        if (petBreed) {
+          petBreed.textContent = pet.specie || '種類不明';
+        }
+
+        // 色
+        const petColor = document.getElementById('petColor');
+        if (petColor) {
+          petColor.textContent = pet.color || '色不明';
+        }
+        
+        // その他の特徴
+        const petCollar = document.getElementById('petCollar');
+        if (petCollar) {
+          petCollar.textContent = pet.other || '情報なし';
+        }
+
+        // 発見場所
+        const petLocation = document.getElementById('petLocation');
+        if (petLocation) {
+          petLocation.textContent = pet.foundPlace || '場所不明';
+        }
+
+        // 発見日
+        const petDate = document.getElementById('petDate');
+        if (petDate) {
+          petDate.textContent = pet.foundDate || '日付不明';
+        }
+
+        // ステータス
+        const petStatus = document.getElementById('petStatus');
+        if (petStatus) {
+          //追加：「照合状況」を表す項目がないため、暫定的な意味づけとして配置。後に変更する
+          petStatus.textContent = matchId ? '一致' : '照合中';
+        }
+
+        // 写真
+        const petPhoto = document.getElementById('petPhoto');
+        if (petPhoto && pet.photoUrls && pet.photoUrls.length > 0) {
+          petPhoto.style.backgroundImage = `url("${pet.photoUrls[0]}")`;
+          petPhoto.style.backgroundSize = 'cover';
+          petPhoto.style.backgroundPosition = 'center';
+          petPhoto.textContent = '';
+        }
+
+        // 飼い主の呼びかけ音声
+        const voiceSection = document.getElementById('petVoiceSection');
+        const voicePlayer = document.getElementById('petVoicePlayer');
+
+        if (voiceSection && voicePlayer) {
+          if (pet.voiceUrl) {
+            voicePlayer.src = pet.voiceUrl;
+            voiceSection.style.display = 'block';
+          } else {
+            voicePlayer.removeAttribute('src');
+            voiceSection.style.display = 'none';
+          }
+        }
       }
-
-      const voiceData = await voiceRes.json();
-
-      console.log('取得した音声URL:', voiceData.voiceUrl);
-
-      if (voiceData.voiceUrl) {
-        voicePlayer.src = voiceData.voiceUrl;
-        voiceSection.style.display = 'block';
-      } else {
-        voiceSection.style.display = 'none';
-      }
-    } else {
-      voiceSection.style.display = 'none';
+    }
+  
+  } catch (err) {
+        console.error('詳細情報の取得エラー:', err);
     }
 
-  } catch (err) {
-      console.error('詳細・音声取得エラー:', err);
-  }
+    // 保護情報更新
+    const updateButton = document.getElementById('updateButton');
 
-  // Google Maps
-  window.initMap = function () {
-    const mapElement = document.getElementById('map');
-
-    if (!mapElement) return;
-
-    const map = new google.maps.Map(mapElement, {
-      center: {
-        lat: 34.0703,
-        lng: 134.5548
-      },
-      zoom: 15
-    });
-
-    new google.maps.Marker({
-      position: {
-        lat: 34.0703,
-        lng: 134.5548
-      },
-      map: map
-    });
-  };
-
-  // 保護情報更新
-  const updateButton = document.getElementById('updateButton');
-
-  if (updateButton) {
-    updateButton.addEventListener('click', () => {
-      alert('保護情報の更新機能は準備中です。');
-    });
-  }
+    if (updateButton) {
+        updateButton.addEventListener('click', () => {
+            alert('保護情報の更新機能は準備中です。');
+        });
+    }
 })();
