@@ -238,6 +238,146 @@
   color: #d8dcf7;
 }
 
+.owner-page .hero-banner::after {
+  content: none;
+}
+
+.owner-page .hero-banner .hi {
+  color: var(--orange-dark);
+}
+
+.owner-page .hero-banner .hn {
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.owner-page .hero-banner .hs {
+  color: #4b5563;
+}
+
+.owner-page .role-list {
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 20px;
+  background: var(--navy);
+  border-radius: 0;
+}
+
+.owner-page .role-item {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+}
+
+.owner-page .role-item .title {
+  color: var(--navy);
+}
+
+.owner-page .role-item .desc {
+  color: #58627f;
+  font-weight: 600;
+}
+
+.owner-page .role-item[style*="cursor:pointer"]:hover {
+  border-color: var(--orange);
+  background: #fff7ed;
+}
+
+.owner-page .btn-primary {
+  background: var(--orange);
+}
+
+.owner-page .btn-primary:hover {
+  background: var(--orange-dark);
+}
+
+.shelter-page .hero-banner::after {
+  content: none;
+}
+
+.shelter-page .hero-banner .hi {
+  color: var(--orange-dark);
+}
+
+.shelter-page .hero-banner .hn {
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.shelter-page .hero-banner .hs {
+  color: #4b5563;
+}
+
+.shelter-page .role-list {
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 20px;
+  background: var(--navy);
+  border-radius: 0;
+}
+
+.shelter-page .role-item {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #fff;
+}
+
+.shelter-page .role-item .title {
+  color: var(--navy);
+}
+
+.shelter-page .role-item .desc {
+  color: #58627f;
+  font-weight: 600;
+}
+
+.shelter-page .role-item[style*="cursor:pointer"]:hover {
+  border-color: var(--orange);
+  background: #fff7ed;
+}
+
+.shelter-page .btn-primary {
+  background: var(--orange);
+}
+
+.shelter-page .btn-primary:hover {
+  background: var(--orange-dark);
+}
+
+.owner-page,
+.shelter-page {
+  background: #fff;
+}
+
+.owner-page .phone,
+.shelter-page .phone {
+  width: 100%;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.owner-page .notch,
+.shelter-page .notch {
+  display: none;
+}
+
+.owner-page .appbar,
+.shelter-page .appbar {
+  justify-content: flex-start;
+  padding: 14px 20px;
+  background: var(--navy);
+}
+
+.owner-page .hero-banner,
+.shelter-page .hero-banner {
+  padding: 26px 24px;
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--orange);
+  border-radius: 12px;
+}
+
 .owner-page .owner-action .d,
 .shelter-page .card-nav .d {
   color: #58627f;
@@ -498,25 +638,6 @@
 }
 
 
-/* 音声録音エリア */
-.owner-voice-area {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* 録音中の表示 */
-#ownerVoiceStatus {
-  margin: 10px 0 0;
-}
-
-/* 録音した音声 */
-#ownerVoicePlayer {
-  width: 100%;
-  margin-top: 12px;
-}
-
-
 /*ペット保護・登録画面用 CSS*/
 
 h2.title {
@@ -635,6 +756,7 @@ h2.title {
   border-radius: 20px;
   display: grid;
   place-items: center;
+  background: #c8935f;
   font-size: 80px;
   color: #fff;
   overflow: hidden;
@@ -661,16 +783,9 @@ h2.title {
   gap: 20px;
 }
 
-.info-row span {
-  font-size: 13px;
-  color: navy;
-  font-weight: bold;
-}
-
 .info-row b {
   font-size: 13px;
   text-align: right;
-  color: var(--muted);
 }
 
 .section-title {
@@ -679,6 +794,23 @@ h2.title {
   color: var(--navy);
 
   margin-bottom: 8px;
+}
+
+.map {
+  width: 100%;
+  height: 220px;
+
+  border-radius: 16px;
+
+  background: #eef1fa;
+
+  display: grid;
+  place-items: center;
+
+  color: var(--muted);
+  font-size: 13px;
+
+  overflow: hidden;
 }
 
 @media (max-width: 700px) {
@@ -936,6 +1068,122 @@ h2.title {
     margin-top: 0;
   }
 
+  .owner-page .pad {
+    padding: 36px 32px 48px;
+    max-width: none;
+  }
+
+  .owner-page .role-list {
+    width: auto;
+    margin-left: -32px;
+    margin-right: -32px;
+    padding: 28px 32px;
+    grid-template-columns: repeat(3, minmax(0, 220px));
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .owner-page .role-item {
+    min-height: 180px;
+    padding: 24px 18px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
+  }
+
+  .owner-page .role-item .emo {
+    font-size: 32px;
+  }
+
+  .owner-page .role-item .title {
+    font-size: 18px;
+  }
+
+  .owner-page .role-item .desc {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .owner-page .pad > .stack:last-child {
+    width: min(100%, 620px);
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .owner-page .pad > .stack:last-child > * + * {
+    margin-top: 0;
+  }
+
+  .shelter-page .pad {
+    padding: 36px 32px 48px;
+    max-width: none;
+  }
+
+  .shelter-page .role-list {
+    width: auto;
+    margin-left: -32px;
+    margin-right: -32px;
+    padding: 28px 32px;
+    grid-template-columns: repeat(3, minmax(0, 220px));
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .shelter-page .role-item {
+    min-height: 180px;
+    padding: 24px 18px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
+  }
+
+  .shelter-page .role-item .emo {
+    font-size: 32px;
+  }
+
+  .shelter-page .role-item .title {
+    font-size: 18px;
+  }
+
+  .shelter-page .role-item .desc {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .shelter-page .pad > .stack:last-child {
+    width: min(100%, 620px);
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .shelter-page .pad > .stack:last-child > * + * {
+    margin-top: 0;
+  }
+
+  .owner-page .hero-banner,
+  .shelter-page .hero-banner {
+    width: min(100%, 620px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .owner-page .hero-banner .hn,
+  .shelter-page .hero-banner .hn {
+    font-size: 28px;
+  }
+
   .finder-page .hero-banner {
     width: min(100%, 620px);
     margin-left: auto;
@@ -964,58 +1212,5 @@ h2.title {
   .login-page .login-grid {
     grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
     align-items: start;
-  }
-}
-
-/* 飼い主：登録ペット一覧 */
-.owner-pet-card {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
-  align-items: center;
-}
-
-.owner-page .owner-pet-photo {
-  width: 280px;
-  height: auto;
-  border-radius: 12px;
-  overflow: hidden;
-  display: block;
-  font-size: initial;
-  color: initial;
-}
-
-.owner-page .owner-pet-photo img {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.owner-pet-photo img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-}
-
-.owner-pet-info {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* スマホでは縦並び */
-@media (max-width: 600px) {
-  .owner-pet-card {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .owner-pet-photo {
-    width: 100%;
-    height: auto;
   }
 }
