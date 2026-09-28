@@ -7,41 +7,54 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 </head>
 <body data-page="signup">
   <div class="stage">
     <div class="screen">
-      <div class="appbar">
+      <div class="appbar login-appbar">
         <button class="back" type="button" onclick="location.href='login.html'">‹</button>
-        <h1>🐾 ReLINK</h1>
+        <div class="brand">
+          <img class="brand-mark" src="logo.png" alt="ReLINK">
+          <h1>ReLINK</h1>
+        </div>
         <div class="spacer"></div>
       </div>
 
-      <div class="pad stack">
-        <div class="hero-banner">
+      <div class="pad stack login-pad">
+        <div class="hero-banner login-welcome">
           <div class="hi">新規登録</div>
           <div class="hn">アカウントを作成する</div>
           <div class="hs">登録後すぐにログインできます。</div>
         </div>
 
-        <form id="signupForm" class="card stack">
-          <div class="field">
-            <label for="displayName">表示名（任意）</label>
-            <input class="input" id="displayName" name="displayName" type="text" placeholder="例：田中 太郎">
+        <form id="signupForm" class="login-grid">
+          <div class="login-panel step-1">
+            <div class="step-label">STEP 1</div>
+            <h2 class="step-title">アカウント情報</h2>
+            <div class="step-desc">表示名は任意です。メールアドレスとパスワード（6文字以上）を入力してください。</div>
+
+            <div class="field">
+              <label for="displayName">表示名（任意）</label>
+              <input class="input" id="displayName" name="displayName" type="text" placeholder="例：田中 太郎">
+            </div>
+
+            <div class="field">
+              <label for="email">メールアドレス</label>
+              <input class="input" id="email" name="email" type="email" required placeholder="example@mail.com">
+            </div>
+
+            <div class="field">
+              <label for="password">パスワード</label>
+              <input class="input" id="password" name="password" type="password" required placeholder="6文字以上">
+            </div>
           </div>
 
-          <div class="field">
-            <label for="email">メールアドレス</label>
-            <input class="input" id="email" name="email" type="email" required placeholder="example@mail.com">
-          </div>
+          <div class="login-panel step-2">
+            <div class="step-label">STEP 2</div>
+            <h2 class="step-title">利用者の種類を選択</h2>
+            <div class="step-desc">用途に合わせて役割を選んでください。</div>
 
-          <div class="field">
-            <label for="password">パスワード</label>
-            <input class="input" id="password" name="password" type="password" required placeholder="6文字以上">
-          </div>
-
-          <div class="field">
-            <label>利用者の種類</label>
             <div class="roles">
               <button class="role" type="button" data-role="owner">
                 <div class="emo">🧑</div>
@@ -51,6 +64,7 @@
                 </div>
                 <div class="tick">✓</div>
               </button>
+
               <button class="role" type="button" data-role="finder">
                 <div class="emo">🙋</div>
                 <div>
@@ -59,6 +73,7 @@
                 </div>
                 <div class="tick">✓</div>
               </button>
+
               <button class="role" type="button" data-role="shelter">
                 <div class="emo">🏥</div>
                 <div>
@@ -68,10 +83,10 @@
                 <div class="tick">✓</div>
               </button>
             </div>
-          </div>
 
-          <button class="btn btn-primary" id="signupButton" type="submit">登録する</button>
-          <a class="btn btn-ghost" href="login.html" style="text-align:center;display:block">ログインに戻る</a>
+            <button class="btn btn-primary" id="signupButton" type="submit">登録する</button>
+            <button class="signup-link" type="button" onclick="location.href='login.html'">← ログインに戻る</button>
+          </div>
         </form>
 
         <div class="footnote">登録情報はSupabaseに安全に保存されます。</div>
@@ -79,19 +94,7 @@
     </div>
   </div>
 
-    <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
-  <script>
-    // URLパラメータ ?role=shelter のとき保護団体を自動選択
-    document.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(location.search);
-      const preRole = params.get('role');
-      if (preRole) {
-        const btn = document.querySelector(`.role[data-role="${preRole}"]`);
-        if (btn) btn.click();
-      }
-    });
-  </script>
 </body>
 </html>

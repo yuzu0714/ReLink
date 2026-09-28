@@ -7,9 +7,10 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 
 </head>
-<body data-page="finder" class="finder-page">
+<body data-page="finder">
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
@@ -18,53 +19,59 @@
           <button class="back" onclick="window.history.back()">‹</button>
           <h1>発見者向け</h1>
           <div class="spacer"></div>
-          <span class="role-chip">Finder</span>
+          <span class="role-chip">発見者</span>
         </div>
 
         <div class="pad stack">
-          <div class="hero-banner">
+          <div class="hero-banner login-welcome">
             <div class="hi">発見者向け機能</div>
             <div class="hn">保護したペットを撮影して照合できます。</div>
             <div class="hs">保護場所と日時を記録して、すぐに登録に進めます。</div>
           </div>
 
-          <div class="role-list">
-            <div class="role-item" style="cursor:pointer" onclick="go('register')">
+          <div class="role-list nav-grid">
+            <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('register')">
               <div class="emo">📸</div>
               <div>
-                <div class="title">ペットを保護・撮影</div>
-                <div class="desc">全体像と首輪の写真を追加します。</div>
+                <div class="t">ペットを保護・撮影</div>
+                <div class="d">全体像と首輪の写真を追加</div>
               </div>
+              <div class="arr">›</div>
             </div>
-            <div class="role-item" style="cursor:pointer" onclick="go('handoverList')">
+            <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('handoverList')">
               <div class="emo">🔄</div>
               <div>
-                <div class="title">受け渡し記録</div>
-                <div class="desc">引き渡しの記録を確認できます。</div>
+                <div class="t">受け渡し記録</div>
+                <div class="d">引き渡しの記録を確認</div>
               </div>
+              <div class="arr">›</div>
             </div>
-            <div class="role-item" style="cursor:pointer" onclick="go('notificationList')">
+            <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('notificationList')">
               <div class="emo">🔔</div>
               <div>
-                <div class="title">お知らせ</div>
-                <div class="desc">マッチング結果と通知を確認します。</div>
+                <div class="t">お知らせ</div>
+                <div class="d">マッチング結果と引き渡し通知を確認</div>
               </div>
+              <div class="arr">›</div>
             </div>
           </div>
 
-          <div class="stack">
-            <a class="btn btn-primary" href="login.html">ログアウト</a>
-            <button class="btn btn-ghost" type="button" onclick="switchRole()">役割を切り替える</button>
+          <div class="link-row">
+            <a class="btn btn-orange" data-owner-action="logout" href="login.html">
+              ログアウト
+            </a>
+
+            <button class="btn btn-orange" data-owner-action="switch-role">
+              役割を切り替える
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
-  <script src="scripts/location-autocomplete.js"></script>
   <script src="scripts/finder.js"></script>
 </body>
 </html>

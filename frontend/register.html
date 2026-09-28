@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 </head>
 <body>
   <div class="stage">
@@ -29,111 +30,120 @@
           <div>
             <div class="eyebrow">STEP 1 / 撮影</div>
             <h2 class="title" style="font-size:19px">保護したペットを撮る</h2>
-            <div class="lede" style="color:#e91e8c;font-weight:600">角度を変えた写真（正面、横、斜めなど）を複数枚登録すると精度が上がります。</div>
+            <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
           </div>
 
-          <!-- 写真を選ぶための隠しinput(タップするとこれが開く) -->
-          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+          <div class="register-grid">
 
-          <!-- 写真追加ボックス -->
-          <div class="imgbox" id="addPhotoBox">
-            <div class="big">📸</div>
-            <div class="cap">
-              <b style="color:var(--navy)">タップして写真を追加</b><br>
-              全体像 ＋ 首輪アップがおすすめ（最大10枚）
+            <!-- 左カラム：写真 -->
+            <div class="register-photo">
+              <!-- 写真を選ぶための隠しinput(タップするとこれが開く) -->
+              <input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+              <!-- 写真追加ボックス -->
+              <div class="imgbox" id="addPhotoBox">
+                <div class="big">📸</div>
+                <div class="cap">
+                  <b style="color:var(--navy)">タップして写真を追加</b><br>
+                  全体像 ＋ 首輪アップがおすすめ（最大10枚）
+                </div>
+              </div>
+
+              <!-- サムネイルプレビュー領域 -->
+              <div class="thumbs" id="thumbs"></div>
+
+              <!-- AIによる自動入力 -->
+              <button class="btn btn-ghost btn-sm" id="aiFillBtn" type="button" style="width:100%">
+                🤖 写真からAIで自動入力（未入力の項目のみ）
+              </button>
+              <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
             </div>
-          </div>
 
-          <!-- サムネイルプレビュー領域 -->
-          <div class="thumbs" id="thumbs"></div>
+            <!-- 右カラム：フォーム -->
+            <div class="register-fields">
+              <div class="field">
+                <label>発見場所</label>
+                <input class="input" id="foundPlace" type="text" placeholder="市区町村">
+              </div>
 
-          <!-- AIによる自動入力 -->
-          <button class="btn btn-ghost btn-sm" id="aiFillBtn" type="button" style="width:100%">
-            🤖 写真からAIで自動入力（未入力の項目のみ）
-          </button>
-          <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
+              <div class="field">
+                <label>発見日時</label>
+                <input class="input" id="foundDate" type="datetime-local">
+              </div>
 
-          <!-- フォーム領域 -->
-          <div class="field">
-            <label>発見場所</label>
-            <input class="input" id="foundPlace" type="text" placeholder="市区町村">
-          </div>
+              <div class="field">
+                <label>保護場所</label>
+                <input class="input" id="rescuePlace" type="text" placeholder="市区町村・施設名">
+              </div>
 
-          <div class="field">
-            <label>発見日時</label>
-            <input class="input" id="foundDate" type="datetime-local">
-          </div>
+              <div class="field">
+                <label>保護日時</label>
+                <input class="input" id="rescueDate" type="datetime-local">
+              </div>
 
-          <div class="field">
-            <label>保護場所</label>
-            <input class="input" id="rescuePlace" type="text" placeholder="市区町村・施設名">
-          </div>
+              <div class="field">
+                <label>種類・犬種</label>
+                <select class="input" id="specieSelect">
+                  <option value="" selected>選択してください</option>
+                  <optgroup label="🐕 犬">
+                    <option value="柴犬">柴犬</option>
+                    <option value="トイプードル">トイプードル</option>
+                    <option value="ドーベルマン">ドーベルマン</option>
+                    <option value="チワワ">チワワ</option>
+                    <option value="ゴールデン・レトリバー">ゴールデン・レトリバー</option>
+                    <option value="ボーダー・コリー">ボーダー・コリー</option>
+                    <option value="ハスキー">ハスキー</option>
+                    <option value="パグ">パグ</option>
+                    <option value="秋田犬">秋田犬</option>
+                    <option value="雑種（中型）">雑種（中型）</option>
+                  </optgroup>
+                  <optgroup label="🐈 猫">
+                    <option value="アメリカン・ショートヘア">アメリカン・ショートヘア</option>
+                    <option value="スコティッシュ・フォールド">スコティッシュ・フォールド</option>
+                    <option value="マンチカン">マンチカン</option>
+                    <option value="ペルシャ">ペルシャ</option>
+                    <option value="ロシアン・ブルー">ロシアン・ブルー</option>
+                    <option value="シャム">シャム</option>
+                    <option value="ノルウェージアン・フォレスト・キャット">ノルウェージアン・フォレスト・キャット</option>
+                    <option value="メインクーン">メインクーン</option>
+                    <option value="ラグドール">ラグドール</option>
+                    <option value="ブリティッシュ・ショートヘア">ブリティッシュ・ショートヘア</option>
+                    <option value="アビシニアン">アビシニアン</option>
+                    <option value="ベンガル">ベンガル</option>
+                    <option value="猫（雑種）">猫（雑種）</option>
+                  </optgroup>
+                </select>
+              </div>
 
-          <div class="field">
-            <label>保護日時</label>
-            <input class="input" id="rescueDate" type="datetime-local">
-          </div>
+              <div class="field">
+                <label>上記にない犬種・品種（任意）</label>
+                <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など">
+              </div>
 
-          <div class="field">
-            <label>種類・犬種</label>
-            <select class="input" id="specieSelect">
-              <option value="" selected>選択してください</option>
-              <optgroup label="🐕 犬">
-                <option value="柴犬">柴犬</option>
-                <option value="トイプードル">トイプードル</option>
-                <option value="ドーベルマン">ドーベルマン</option>
-                <option value="チワワ">チワワ</option>
-                <option value="ゴールデン・レトリバー">ゴールデン・レトリバー</option>
-                <option value="ボーダー・コリー">ボーダー・コリー</option>
-                <option value="ハスキー">ハスキー</option>
-                <option value="パグ">パグ</option>
-                <option value="秋田犬">秋田犬</option>
-                <option value="雑種（中型）">雑種（中型）</option>
-              </optgroup>
-              <optgroup label="🐈 猫">
-                <option value="アメリカン・ショートヘア">アメリカン・ショートヘア</option>
-                <option value="スコティッシュ・フォールド">スコティッシュ・フォールド</option>
-                <option value="マンチカン">マンチカン</option>
-                <option value="ペルシャ">ペルシャ</option>
-                <option value="ロシアン・ブルー">ロシアン・ブルー</option>
-                <option value="シャム">シャム</option>
-                <option value="ノルウェージアン・フォレスト・キャット">ノルウェージアン・フォレスト・キャット</option>
-                <option value="メインクーン">メインクーン</option>
-                <option value="ラグドール">ラグドール</option>
-                <option value="ブリティッシュ・ショートヘア">ブリティッシュ・ショートヘア</option>
-                <option value="アビシニアン">アビシニアン</option>
-                <option value="ベンガル">ベンガル</option>
-                <option value="猫（雑種）">猫（雑種）</option>
-              </optgroup>
-            </select>
-          </div>
+              <div class="field">
+                <label>毛色（複数選択可）</label>
+                <div class="swatches" id="swatches">
+                  <div class="sw" style="background:#c8935f" data-color-index="0"></div>
+                  <div class="sw" style="background:#e8c9a0" data-color-index="1"></div>
+                  <div class="sw" style="background:#7a5230" data-color-index="2"></div>
+                  <div class="sw" style="background:#3d3d3d" data-color-index="3"></div>
+                  <div class="sw" style="background:#e5e5e5" data-color-index="4"></div>
+                  <div class="sw" style="background:#f0f0f0" data-color-index="5"></div>
+                </div>
+              </div>
 
-          <div class="field">
-            <label>上記にない犬種・品種（任意）</label>
-            <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など">
-          </div>
+              <div class="field">
+                <label>そのほか（アレルギー・伝えたいこと）</label>
+                <textarea class="input" id="otherText" placeholder="例）左耳が欠けている。人懐っこい。"></textarea>
+              </div>
 
-          <div class="field">
-            <label>毛色（複数選択可）</label>
-            <div class="swatches" id="swatches">
-              <div class="sw" style="background:#c8935f" data-color-index="0"></div>
-              <div class="sw" style="background:#e8c9a0" data-color-index="1"></div>
-              <div class="sw" style="background:#7a5230" data-color-index="2"></div>
-              <div class="sw" style="background:#3d3d3d" data-color-index="3"></div>
-              <div class="sw" style="background:#e5e5e5" data-color-index="4"></div>
-              <div class="sw" style="background:#f0f0f0" data-color-index="5"></div>
+              <!-- アクションボタン -->
+              <button class="btn btn-orange" id="submitBtn" type="button">
+                🐾 保護情報を登録する
+              </button>
             </div>
-          </div>
 
-          <div class="field">
-            <label>そのほか（アレルギー・伝えたいこと）</label>
-            <textarea class="input" id="otherText" placeholder="例）左耳が欠けている。人懐っこい。"></textarea>
           </div>
-
-          <!-- アクションボタン -->
-          <button class="btn btn-magenta" id="submitBtn" type="button">
-            🐾 保護情報を登録する
-          </button>
 
           <div class="footnote">登録すると、飼い主からの迷子登録があった際に自動で照合されます。</div>
 
@@ -142,12 +152,11 @@
     </div>
   </div>
 
-  <script src="scripts/location-autocomplete.js"></script>
-  <script src="scripts/config.js"></script>
   <script>
     // このページは demo.js を読み込まない、完全に独立したスクリプトにしている。
     // (demo.js を読み込むと、末尾の共通ルーター処理が data-page 未設定のこのページでも動いてしまい、
     //  ここで組んだ画面をテンプレートの中身で上書きしてしまうため)
+    const API_BASE = 'http://localhost:8080';
     const MAX_PHOTOS_PER_PET = 10;
 
     // 毛色スウォッチの並び順と、バックエンドに送るテキストの対応(他ページと合わせている)
@@ -220,7 +229,6 @@
       if (/ボーダー・コリー/.test(text)) return 'ボーダー・コリー';
       if (/ハスキー/.test(text)) return 'ハスキー';
       if (/パグ/.test(text)) return 'パグ';
-      // 猫の品種（先に具体的な品種を判定し、最後に雑種にフォールバック）
       if (/アメリカン.?ショートヘア|アメショ/.test(text)) return 'アメリカン・ショートヘア';
       if (/スコティッシュ.?フォールド|スコ折/.test(text)) return 'スコティッシュ・フォールド';
       if (/マンチカン/.test(text)) return 'マンチカン';
@@ -295,7 +303,6 @@
           if (guess) {
             specieSelect.value = guess;
           } else if (tags.breed && !document.getElementById('otherSpecie').value) {
-            // 選択肢にない犬種はテキスト欄に入れる
             document.getElementById('otherSpecie').value = [tags.animalType, tags.breed].filter(Boolean).join(' ');
           }
         }
@@ -380,8 +387,6 @@
       try {
         const photoUrls = await uploadPhotos(photos.map((p) => p.file), token);
 
-        // 保護場所・保護日時は/pets/rescuedの項目に無いので、そのほか欄に追記して情報を残す
-        // (finder側の保護方法登録と同じやり方)
         const rescuePlace = document.getElementById('rescuePlace').value.trim();
         const rescueDate = document.getElementById('rescueDate').value;
         const extraNotes = [];
@@ -423,7 +428,6 @@
         submitBtn.textContent = originalLabel;
       }
     });
-  initLocationAutocomplete('foundPlace');
   </script>
 </body>
 </html>

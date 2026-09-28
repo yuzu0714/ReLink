@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/pages.css">
+    <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
     <style>
         .notify-empty {
             text-align: center;
@@ -34,14 +35,13 @@
         </div>
 
         <!-- お知らせ一覧 (JSで描画) -->
-        <div class="pad stack" id="notify-list">
+        <div class="pad stack notify-pad" id="notify-list">
             <div class="notify-loading">読み込み中...</div>
         </div>
 
     </main>
 
-    <script src="scripts/config.js"></script>
-  <script src="scripts/common.js"></script>
+    <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/notification.js"></script>
 </body>
