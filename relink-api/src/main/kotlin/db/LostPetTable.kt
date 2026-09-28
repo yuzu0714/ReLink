@@ -14,6 +14,12 @@ object LostPetRegisterTable : Table("lostpet_register") {
     val lostPlace = text("lost_place").nullable()
     // 登録したユーザーのID（usersテーブルの外部キー）
     val userId = long("user_id").references(UserTable.id).nullable()
+    //新規追加：ペットの呼び名・正式名称　呼び名を入力しなくても（nullでも）許可
+    val nickname = text("nickname").nullable()
+    val petName = text("pet_name").nullable()
+    //新規追加：音声を入力しなくても登録可能
+    val voiceUrl = text("voice_url").nullable()
+    
     // created_at は DBの DEFAULT now() に任せたいので、
     // ここでは列を定義せず(INSERT時に触らない)、Kotlin側からは扱わない
 

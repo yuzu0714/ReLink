@@ -37,6 +37,32 @@ class StorageService(
         // 公開URLを組み立てて返す(バケットをpublicに設定している前提)
         return "$supabaseUrl/storage/v1/object/public/$bucketName/$objectPath"
     }
+    
+    //新規追加：音声データをsupabase storageに送る。保存された音声のURLを返す
+    suspend fun uploadVoice(
+        fileName: String,
+        fileBytes: ByteArray,
+        contentType: String
+    ): String {
+        val objectPath = fileName
+
+        val response = client.put(
+            "$supabaseUrl/storage/v1/object/$bucketName/$objectPath"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $serviceRoleKey")
+            header("apikey", serviceRoleKey)
+            header(HttpHeaders.ContentType, contentType)
+            setBody(fileBytes)
+        }
+
+        if (!response.status.isSuccess()) {
+            throw StorageUploadException(
+                "音声のアップロードに失敗しました: ${response.status}"
+            )
+        }
+
+        return "$supabaseUrl/storage/v1/object/public/$bucketName/$objectPath"
+    }
 }
 
 // StatusPagesで補足してエラーレスポンスに変換するための専用例外

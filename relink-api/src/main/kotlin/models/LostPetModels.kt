@@ -9,7 +9,10 @@ data class LostPetRegisterRequest(
     val specie: String,
     val color: String,
     val other: String? = null,
-    val lostPlace: String
+    val lostPlace: String,
+    val nickname: String? = null,  //呼び名を入力しなくても登録可能にする
+    val petName: String? = null,   //登録データに正式名称を追加
+    val voiceUrl: String? = null   //音声ファイルを受け取る
 )
 
 // ★修正：本番導線化に伴い、登録直後に自動実行したマッチング結果もレスポンスに含めるようにした

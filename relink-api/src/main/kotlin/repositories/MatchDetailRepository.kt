@@ -4,6 +4,7 @@ import com.db.FoundPetRegisterTable
 import com.db.MatchesTable
 import com.db.RescuedPetRegisterTable
 import com.db.UserTable
+import com.db.LostPetRegisterTable  //追加：LostPetRegisterTablを使う
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -26,7 +27,8 @@ data class MatchedPetDetail(
     val other: String?,
     val photoUrls: List<String>,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+    val voiceUrl: String?  //追加：音声URLを入れられるようにする
 )
 
 @Serializable
@@ -52,6 +54,7 @@ object MatchDetailRepository {
 
         val source = matchRow[MatchesTable.protectedSource]
         val petId  = matchRow[MatchesTable.protectedPetId]
+        val lostPetId = matchRow[MatchesTable.lostPetId]  //追加：ペットのIDを取得
         val score  = matchRow[MatchesTable.matchScore].toDouble()
 
         val petRow: PetRow = when (source) {
@@ -86,6 +89,13 @@ object MatchDetailRepository {
         }
 
         val photoUrls = PetPhotoRepository.findByPet(source, petId).map { it.photoUrl }
+        
+        //追加：lostpetidと同じidを取得する
+        //voice-urlの値を取り出す
+        val voiceUrl = LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.id eq lostPetId }
+            .firstOrNull()
+            ?.get(LostPetRegisterTable.voiceUrl)
 
         val contact = petRow.userId?.let { uid ->
             UserTable.selectAll()
@@ -111,7 +121,8 @@ object MatchDetailRepository {
                 other      = petRow.other,
                 photoUrls  = photoUrls,
                 latitude   = petRow.latitude,
-                longitude  = petRow.longitude
+                longitude  = petRow.longitude,
+                voiceUrl   = voiceUrl  //追加：取得した音声URLを代入
             ),
             contact = contact
         )

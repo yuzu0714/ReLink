@@ -9,3 +9,9 @@ import kotlinx.serialization.Serializable
 data class PhotoUploadResponse(
     val photoUrl: String
 )
+
+//新規追加：音声アップロード成功時に返すレスポンス
+@Serializable
+data class VoiceUploadResponse(
+    val voiceUrl: String
+)

@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ShelterPetListItem(
     val id: Long,
+    val matchId: Long?,     //保護ペットid
+    val lostPetId: Long?,   //照合後の迷子ペットのid
     val source: String,     // "found" または "rescued"
     val photoUrl: String,
     val place: String,      // found_place に対応
@@ -24,4 +26,23 @@ data class ShelterPetListItem(
 @Serializable
 data class ShelterPetListResponse(
     val pets: List<ShelterPetListItem>
+)
+
+/*★新規追加：
+ * 登録したペット1匹分のデータの形を決める
+ * 飼い主のペット一覧
+ */
+@Serializable
+data class OwnerPetListItem(
+    val id: Long,
+    val photoUrl: String? = null,
+    val specie: String? = null,
+    val color: String? = null,
+    val lostPlace: String? = null,
+    val other: String? = null
+)
+
+@Serializable
+data class OwnerPetListResponse(
+    val pets: List<OwnerPetListItem>
 )
