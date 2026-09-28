@@ -404,3 +404,75 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* ===== 場所オートコンプリート ===== */
+.loc-wrap {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.loc-field {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.loc-sublabel {
+  display: block;
+  font-size: 10px;
+  color: var(--muted, #888);
+  margin-bottom: 3px;
+  letter-spacing: .04em;
+}
+
+.loc-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d0d4e8);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--navy, #1a2357);
+  outline: none;
+  transition: border-color .15s;
+}
+
+.loc-input:focus {
+  border-color: var(--magenta, #e91e8c);
+  box-shadow: 0 0 0 2px rgba(233,30,140,.12);
+}
+
+.loc-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--line, #d0d4e8);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(26,35,87,.12);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 200;
+  display: none;
+}
+
+.loc-dropdown--open {
+  display: block;
+}
+
+.loc-option {
+  padding: 9px 14px;
+  font-size: 14px;
+  color: var(--navy, #1a2357);
+  cursor: pointer;
+  transition: background .1s;
+}
+
+.loc-option:hover,
+.loc-option--active {
+  background: rgba(233,30,140,.08);
+  color: var(--magenta, #e91e8c);
+}

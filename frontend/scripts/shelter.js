@@ -131,8 +131,8 @@ function applyFilters() {
 
   const filtered = allPets.filter(pet => {
     // 地域（複数選択・OR）
-    if (activeFilters.places.size > 0 && !activeFilters.places.has(pet.place)) return false;
-    // 犬種（単一）
+    if (activeFilters.places.size > 0 && 
+        ![...activeFilters.places].some(pref => pet.place.includes(pref))) return false;    // 犬種（単一）
     if (activeFilters.specie && pet.specie !== activeFilters.specie) return false;
     // 毛色（複数選択・部分一致OR）
     if (activeFilters.colors.size > 0) {
