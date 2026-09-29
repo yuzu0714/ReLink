@@ -260,6 +260,49 @@ function initOwnerPage() {
   }
 
 
+  /* ---------------- HEIC → JPEG 変換 ---------------- */
+
+  async function toDisplayableFile(file) {
+
+    const isHeic =
+      /heic|heif/i.test(file.type) ||
+      /\.(heic|heif)$/i.test(file.name);
+
+    if (!isHeic) return file;
+
+    // ライブラリの読み込み確認（グローバル名は環境で異なる可能性があるため両方見る）
+    const convert =
+      typeof HeicTo === 'function' ? HeicTo : null;
+
+    console.log('[HEIC] converter', typeof convert);
+
+    if (!convert) {
+      alert('HEIC変換ライブラリを読み込めませんでした。JPEGまたはPNGの写真を選んでください。');
+      return null;
+    }
+
+    try {
+      const jpeg = await convert({
+        blob: file,
+        type: 'image/jpeg',
+        quality: 0.9
+      });
+
+      console.log('[HEIC] 変換成功', jpeg);
+
+      return new File(
+        [jpeg],
+        file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+        { type: 'image/jpeg' }
+      );
+
+    } catch (error) {
+      console.error('[HEIC] 変換失敗', error);
+      alert('この写真（HEIC形式）は変換できませんでした。JPEGまたはPNGの写真を選んでください。');
+      return null;
+    }
+  }
+
   /* ---------------- 登録フォームのイベント ---------------- */
 
   function setupOwnerRegisterEvents() {
@@ -274,24 +317,47 @@ function initOwnerPage() {
     }
 
     if (fileInput) {
-      fileInput.addEventListener('change', (event) => {
+      fileInput.addEventListener('change', async (event) => {
 
         const files = Array.from(event.target.files || []);
 
-        files.forEach((file) => {
+        fileInput.value = '';
 
-          const src = URL.createObjectURL(file);
+        for (const original of files) {
+
+          const file = await toDisplayableFile(original);
+
+          if (!file) continue;
 
           ownerState.photos.push({
             file,
-            src
+            src: URL.createObjectURL(file)
           });
 
-        });
+        }
 
         renderOwnerThumbs();
+      });
+    }
 
-        fileInput.value = '';
+
+    /* ×ボタンで写真を削除 */
+
+    const thumbsBox = document.getElementById('ownerThumbs');
+
+    if (thumbsBox) {
+      thumbsBox.addEventListener('click', (event) => {
+
+        const removeBtn = event.target.closest('[data-owner-photo-remove]');
+
+        if (!removeBtn) return;
+
+        const index = Number(removeBtn.dataset.ownerPhotoRemove);
+        const [removed] = ownerState.photos.splice(index, 1);
+
+        if (removed) URL.revokeObjectURL(removed.src);
+
+        renderOwnerThumbs();
       });
     }
 
@@ -353,13 +419,19 @@ function initOwnerPage() {
     thumbs.innerHTML = ownerState.photos.map((photo, index) => `
       <div
         class="thumb"
-        data-owner-photo="${index}"
         style="
           background-image:url('${photo.src}');
           background-size:cover;
           background-position:center;
         "
-      ></div>
+      >
+        <button
+          type="button"
+          class="x"
+          data-owner-photo-remove="${index}"
+          aria-label="写真を削除"
+        >×</button>
+      </div>
     `).join('');
 
   }
