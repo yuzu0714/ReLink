@@ -22,7 +22,10 @@ function initOwnerPage() {
     otherSpecie: '',
     other: '',
     phone: '',
-    lostPlace: ''
+    lostPlace: '',
+    nickname: '',     //新規追加：呼び名
+    petName: '',      //新規追加：正式名称
+    voiceBlob: null,  //新規追加：音声入力
   };
 
 
@@ -80,8 +83,8 @@ function initOwnerPage() {
 
         <div class="register-grid">
 
+          <!-- 左カラム：写真 -->
           <div class="register-photo">
-
             <input
               type="file"
               id="ownerFileInput"
@@ -111,7 +114,6 @@ function initOwnerPage() {
               class="btn btn-ghost btn-sm"
               id="ownerAiFillBtn"
               type="button"
-              style="width:100%"
               data-owner-action="ai-fill"
             >
               🤖 写真からAIで自動入力（未入力の項目のみ）
@@ -125,9 +127,9 @@ function initOwnerPage() {
               まだ入力していない項目だけをAIが推定して埋めます。
               すでに入力した項目は変更しません。
             </div>
-
           </div>
 
+          <!-- 右カラム：フォーム -->
           <div class="register-fields">
 
             <div class="field">
@@ -224,6 +226,62 @@ function initOwnerPage() {
               </div>
             </div>
 
+            <div class="field">
+              <label>ペットの正式名称</label>
+
+              <input
+                class="input"
+                id="ownerPetName"
+                type="text"
+                placeholder="例）こころ"
+                maxlength="50"
+              >
+            </div>
+
+            <!-- ペットの呼び名の登録 -->
+            <div class="field">
+              <label>ペットの普段の呼び方</label>
+
+              <input
+                class="input"
+                id="ownerNickname"
+                type="text"
+                placeholder="例）ここちゃん"
+                maxlength="30"
+              >
+            </div>
+
+            <!-- 呼び名の音声を登録する欄 -->
+            <div class="field">
+              <label>ペットを呼んでいる音声</label>
+
+              <div class="owner-voice-area">
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  id="ownerVoiceRecordBtn"
+                >
+                  🎙 録音開始
+                </button>
+
+                <p id="ownerVoiceStatus">録音していません</p>
+
+                <audio
+                  id="ownerVoicePlayer"
+                  controls
+                  style="display: none;"
+                ></audio>
+
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  id="ownerVoiceReplayBtn"
+                  style="display: none;"
+                >
+                  🔄 録り直す
+                </button>
+              </div>
+            </div>
 
             <div class="field">
               <label>そのほか</label>
@@ -237,7 +295,7 @@ function initOwnerPage() {
 
 
             <button
-              class="btn btn-orange"
+              class="btn btn-magenta"
               type="button"
               id="ownerSubmitBtn"
               data-owner-action="submit-lost"
@@ -245,12 +303,12 @@ function initOwnerPage() {
               🐾 登録
             </button>
 
+            <div class="footnote">
+              条件で絞り込んだ後、画像識別モデルが特徴を照合します。
+            </div>
+
           </div>
 
-        </div>
-
-        <div class="footnote">
-          条件で絞り込んだ後、画像識別モデルが特徴を照合します。
         </div>
 
       </div>
@@ -397,6 +455,103 @@ function initOwnerPage() {
       });
     }
 
+    //新規追加：ペットの正式名称を保存
+    const petNameInput = document.getElementById('ownerPetName');
+
+    if (petNameInput) {
+      petNameInput.addEventListener('input', () => {
+        ownerState.petName = petNameInput.value.trim();
+      });
+    }
+
+    //新規追加：呼び名の登録を保存
+    const nicknameInput = document.getElementById('ownerNickname');
+
+    if (nicknameInput) {
+      nicknameInput.addEventListener('input', () => {
+        ownerState.nickname = nicknameInput.value.trim();
+      });
+    }
+
+    //新規追加：録音処理
+    const voiceRecordBtn = document.getElementById('ownerVoiceRecordBtn');
+    const voiceStatus = document.getElementById('ownerVoiceStatus');
+    const voicePlayer = document.getElementById('ownerVoicePlayer');
+    const voiceReplayBtn = document.getElementById('ownerVoiceReplayBtn');
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    if (voiceRecordBtn) {
+      voiceRecordBtn.addEventListener('click', async () => {
+        // 録音開始
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true
+            });
+
+            audioChunks = [];
+
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.addEventListener('dataavailable', (event) => {
+              if (event.data.size > 0) {
+                audioChunks.push(event.data);
+              }
+            });
+
+            mediaRecorder.addEventListener('stop', () => {
+              ownerState.voiceBlob = new Blob(audioChunks, {
+                type: 'audio/webm'
+              });
+
+              stream.getTracks().forEach(track => track.stop());
+
+              // 録音した音声を再生できるようにする
+              const audioUrl = URL.createObjectURL(ownerState.voiceBlob);
+              voicePlayer.src = audioUrl;
+              voicePlayer.style.display = 'block';
+
+              // 録り直すボタンを表示
+              voiceReplayBtn.style.display = 'block';
+              
+              voiceRecordBtn.style.display = 'none';
+              voiceStatus.textContent = '録音完了';
+            });
+
+            mediaRecorder.start();
+
+            voiceRecordBtn.textContent = '⏹ 録音停止';
+            voiceStatus.textContent = '録音中...';
+
+          } catch (error) {
+            console.error('録音に失敗しました:', error);
+            voiceStatus.textContent = 'マイクを使用できませんでした';
+          }
+
+        // 録音停止
+        } else if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      });
+    }
+
+    if (voiceReplayBtn) {
+      voiceReplayBtn.addEventListener('click', () => {
+        ownerState.voiceBlob = null;
+
+        voicePlayer.pause();
+        voicePlayer.removeAttribute('src');
+        voicePlayer.style.display = 'none';
+
+        voiceReplayBtn.style.display = 'none';
+
+        voiceStatus.textContent = '録音していません';
+        voiceRecordBtn.style.display = 'block';
+        voiceRecordBtn.textContent = '🎙 録音開始';
+      });
+    }
 
     const other = document.getElementById('ownerOther');
 
@@ -631,6 +786,36 @@ function initOwnerPage() {
         token
       );
 
+      //新規追加：録音したペットの名前をsupabase strageに保存して保存先のURLを受け取る
+      let voiceUrl = null;
+
+      if (ownerState.voiceBlob) {
+        const voiceFormData = new FormData();
+
+        voiceFormData.append(
+          'file',
+          ownerState.voiceBlob,
+          'pet-voice.webm'
+        );
+
+        const voiceRes = await fetch(
+          `${API_BASE}/pets/voice`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: voiceFormData
+          }
+        );
+
+        if (!voiceRes.ok) {
+          throw new Error('音声のアップロードに失敗しました');
+        }
+
+        const voiceBody = await voiceRes.json();
+        voiceUrl = voiceBody.voiceUrl;
+      }
 
       const lostRes = await fetch(
         `${API_BASE}/pets/lost`,
@@ -660,8 +845,17 @@ function initOwnerPage() {
               ownerState.other || null,
 
             lostPlace:
-              ownerState.lostPlace
+              ownerState.lostPlace,
+            
+            //新規追加：ペットの呼び名
+            nickname: 
+              ownerState.nickname || null,
 
+            //新規追加：ペットの正式名称
+            petName: ownerState.petName,
+            
+            //新規追加：音声入力
+            voiceUrl: voiceUrl
           })
         }
       );
@@ -1502,6 +1696,97 @@ function initOwnerPage() {
   );
 }
 
+/* ---------------- 登録ペット情報---------------- */
+
+async function initOwnerPetsPage() {
+  const list = document.getElementById('owner-pet-list');
+
+  if (!list) return;
+
+  const token = sessionStorage.getItem('authToken');
+
+  if (!token) {
+    list.innerHTML = `
+      <div class="card">
+        <div class="lede">
+          ログイン情報がありません。
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/pets/lost`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('ペット情報の取得に失敗しました');
+    }
+
+    const data = await response.json();
+
+    if (!data.pets || data.pets.length === 0) {
+      list.innerHTML = `
+        <div class="card">
+          <div class="lede">
+            登録したペットはいません。
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = data.pets.map(pet => `
+      <div class="card owner-pet-card">
+
+        <div class="owner-pet-photo">
+          ${pet.photoUrl ? `
+            <img
+              src="${pet.photoUrl}"
+              alt="${pet.specie || '登録したペット'}"
+            >
+          ` : `
+            <div class="owner-pet-no-photo">
+              写真なし
+            </div>
+          `}
+        </div>
+
+        <div class="owner-pet-info">
+          <div class="t">
+            ${pet.specie || '種類未登録'}
+          </div>
+
+          <div class="d">
+            毛色：${pet.color || '未登録'}
+          </div>
+
+          <div class="d">
+            いなくなった場所：${pet.lostPlace || '未登録'}
+          </div>
+        </div>
+
+      </div>
+    `).join('');
+
+  } catch (error) {
+    console.error(error);
+
+    list.innerHTML = `
+      <div class="card">
+        <div class="lede">
+          ペット情報を取得できませんでした。
+        </div>
+      </div>
+    `;
+  }
+}
+
 
 /* ---------------- 飼い主ページを初期化 ---------------- */
 
@@ -1512,11 +1797,13 @@ document.addEventListener(
     const page =
       document.body.dataset.page;
 
-    if (
-      page === 'owner' ||
-      page === 'owner-register'
-    ) {
+    if (page === 'owner' ||page === 'owner-register') {
       initOwnerPage();
+    }
+
+    //★新規追加：initOwnerPetsPage() を実行
+    if (page === 'owner-pets') {
+      initOwnerPetsPage();
     }
 
   }

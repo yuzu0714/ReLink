@@ -15,7 +15,8 @@ data class RegisterRequest(
 @Serializable
 data class LoginRequest(
     val email: String,
-    val password: String
+    val password: String,
+    val role: String = "owner"
 )
 
 // 登録・ログイン共通のレスポンス

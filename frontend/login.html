@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 </head>
 <body data-page="login">
   <div class="stage">
@@ -21,8 +22,8 @@
         <span class="role-chip login-chip" id="roleChip">利用者選択</span>
       </div>
 
-      <div class="pad stack login-pad">
-        <div class="hero-banner login-welcome">
+      <div class="pad stack login-pad login-pad">
+        <div class="hero-banner login-welcome login-welcome">
           <div class="hi">ログイン</div>
           <div class="hn">つなぎ直そう、大切な家族と。</div>
           <div class="hs">利用者を選んでログインすると、対応する画面へ移動します。</div>
@@ -32,11 +33,12 @@
           <div class="login-panel step-1">
             <div class="step-label">STEP 1</div>
             <h2 class="step-title">どの利用者として進みますか？</h2>
-            <div class="step-desc">選択した役割に応じて、飼い主・発見者・保護団体の各画面へ遷移します。</div>
+
+            <div class="step-desc">選択した役割に応じて、飼い主・発見者の各画面へ遷移します。</div>
 
             <div class="roles">
               <button class="role" type="button" data-role="owner" data-url="owner.html">
-                <div class="emo">🧑</div>
+                <img class="emo" src="assets/owner.png" alt="飼い主">
                 <div>
                   <div class="rt">飼い主として使う</div>
                   <div class="rd">迷子のペットを登録して通知を受け取ります。</div>
@@ -45,7 +47,7 @@
               </button>
 
               <button class="role" type="button" data-role="finder" data-url="finder.html">
-                <div class="emo">🙋</div>
+                <img class="emo" src="assets/finder.png" alt="発見者">
                 <div>
                   <div class="rt">発見者として使う</div>
                   <div class="rd">保護したペットの写真を撮って照合します。</div>
@@ -54,7 +56,7 @@
               </button>
 
               <button class="role" type="button" data-role="shelter" data-url="shelter.html">
-                <div class="emo">🏥</div>
+                <img class="emo" src="assets/register.png" alt="保護団体">
                 <div>
                   <div class="rt">保護団体として使う</div>
                   <div class="rd">保護中のペットを確認・管理します。</div>
@@ -90,6 +92,7 @@
     </div>
   </div>
 
+  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
 </body>

@@ -43,9 +43,9 @@ object UserRepository {
             .firstOrNull()
     }
 
-    // ログイン検証
-    // メール・パスワードが一致したら (userId, role) を返す。失敗はnull
-    fun login(email: String, password: String): Pair<String, String>? = transaction {
+    fun login(email: String, password: String, role: String): Pair<String, String>? = transaction {
+        if (role !in allowedRoles) return@transaction null
+
         val row = UserTable.selectAll()
             .where { UserTable.email eq email }
             .singleOrNull() ?: return@transaction null
@@ -54,7 +54,6 @@ object UserRepository {
         if (!BCrypt.checkpw(password, hash)) return@transaction null
 
         val userId = row[UserTable.id].toString()
-        val role   = row[UserTable.role]
         Pair(userId, role)
     }
 }

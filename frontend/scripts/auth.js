@@ -142,7 +142,8 @@ async function apiLogin(email, password, role) {
 
       body: JSON.stringify({
         email,
-        password
+        password,
+        role
       })
     }
   );

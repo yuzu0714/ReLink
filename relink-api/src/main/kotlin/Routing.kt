@@ -41,6 +41,8 @@ import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
+import com.models.HandoverRequest
+import com.repositories.HandoverRepository
 import kotlinx.serialization.Serializable
 
 fun Application.configureRouting() {
@@ -58,7 +60,7 @@ fun Application.configureRouting() {
 
         post("/auth/login") {
             val request = call.receive<LoginRequest>()
-            val result = UserRepository.login(request.email, request.password)
+            val result = UserRepository.login(request.email, request.password, request.role)
                 ?: throw IllegalArgumentException("メールアドレスまたはパスワードが正しくありません")
             val (userId, role) = result
             val token = generateToken(userId = userId, role = role)
@@ -228,7 +230,26 @@ fun Application.configureRouting() {
                     ?: throw NoSuchElementException("指定されたmatchIdが見つかりません: $matchId")
                 call.respond(HttpStatusCode.OK, detail)
             }
+            // 受け渡し記録の登録(shelter/finder限定)
+            post("/handovers") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverRequest>()
+
+                if (!HandoverRepository.contactExists(request.contactId)) {
+                    throw NoSuchElementException("指定されたcontactIdが見つかりません: \${request.contactId}")
+                }
+
+                val response = HandoverRepository.insert(request)
+                call.respond(HttpStatusCode.Created, response)
+            }
         }
+
 
         get("/matching/test") {
             val specie = call.request.queryParameters["specie"]
@@ -262,6 +283,20 @@ fun Application.configureRouting() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+
+        // 受け渡し記録の取得(認証不要、誰でも確認可)
+        get("/handovers/{contactId}") {
+            val contactId = call.parameters["contactId"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("contactId(数値)をパスパラメータで指定してください")
+
+            val records = HandoverRepository.findByContactId(contactId)
+            call.respond(HttpStatusCode.OK, records)
+        }
+
+        get("/handovers") {
+            val records = HandoverRepository.getAll()
+            call.respond(HttpStatusCode.OK, records)
+        }
         post("/matching/run") {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")

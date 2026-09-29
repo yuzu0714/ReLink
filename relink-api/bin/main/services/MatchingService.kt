@@ -2,6 +2,7 @@ package com.services
 
 import com.aiSimilarityService
 import com.db.MatchesTable
+import com.models.AiBatchCandidateItem
 import com.models.MatchResultItem
 import com.repositories.LostPetRepository
 import com.repositories.MatchingRepository
@@ -25,71 +26,101 @@ object MatchingService {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
 
+        // テキスト特徴（種類・毛色・場所）で事前絞り込み
         val candidates = MatchingRepository.findCandidates(
             specie    = lostPet.specie,
             color     = lostPet.color,
             lostPlace = lostPet.lostPlace
         )
 
+        if (candidates.isEmpty()) {
+            return emptyList()
+        }
+
+        // 候補ごとの写真URLを取得（写真がない候補は除外）
+        data class CandidateWithPhotos(
+            val source: String,
+            val id: Long,
+            val photoUrls: List<String>
+        )
+        val candidatesWithPhotos = candidates.mapNotNull { candidate ->
+            val urls = PetPhotoRepository.findByPet(candidate.source, candidate.id).map { it.photoUrl }
+            if (urls.isEmpty()) null else CandidateWithPhotos(candidate.source, candidate.id, urls)
+        }
+
+        if (candidatesWithPhotos.isEmpty()) {
+            return emptyList()
+        }
+
+        // ★変更点：候補ごとに逐次 compare-photos を呼ぶのをやめ、
+        //           /batch-compare-photos に全候補をまとめて投げて並列処理させる。
+        //   旧：候補N件 × AI処理時間(10〜30秒) = 合計 100〜300秒
+        //   新：AI並列処理(最大8並列) → 実質 1件分の処理時間程度で全候補を比較可能
+        val batchItems = candidatesWithPhotos.map { c ->
+            AiBatchCandidateItem(
+                id = "${c.source}:${c.id}",  // "found:123" のような形でIDを文字列化
+                photoUrls = c.photoUrls
+            )
+        }
+
+        val batchResponse = try {
+            aiSimilarityService.batchComparePhotos(
+                photoUrls  = lostPhotoUrls,
+                candidates = batchItems
+            )
+        } catch (e: AiServiceException) {
+            println("⚠️ バッチAI比較に失敗しました。スキップします: ${e.message}")
+            return emptyList()
+        }
+
+        // バッチ結果をIDでマップ化
+        val scoreById = batchResponse.results.associateBy { it.id }
+
         val results = mutableListOf<MatchResultItem>()
 
-        for (candidate in candidates) {
-            val candidatePhotoUrls = PetPhotoRepository
-                .findByPet(candidate.source, candidate.id)
-                .map { it.photoUrl }
+        for (c in candidatesWithPhotos) {
+            val key = "${c.source}:${c.id}"
+            val aiResult = scoreById[key] ?: continue
 
-            if (candidatePhotoUrls.isEmpty()) continue
+            val scorePercent = aiResult.similarityScore * 100
 
-            val aiResponse = try {
-                aiSimilarityService.comparePhotos(
-                    photoUrls          = lostPhotoUrls,
-                    candidatePhotoUrls = candidatePhotoUrls
-                )
-            } catch (e: AiServiceException) {
-                call_log_skip(candidate.source, candidate.id, e.message)
-                continue
-            }
-
-            val scorePercent = aiResponse.similarityScore * 100
-
-            // ★修正：uq_match制約（lost_pet_id, protected_source, protected_pet_id）の重複を回避する。
-            // 同じ組み合わせが既にあればそのIDを使い、なければINSERTする。
+            // uq_match制約（lost_pet_id, protected_source, protected_pet_id）の重複を回避
             val matchId = transaction {
                 val existing = MatchesTable.selectAll()
                     .where {
-                        (MatchesTable.lostPetId      eq lostPetId)       and
-                        (MatchesTable.protectedSource eq candidate.source) and
-                        (MatchesTable.protectedPetId  eq candidate.id)
+                        (MatchesTable.lostPetId      eq lostPetId)    and
+                        (MatchesTable.protectedSource eq c.source)     and
+                        (MatchesTable.protectedPetId  eq c.id)
                     }
                     .map { it[MatchesTable.id] }
                     .firstOrNull()
 
                 existing ?: MatchesTable.insert {
                     it[MatchesTable.lostPetId]       = lostPetId
-                    it[MatchesTable.protectedSource]  = candidate.source
-                    it[MatchesTable.protectedPetId]   = candidate.id
+                    it[MatchesTable.protectedSource]  = c.source
+                    it[MatchesTable.protectedPetId]   = c.id
                     it[MatchesTable.matchScore]        = BigDecimal.valueOf(scorePercent)
                 }[MatchesTable.id]
             }
 
-            // ★新規追加：マッチ率70%以上の場合に飼い主へ通知する
+            // マッチ率70%以上の場合に飼い主へ通知する
             if (scorePercent >= 70.0) {
                 notifyOwner(
                     lostPet         = lostPet,
                     matchId         = matchId,
                     scorePercent    = scorePercent,
-                    protectedSource = candidate.source
+                    protectedSource = c.source
                 )
             }
 
             results.add(
                 MatchResultItem(
                     matchId         = matchId,
-                    protectedSource = candidate.source,
-                    protectedPetId  = candidate.id,
+                    protectedSource = c.source,
+                    protectedPetId  = c.id,
                     matchScore      = scorePercent,
-                    reason          = aiResponse.reason,
-                    photoUrls       = candidatePhotoUrls
+                    reason          = aiResult.reason,
+                    photoUrls       = c.photoUrls
                 )
             )
         }
@@ -143,9 +174,5 @@ object MatchingService {
                 protectedSource = protectedSource
             )
         }
-    }
-
-    private fun call_log_skip(source: String, id: Long, message: String?) {
-        println("⚠️ 候補(source=$source, id=$id)のAI比較に失敗、スキップします: $message")
     }
 }

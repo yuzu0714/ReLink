@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK — 受け渡し記録</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="appbar">
+          <button class="back" onclick="window.history.back()">‹</button>
+          <h1>受け渡し記録</h1>
+          <div class="spacer"></div>
+          <span class="role-chip" id="roleChip">-</span>
+        </div>
+
+        <div class="pad stack fade">
+
+          <!-- 新規登録フォーム -->
+          <div class="card" id="registerSection" style="display:none">
+            <div class="eyebrow" style="color:var(--navy)">NEW RECORD</div>
+            <h2 class="title" style="font-size:18px;margin-bottom:4px">引き渡しを記録する</h2>
+            <div class="lede" style="margin-top:0;margin-bottom:12px">連絡IDを入力して、引き渡し情報を登録します。</div>
+
+            <form id="handoverForm" class="stack" style="gap:10px">
+              <div class="field">
+                <label for="contactId">連絡ID <span style="color:#e53e3e">*</span></label>
+                <input class="input" id="contactId" type="number" placeholder="例: 1" required>
+              </div>
+              <div class="field">
+                <label for="handoverPlace">引き渡し場所</label>
+                <input class="input" id="handoverPlace" type="text" placeholder="例: 阿南市役所前">
+              </div>
+              <div class="field">
+                <label for="handoverDatetime">引き渡し日時</label>
+                <input class="input" id="handoverDatetime" type="datetime-local">
+              </div>
+              <div class="field">
+                <label for="handedOverTo">引き渡し先</label>
+                <input class="input" id="handedOverTo" type="text" placeholder="例: 飼い主・山田様">
+              </div>
+              <div class="field">
+                <label for="note">備考</label>
+                <input class="input" id="note" type="text" placeholder="任意のメモ">
+              </div>
+              <div id="formMsg" style="display:none;font-size:13px;padding:8px 12px;border-radius:8px"></div>
+              <button class="btn btn-primary" type="submit" id="submitBtn">記録する</button>
+            </form>
+          </div>
+
+          <!-- 記録一覧 -->
+          <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
+            <div class="eyebrow" style="color:var(--navy)">HISTORY</div>
+            <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡し記録一覧</h2>
+            <div class="lede" style="margin-top:0">登録済みの引き渡し記録です。</div>
+          </div>
+
+          <div id="handoverList">
+            <div class="lede" style="text-align:center;padding:24px">読み込み中…</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/config.js"></script>
+  <script src="scripts/common.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script src="scripts/handover.js"></script>
+</body>
+</html>

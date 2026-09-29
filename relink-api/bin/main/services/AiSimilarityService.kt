@@ -1,5 +1,8 @@
 package com.services
 
+import com.models.AiBatchCompareRequest
+import com.models.AiBatchCompareResponse
+import com.models.AiBatchCandidateItem
 import com.models.AiSimilarityRawResponse
 import com.models.AiSimilarityRequest
 import io.ktor.client.*
@@ -13,29 +16,27 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-// AIサーバー(match_api.py)の POST /compare-photos を叩き、
-// 2組の写真URL一覧を渡して類似度スコアをもらうためのサービス。
+// AIサーバー(match_api.py)の POST /compare-photos / POST /batch-compare-photos を叩き、
+// 写真URL一覧を渡して類似度スコアをもらうためのサービス。
 class AiSimilarityService(
     private val aiApiBase: String,
 ) {
     private val client = HttpClient(CIO) {
-        // ★修正：タイムアウト超過で失敗していたのを修正。
-        // /compare-photos は「迷子側・候補側それぞれの写真を全部ダウンロード→base64化→
-        // AI(Sakura AI)に複数枚まとめて投げて判定させる」という重い処理のため、
-        // Ktorクライアントのデフォルトのタイムアウト(明示指定しない場合、CIOエンジンの
-        // デフォルトで15秒程度)だと簡単に超えてしまい、
-        // 「Request timeout has expired」で候補がAI比較スキップ扱いになっていた。
-        // 写真が複数枚・AIの応答が遅いケースを考慮して長めに設定する。
+        // タイムアウト設定：
+        //   /compare-photos は写真ダウンロード + AI推論で重いため長めに設定。
+        //   /batch-compare-photos は候補が多い場合さらに時間がかかるため、
+        //   requestTimeoutMillis は余裕を持って設定している。
         install(HttpTimeout) {
-            requestTimeoutMillis = 120_000
+            requestTimeoutMillis = 300_000   // バッチで候補が多い場合も対応（5分）
             connectTimeoutMillis = 30_000
-            socketTimeoutMillis = 120_000
+            socketTimeoutMillis  = 300_000
         }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
     }
 
+    // 1件だけ比較する（後方互換用、基本的には batchComparePhotos を使うこと）
     suspend fun comparePhotos(
         photoUrls: List<String>,
         candidatePhotoUrls: List<String>,
@@ -44,15 +45,14 @@ class AiSimilarityService(
             throw IllegalArgumentException("比較する写真URLが不足しています")
         }
 
-        val response =
-            try {
-                client.post("$aiApiBase/compare-photos") {
-                    contentType(ContentType.Application.Json)
-                    setBody(AiSimilarityRequest(photoUrls, candidatePhotoUrls))
-                }
-            } catch (e: Exception) {
-                throw AiServiceException("AI類似度判定サーバーに接続できませんでした: ${e.message}")
+        val response = try {
+            client.post("$aiApiBase/compare-photos") {
+                contentType(ContentType.Application.Json)
+                setBody(AiSimilarityRequest(photoUrls, candidatePhotoUrls))
             }
+        } catch (e: Exception) {
+            throw AiServiceException("AI類似度判定サーバーに接続できませんでした: ${e.message}")
+        }
 
         if (!response.status.isSuccess()) {
             val bodyText = response.bodyAsText()
@@ -63,6 +63,41 @@ class AiSimilarityService(
             response.body<AiSimilarityRawResponse>()
         } catch (e: Exception) {
             throw AiServiceException("AI類似度判定の応答を解析できませんでした: ${e.message}")
+        }
+    }
+
+    // 複数の候補をまとめてAIに並列比較させる（高速化バッチ版）。
+    // 候補ごとに comparePhotos() を逐次呼ぶより大幅に速い。
+    // Python側の /batch-compare-photos が候補数×AI処理を並列実行して返してくれる。
+    suspend fun batchComparePhotos(
+        photoUrls: List<String>,
+        candidates: List<AiBatchCandidateItem>,
+    ): AiBatchCompareResponse {
+        if (photoUrls.isEmpty()) {
+            throw IllegalArgumentException("迷子ペットの写真URLが指定されていません")
+        }
+        if (candidates.isEmpty()) {
+            return AiBatchCompareResponse(results = emptyList())
+        }
+
+        val response = try {
+            client.post("$aiApiBase/batch-compare-photos") {
+                contentType(ContentType.Application.Json)
+                setBody(AiBatchCompareRequest(photoUrls = photoUrls, candidates = candidates))
+            }
+        } catch (e: Exception) {
+            throw AiServiceException("AIバッチ類似度判定サーバーに接続できませんでした: ${e.message}")
+        }
+
+        if (!response.status.isSuccess()) {
+            val bodyText = response.bodyAsText()
+            throw AiServiceException("AIバッチ類似度判定に失敗しました(status ${response.status}): $bodyText")
+        }
+
+        return try {
+            response.body<AiBatchCompareResponse>()
+        } catch (e: Exception) {
+            throw AiServiceException("AIバッチ類似度判定の応答を解析できませんでした: ${e.message}")
         }
     }
 }
