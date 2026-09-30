@@ -302,7 +302,8 @@
   }
 
   .nav-grid > .role-item .emo {
-    background: linear-gradient(140deg, var(--navy), var(--navy-2));
+    background: #eef2ff;
+    color: var(--navy);
   }
 
   .nav-grid > .card-nav .t,
