@@ -8,12 +8,32 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <style>
+    .signup-mode-roles .role-visual {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      flex: none;
+    }
+    /* shelter モード時：ロール選択不要なので STEP 2 ヘッダーを差し替え */
+    .shelter-mode-note {
+      background: rgba(233,30,140,.06);
+      border: 1px solid rgba(233,30,140,.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--muted, #888);
+      line-height: 1.6;
+    }
+    .shelter-mode-note strong { color: var(--fg, #1a1a2e); }
+  </style>
 </head>
 <body data-page="signup">
   <div class="stage">
     <div class="screen">
       <div class="appbar login-appbar">
-        <button class="back" type="button" onclick="location.href='login.html'">‹</button>
+        <button class="back" type="button" id="backBtn" onclick="location.href='login.html'">‹</button>
         <div class="brand">
           <img class="brand-mark" src="logo.png" alt="ReLINK">
           <h1>ReLINK</h1>
@@ -23,7 +43,7 @@
 
       <div class="pad stack login-pad">
         <div class="hero-banner login-welcome">
-          <div class="hi">新規登録</div>
+          <div class="hi" id="signupModeLabel">新規登録</div>
           <div class="hn">アカウントを作成する</div>
           <div class="hs">登録後すぐにログインできます。</div>
         </div>
@@ -52,12 +72,13 @@
 
           <div class="login-panel step-2">
             <div class="step-label">STEP 2</div>
-            <h2 class="step-title">利用者の種類を選択</h2>
-            <div class="step-desc">用途に合わせて役割を選んでください。</div>
+            <h2 class="step-title" id="step2Title">利用者の種類を選択</h2>
+            <div class="step-desc" id="step2Desc">用途に合わせて役割を選んでください。</div>
 
-            <div class="roles">
+            <!-- 一般ユーザー用ロール選択（login.html から遷移） -->
+            <div class="roles signup-mode-roles" id="rolesGeneral">
               <button class="role" type="button" data-role="owner">
-                <div class="emo">🧑</div>
+                <img class="role-visual" src="assets/owner.png" alt="">
                 <div>
                   <div class="rt">飼い主</div>
                   <div class="rd">迷子のペットを登録して通知を受け取ります。</div>
@@ -66,26 +87,35 @@
               </button>
 
               <button class="role" type="button" data-role="finder">
-                <div class="emo">🙋</div>
+                <img class="role-visual" src="assets/finder.png" alt="">
                 <div>
                   <div class="rt">発見者</div>
                   <div class="rd">保護したペットの写真を撮って照合します。</div>
                 </div>
                 <div class="tick">✓</div>
               </button>
+            </div>
 
-              <button class="role" type="button" data-role="shelter">
-                <div class="emo">🏥</div>
-                <div>
-                  <div class="rt">保護団体</div>
-                  <div class="rd">保護中のペットを確認・管理します。</div>
-                </div>
-                <div class="tick">✓</div>
-              </button>
+            <!-- 保護団体用（shelter-login.html から遷移） -->
+            <div id="rolesShelter" style="display:none;">
+              <div class="roles signup-mode-roles">
+                <button class="role on" type="button" data-role="shelter">
+                  <img class="role-visual" src="assets/register.png" alt="">
+                  <div>
+                    <div class="rt">保護団体</div>
+                    <div class="rd">保護中のペットを確認・管理します。</div>
+                  </div>
+                  <div class="tick">✓</div>
+                </button>
+              </div>
+              <div class="shelter-mode-note" style="margin-top:12px;">
+                <strong>保護団体アカウント</strong>として登録します。<br>
+                一般の飼い主・発見者の方は<a href="login.html" style="color:var(--magenta,#e91e8c);">一般ログイン</a>よりご登録ください。
+              </div>
             </div>
 
             <button class="btn btn-primary" id="signupButton" type="submit">登録する</button>
-            <button class="signup-link" type="button" onclick="location.href='login.html'">← ログインに戻る</button>
+            <button class="signup-link" type="button" id="backToLoginBtn" onclick="location.href='login.html'">← ログインに戻る</button>
           </div>
         </form>
 
@@ -96,5 +126,23 @@
 
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
+  <script>
+    // URLパラメータ ?role=shelter があれば保護団体モードに切り替え
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(location.search);
+      const isShelter = params.get('role') === 'shelter';
+
+      if (isShelter) {
+        document.getElementById('rolesGeneral').style.display = 'none';
+        document.getElementById('rolesShelter').style.display = '';
+        document.getElementById('signupModeLabel').textContent = '保護団体 新規登録';
+        document.getElementById('step2Title').textContent = '登録するアカウント種別';
+        document.getElementById('step2Desc').textContent = '保護団体アカウントで登録します。';
+        document.getElementById('backBtn').onclick = () => location.href = 'shelter-login.html';
+        document.getElementById('backToLoginBtn').onclick = () => location.href = 'shelter-login.html';
+        document.getElementById('backToLoginBtn').textContent = '← ログインに戻る';
+      }
+    });
+  </script>
 </body>
 </html>

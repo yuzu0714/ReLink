@@ -19,6 +19,7 @@ object ChatRepository {
                     when (currentRole) {
                         "shelter" -> UserTable.role eq "finder"
                         "finder" -> UserTable.role eq "shelter"
+                        "owner" -> (UserTable.role eq "finder") or (UserTable.role eq "shelter")
                         else -> Op.FALSE
                     }
             }
@@ -63,6 +64,7 @@ object ChatRepository {
         val allowedRoles = when (currentRole) {
             "shelter" -> setOf("finder")
             "finder" -> setOf("shelter")
+            "owner" -> setOf("finder", "shelter")
             else -> emptySet()
         }
 

@@ -29,13 +29,17 @@
     };
   }
 
+  async function loadContacts() {
+    const response = await fetch(`${API_BASE}/chat/contacts`, { headers: headers() });
+    if (!response.ok) throw new Error('チャット相手を取得できませんでした');
+    contacts = (await response.json()).contacts || [];
+  }
+
   async function renderContacts() {
     root.innerHTML = '<div class="chat-loading">チャット相手を読み込み中...</div>';
 
     try {
-      const response = await fetch(`${API_BASE}/chat/contacts`, { headers: headers() });
-      if (!response.ok) throw new Error('チャット相手を取得できませんでした');
-      contacts = (await response.json()).contacts || [];
+      await loadContacts();
     } catch (error) {
       root.innerHTML = `<div class="chat-empty">${escHtml(error.message)}</div>`;
       return;
@@ -67,7 +71,10 @@
   }
 
   function openRoom(contactId) {
-    activeContact = contacts.find((contact) => contact.id === contactId);
+    // 事前にactiveContactが設定されている場合（URL経由の直接遷移など）はそれを使う
+    if (!activeContact || activeContact.id !== contactId) {
+      activeContact = contacts.find((contact) => contact.id === contactId);
+    }
     if (!activeContact) return;
 
     root.innerHTML = `
@@ -85,7 +92,12 @@
       </div>
     `;
 
-    root.querySelector('.chat-back').addEventListener('click', renderContacts);
+    const backBtn = root.querySelector('.chat-back');
+    if (autoContactId) {
+      backBtn.style.display = 'none';
+    } else {
+      backBtn.addEventListener('click', renderContacts);
+    }
     root.querySelector('#chat-form').addEventListener('submit', sendMessage);
     renderMessages();
     root.querySelector('#chat-input').focus();
@@ -148,5 +160,31 @@
     }
   }
 
-  renderContacts();
+  // notify.htmlから「contactId」パラメータ付きで遷移してきた場合は
+  // 連絡先一覧を表示せず、指定された相手のチャットルームを直接開く
+  const params = new URLSearchParams(window.location.search);
+  const autoContactId = params.get('contactId') ? Number(params.get('contactId')) : null;
+
+  if (autoContactId) {
+    root.innerHTML = '<div class="chat-loading">チャット相手を読み込み中...</div>';
+    // sessionStorageに保存された表示名・ロールをまず使い、
+    // contacts一覧が取れたら正式な情報に差し替える
+    const fallbackName = sessionStorage.getItem('chatTargetName') || '連絡先';
+    const fallbackRole = sessionStorage.getItem('chatTargetRole') || 'finder';
+    // 先にactiveContactをセットして即座にルームを開く
+    activeContact = { id: autoContactId, displayName: fallbackName, role: fallbackRole };
+    openRoom(autoContactId);
+    // バックグラウンドでcontacts一覧も取得し、displayNameを正式名称に更新
+    loadContacts().then(() => {
+      const found = contacts.find((c) => c.id === autoContactId);
+      if (found && found.displayName !== fallbackName) {
+        const nameEl = root.querySelector('.chat-room-head strong');
+        if (nameEl) nameEl.textContent = found.displayName;
+        activeContact.displayName = found.displayName;
+        activeContact.role = found.role;
+      }
+    }).catch(() => { /* contacts取得失敗はsessionStorage情報で続行 */ });
+  } else {
+    renderContacts();
+  }
 })();

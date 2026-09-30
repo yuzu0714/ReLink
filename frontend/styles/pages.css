@@ -1015,6 +1015,8 @@ html body .login-appbar .brand h1 {
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+}
+
 @media (min-width: 768px) {
   .finder-page .pad {
     padding: 36px 32px 48px;
@@ -1151,7 +1153,15 @@ html body .login-appbar .brand h1 {
   }
 
   .shelter-page .role-item .emo {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    background: #eef2ff;
+    color: var(--navy);
+    display: grid;
+    place-items: center;
     font-size: 32px;
+    flex: none;
   }
 
   .shelter-page .role-item .title {
@@ -1211,9 +1221,9 @@ html body .login-appbar .brand h1 {
 /* --- レイアウト --- */
 .notif-screen { display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
 .notif-appbar { flex:none; }
-.notif-sec { display:none; flex:1; }
-.notif-sec.active { display:flex; flex-direction:column; }
-.notif-list { padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+.notif-sec { display:none; flex:1; min-height:0; }
+.notif-sec.active { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+.notif-list { padding:12px 14px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; min-height:0; }
 
 /* --- カード --- */
 .notif-card {
@@ -1298,7 +1308,7 @@ html body .login-appbar .brand h1 {
 
 /* --- 本体レイアウト（サイドバー＋コンテンツ） --- */
 .notif-body {
-  display:flex; flex:1; overflow:hidden;
+  display:flex; flex:1; overflow:hidden; min-height:0;
 }
 
 /* --- 左サイドメニュー --- */
@@ -1308,9 +1318,8 @@ html body .login-appbar .brand h1 {
   border-right:1px solid #dbeafe;
   display:flex; flex-direction:column;
   padding:12px 8px; gap:4px;
-  position:sticky; top:0;
-  height:100dvh;
   overflow-y:auto;
+  align-self:stretch;
 }
 .nnav-btn {
   display:flex; flex-direction:row;
@@ -1332,7 +1341,7 @@ html body .login-appbar .brand h1 {
 
 /* --- 右コンテンツエリア --- */
 .notif-content {
-  flex:1; overflow-y:auto; display:flex; flex-direction:column;
+  flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:0;
 }
 
 /* --- メール作成 --- */
