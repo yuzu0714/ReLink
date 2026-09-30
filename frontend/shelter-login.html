@@ -15,12 +15,25 @@
       gap: 6px;
       background: var(--magenta, #e91e8c);
       color: #fff;
-      font-size: 12px;
+      font-size: 16px;
       font-weight: 700;
       padding: 4px 12px;
       border-radius: 99px;
       letter-spacing: .04em;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+    }
+    .shelter-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .shelter-header-icon {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      flex: none;
     }
     .shelter-info {
       background: rgba(233, 30, 140, .06);
@@ -88,10 +101,11 @@
 
         <div class="login-grid" style="grid-template-columns:1fr;">
           <form id="loginForm" class="card stack login-card">
-            <div>
-              <span class="shelter-badge">🏠 保護団体専用</span>
-              <h2 class="title">アカウント情報を入力</h2>
+            <div class="shelter-header">
+              <img class="shelter-header-icon" src="assets/register.png" alt="">
+              <span class="shelter-badge">保護団体専用</span>
             </div>
+            <h2 class="title">アカウント情報を入力</h2>
 
             <div class="shelter-info">
               <strong>保護団体アカウント</strong>とは、動物保護施設・保健所・NPO法人など、
@@ -150,6 +164,7 @@
           if (result.success) {
             sessionStorage.setItem('authToken', result.token);
             sessionStorage.setItem('selectedRole', result.role);
+            sessionStorage.setItem('userId', result.userId);
             window.location.href = 'shelter.html';
           }
         } catch (error) {
