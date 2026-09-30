@@ -153,26 +153,29 @@
   }
 
   // notify.htmlから「contactId」パラメータ付きで遷移してきた場合は
-  // 連絡先一覧を読み込んだあと、そのまま指定された相手のチャットルームを開く
+  // 連絡先一覧を表示せず、指定された相手のチャットルームを直接開く
   const params = new URLSearchParams(window.location.search);
   const autoContactId = params.get('contactId') ? Number(params.get('contactId')) : null;
 
   if (autoContactId) {
     root.innerHTML = '<div class="chat-loading">チャット相手を読み込み中...</div>';
-    loadContacts()
-      .then(() => {
-        const found = contacts.find((c) => c.id === autoContactId);
-        if (found) {
-          openRoom(autoContactId);
-        } else {
-          // 連絡先リストにいない場合（ロール制限など）はダミーで開く
-          activeContact = { id: autoContactId, displayName: '連絡先', role: 'finder' };
-          openRoom(autoContactId);
-        }
-      })
-      .catch((err) => {
-        root.innerHTML = `<div class="chat-empty">${escHtml(err.message)}</div>`;
-      });
+    // sessionStorageに保存された表示名・ロールをまず使い、
+    // contacts一覧が取れたら正式な情報に差し替える
+    const fallbackName = sessionStorage.getItem('chatTargetName') || '連絡先';
+    const fallbackRole = sessionStorage.getItem('chatTargetRole') || 'finder';
+    // 先にactiveContactをセットして即座にルームを開く
+    activeContact = { id: autoContactId, displayName: fallbackName, role: fallbackRole };
+    openRoom(autoContactId);
+    // バックグラウンドでcontacts一覧も取得し、displayNameを正式名称に更新
+    loadContacts().then(() => {
+      const found = contacts.find((c) => c.id === autoContactId);
+      if (found && found.displayName !== fallbackName) {
+        const nameEl = root.querySelector('.chat-room-head strong');
+        if (nameEl) nameEl.textContent = found.displayName;
+        activeContact.displayName = found.displayName;
+        activeContact.role = found.role;
+      }
+    }).catch(() => { /* contacts取得失敗はsessionStorage情報で続行 */ });
   } else {
     renderContacts();
   }

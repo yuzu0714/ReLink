@@ -178,6 +178,10 @@
         box.querySelector('#md-close').addEventListener('click', () => overlay.remove());
         box.querySelector('#md-claim-btn').addEventListener('click', () => {
           const contactId = d.contact.userId;
+          // 相手の表示名・ロールをsessionStorageに保存（chat.jsがバックエンド未再起動でも表示できるよう）
+          const isShelterContact = d.protectedSource === 'rescued';
+          sessionStorage.setItem('chatTargetName', d.contact.displayName || (isShelterContact ? '保護団体' : '発見者'));
+          sessionStorage.setItem('chatTargetRole', isShelterContact ? 'shelter' : 'finder');
           if (contactId) {
             window.location.href = 'chat.html?contactId=' + contactId;
           } else {
