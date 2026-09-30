@@ -71,7 +71,10 @@
   }
 
   function openRoom(contactId) {
-    activeContact = contacts.find((contact) => contact.id === contactId);
+    // 事前にactiveContactが設定されている場合（URL経由の直接遷移など）はそれを使う
+    if (!activeContact || activeContact.id !== contactId) {
+      activeContact = contacts.find((contact) => contact.id === contactId);
+    }
     if (!activeContact) return;
 
     root.innerHTML = `
