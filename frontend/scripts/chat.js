@@ -92,7 +92,12 @@
       </div>
     `;
 
-    root.querySelector('.chat-back').addEventListener('click', renderContacts);
+    const backBtn = root.querySelector('.chat-back');
+    if (autoContactId) {
+      backBtn.style.display = 'none';
+    } else {
+      backBtn.addEventListener('click', renderContacts);
+    }
     root.querySelector('#chat-form').addEventListener('submit', sendMessage);
     renderMessages();
     root.querySelector('#chat-input').focus();
