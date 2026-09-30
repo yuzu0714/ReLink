@@ -291,19 +291,18 @@
   .nav-grid > .card-nav .ic,
   .nav-grid > .card-nav .emo,
   .nav-grid > .role-item .emo {
-    width: 100px;
-    height: 100px;
-    font-size: 50px;
-    margin-bottom: 14px;
-    border-radius: 36px;
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+    margin-bottom: 12px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .nav-grid > .role-item .emo {
-    background: #eef2ff;
-    color: var(--navy);
+    background: linear-gradient(140deg, var(--navy), var(--navy-2));
   }
 
   .nav-grid > .card-nav .t,
@@ -356,11 +355,6 @@
   .register-photo,
   .register-fields {
     gap: 16px;
-  }
-
-  /* register-photo内のボタンは左カラム全幅を使う */
-  .register-photo .btn {
-    width: 100%;
   }
 
   /* --------------------------------------------------
