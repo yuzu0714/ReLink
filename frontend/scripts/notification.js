@@ -93,6 +93,7 @@
     if (currentSec === 'inbox') renderInbox();
     else if (currentSec === 'similar') renderSimilar();
     else if (currentSec === 'trash') renderTrash();
+    /* 'chat' セクションは notif-chat.js が担当するためここでは何もしない */
   }
 
   /* ---- event binding ---- */
@@ -183,9 +184,9 @@
           sessionStorage.setItem('chatTargetName', d.contact.displayName || (isShelterContact ? '保護団体' : '発見者'));
           sessionStorage.setItem('chatTargetRole', isShelterContact ? 'shelter' : 'finder');
           if (contactId) {
-            window.location.href = 'chat.html?contactId=' + contactId;
+            window.location.href = 'notify.html?sec=chat&contactId=' + contactId;
           } else {
-            window.location.href = 'chat.html';
+            window.location.href = 'notify.html?sec=chat';
           }
         });
       })
