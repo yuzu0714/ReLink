@@ -136,13 +136,13 @@
 }
 
 .card-nav .ic {
-    width:156px;
-    height:156px;
-    border-radius:36px;
+    width:52px;
+    height:52px;
+    border-radius:15px;
     flex:none;
     display:grid;
     place-items:center;
-    font-size:72px;
+    font-size:24px;
     background:#eef2ff;
     color:var(--navy);
   }
