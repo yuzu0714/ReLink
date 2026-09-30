@@ -28,8 +28,8 @@
       'Content-Type': 'application/json'
     };
   }
-  function roleEmoji(role) {
-    return role === 'shelter' ? '🏠' : '🐾';
+  function roleIcon(role) {
+    return role === 'shelter' ? '<i class="fa-solid fa-house-heart"></i>' : '<i class="fa-solid fa-person"></i>';
   }
   function roleLabel(role) {
     const map = { owner: '飼い主', finder: '発見者', shelter: '保護団体' };
@@ -114,7 +114,7 @@
         return `
           <button class="chat-contact-item${activeContact && activeContact.id === c.id ? ' active' : ''}"
                   type="button" data-cid="${c.id}">
-            <div class="chat-contact-avatar">${escHtml(roleEmoji(c.role))}</div>
+            <div class="chat-contact-avatar">${roleIcon(c.role)}</div>
             <div class="chat-contact-info">
               <div class="chat-contact-name">${escHtml(c.displayName)}</div>
               <div class="chat-contact-sub">${sub}</div>
@@ -135,7 +135,7 @@
       const items = historyContacts.map(c => `
         <button class="chat-contact-item${activeContact && activeContact.id === c.id ? ' active' : ''}"
                 type="button" data-cid="${c.id}">
-          <div class="chat-contact-avatar">${escHtml(roleEmoji(c.role))}</div>
+          <div class="chat-contact-avatar">${roleIcon(c.role)}</div>
           <div class="chat-contact-info">
             <div class="chat-contact-name">${escHtml(c.displayName)}</div>
             <div class="chat-contact-sub">${escHtml(c.lastMessage)}</div>
@@ -199,7 +199,7 @@
     /* ルームの骨格を描画 */
     roomPanel.innerHTML = `
       <div class="split-room-head">
-        <div class="split-room-avatar">${escHtml(roleEmoji(contact.role))}</div>
+        <div class="split-room-avatar">${roleIcon(contact.role)}</div>
         <div class="split-room-name">${escHtml(contact.displayName)}</div>
       </div>
       <div class="split-room-messages" id="split-messages">
