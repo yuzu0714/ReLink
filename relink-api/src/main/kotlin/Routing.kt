@@ -318,6 +318,13 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
             }
 
+            patch("/notifications/{id}/read") {
+                val notificationId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください")
+                NotificationRepository.markAsRead(notificationId)
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
             get("/matches/{matchId}/detail") {
                 val matchId = call.parameters["matchId"]?.toLongOrNull()
                     ?: throw IllegalArgumentException("matchIdは数値で指定してください")
