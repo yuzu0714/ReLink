@@ -7,44 +7,93 @@
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/pages.css">
-
-    <style>
-        .notify-empty {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--color-text-secondary, #888);
-            font-size: 14px;
-        }
-        .notify-loading {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--color-text-secondary, #888);
-            font-size: 14px;
-        }
-
-    </style>
+    <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 
 <body data-page="notify" class="owner-page">
-    <main class="screen">
+    <main class="screen notif-screen">
 
-        <!-- 共通ヘッダー -->
-        <div class="appbar">
+        <!-- ヘッダー -->
+        <div class="appbar notif-appbar">
             <button class="back" onclick="history.back()">‹</button>
-            <h1>お知らせ</h1>
+            <h1 id="notif-title">受信トレイ</h1>
             <div class="spacer"></div>
         </div>
 
-        <!-- お知らせ一覧 (JSで描画) -->
-        <div class="pad stack" id="notify-list">
-            <div class="notify-loading">読み込み中...</div>
-        </div>
+        <!-- 本体：左サイドバー＋右コンテンツ -->
+        <div class="notif-body">
+
+            <!-- 左サイドメニュー -->
+            <nav class="notif-sidenav">
+                <button class="nnav-btn active" data-sec="inbox" data-title="受信トレイ">
+                    <i data-lucide="inbox" class="nnav-icon"></i>
+                    <span class="nnav-label">受信トレイ</span>
+                </button>
+                <button class="nnav-btn" data-sec="similar" data-title="似たペットの確認">
+                    <i data-lucide="paw-print" class="nnav-icon"></i>
+                    <span class="nnav-label">似たペットの確認</span>
+                </button>
+                <button class="nnav-btn" data-sec="trash" data-title="ゴミ箱">
+                    <i data-lucide="trash-2" class="nnav-icon"></i>
+                    <span class="nnav-label">ゴミ箱</span>
+                </button>
+                <button class="nnav-btn" data-sec="compose" data-title="メール作成">
+                    <i data-lucide="pencil" class="nnav-icon"></i>
+                    <span class="nnav-label">メール作成</span>
+                </button>
+            </nav>
+
+            <!-- 右コンテンツエリア -->
+            <div class="notif-content">
+
+                <!-- セクション：受信トレイ -->
+                <section class="notif-sec active" id="sec-inbox">
+                    <div class="notif-list" id="notify-list">
+                        <div class="notif-loading">読み込み中...</div>
+                    </div>
+                </section>
+
+                <!-- セクション：似たペットの確認 -->
+                <section class="notif-sec" id="sec-similar">
+                    <div class="notif-list" id="similar-list">
+                        <div class="notif-loading">読み込み中...</div>
+                    </div>
+                </section>
+
+                <!-- セクション：ゴミ箱 -->
+                <section class="notif-sec" id="sec-trash">
+                    <div class="notif-list" id="trash-list"></div>
+                </section>
+
+                <!-- セクション：メール作成 -->
+                <section class="notif-sec" id="sec-compose">
+                    <div class="compose-wrap">
+                        <div class="compose-field">
+                            <label class="compose-label">宛先</label>
+                            <input class="compose-input" id="c-to" placeholder="送信先を選択...">
+                        </div>
+                        <div class="compose-field">
+                            <label class="compose-label">件名</label>
+                            <input class="compose-input" id="c-subject" placeholder="件名を入力">
+                        </div>
+                        <div class="compose-field">
+                            <label class="compose-label">本文</label>
+                            <textarea class="compose-textarea" id="c-body" placeholder="メッセージを入力..." rows="8"></textarea>
+                        </div>
+                        <button class="compose-send" id="c-send">送信する</button>
+                    </div>
+                </section>
+
+            </div><!-- /notif-content -->
+        </div><!-- /notif-body -->
 
     </main>
 
     <script src="scripts/config.js"></script>
-  <script src="scripts/common.js"></script>
-  <script src="scripts/auth.js"></script>
-  <script src="scripts/notification.js"></script>
+    <script src="scripts/common.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/notification.js"></script>
+  <script>lucide.createIcons();</script>
 </body>
 </html>
