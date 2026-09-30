@@ -177,7 +177,12 @@
           <button id="md-claim-btn" style="margin-top:20px;width:100%;padding:14px;background:var(--orange,#f97316);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">💬 発見者または保護団体にメッセージを送る</button>`;
         box.querySelector('#md-close').addEventListener('click', () => overlay.remove());
         box.querySelector('#md-claim-btn').addEventListener('click', () => {
-          window.location.href = 'chat.html';
+          const contactId = d.contact.userId;
+          if (contactId) {
+            window.location.href = 'chat.html?contactId=' + contactId;
+          } else {
+            window.location.href = 'chat.html';
+          }
         });
       })
       .catch(() => {

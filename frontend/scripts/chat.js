@@ -29,13 +29,17 @@
     };
   }
 
+  async function loadContacts() {
+    const response = await fetch(`${API_BASE}/chat/contacts`, { headers: headers() });
+    if (!response.ok) throw new Error('チャット相手を取得できませんでした');
+    contacts = (await response.json()).contacts || [];
+  }
+
   async function renderContacts() {
     root.innerHTML = '<div class="chat-loading">チャット相手を読み込み中...</div>';
 
     try {
-      const response = await fetch(`${API_BASE}/chat/contacts`, { headers: headers() });
-      if (!response.ok) throw new Error('チャット相手を取得できませんでした');
-      contacts = (await response.json()).contacts || [];
+      await loadContacts();
     } catch (error) {
       root.innerHTML = `<div class="chat-empty">${escHtml(error.message)}</div>`;
       return;
@@ -148,5 +152,28 @@
     }
   }
 
-  renderContacts();
+  // notify.htmlから「contactId」パラメータ付きで遷移してきた場合は
+  // 連絡先一覧を読み込んだあと、そのまま指定された相手のチャットルームを開く
+  const params = new URLSearchParams(window.location.search);
+  const autoContactId = params.get('contactId') ? Number(params.get('contactId')) : null;
+
+  if (autoContactId) {
+    root.innerHTML = '<div class="chat-loading">チャット相手を読み込み中...</div>';
+    loadContacts()
+      .then(() => {
+        const found = contacts.find((c) => c.id === autoContactId);
+        if (found) {
+          openRoom(autoContactId);
+        } else {
+          // 連絡先リストにいない場合（ロール制限など）はダミーで開く
+          activeContact = { id: autoContactId, displayName: '連絡先', role: 'finder' };
+          openRoom(autoContactId);
+        }
+      })
+      .catch((err) => {
+        root.innerHTML = `<div class="chat-empty">${escHtml(err.message)}</div>`;
+      });
+  } else {
+    renderContacts();
+  }
 })();
