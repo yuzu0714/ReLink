@@ -174,29 +174,11 @@
             <tr><td style="padding:8px 0;color:#888">発見場所</td><td>${escHtml(d.pet.foundPlace||'—')}</td></tr>
             <tr><td style="padding:8px 0;color:#888">その他</td><td>${escHtml(d.pet.other||'—')}</td></tr>
           </table>
-          <button id="md-claim-btn" style="margin-top:20px;width:100%;padding:14px;background:var(--magenta,#e040fb);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">🐾 飼い犬です</button>
-          <div id="md-contact" style="display:none;margin-top:16px;padding:16px;background:#f0f7ff;border-radius:12px">
-            <div style="font-weight:600;margin-bottom:8px">📞 ${srcLabel}の連絡先</div>
-            <div style="font-size:14px;color:#444;margin-bottom:6px">${escHtml(contactName)}</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:13px;color:#555;flex:1">${contactEmail ? escHtml(contactEmail) : '（連絡先なし）'}</span>
-              ${contactEmail ? '<button id="md-copy-btn" style="padding:6px 12px;border:1px solid #d1d5db;background:#fff;border-radius:8px;font-size:12px;cursor:pointer">コピー</button>' : ''}
-            </div>
-          </div>`;
+          <button id="md-claim-btn" style="margin-top:20px;width:100%;padding:14px;background:var(--orange,#f97316);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">💬 発見者または保護団体にメッセージを送る</button>`;
         box.querySelector('#md-close').addEventListener('click', () => overlay.remove());
-        box.querySelector('#md-claim-btn').addEventListener('click', function() {
-          document.getElementById('md-contact').style.display = 'block';
-          this.style.display = 'none';
+        box.querySelector('#md-claim-btn').addEventListener('click', () => {
+          window.location.href = 'chat.html';
         });
-        const copyBtn = box.querySelector('#md-copy-btn');
-        if (copyBtn) {
-          copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(contactEmail).then(() => {
-              copyBtn.textContent = 'コピーしました！';
-              setTimeout(() => { copyBtn.textContent = 'コピー'; }, 2000);
-            });
-          });
-        }
       })
       .catch(() => {
         const box = overlay.querySelector('div');
