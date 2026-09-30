@@ -71,7 +71,7 @@ const screens = {
 
         <div class="register-photo">
           <div class="imgbox" onclick="addPhoto()">
-            <div class="big">📸</div>
+            <div class="big"><i class="fa-solid fa-images"></i></div>
             <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
           </div>
           <div class="thumbs" id="thumbs">${renderThumbs()}</div>
