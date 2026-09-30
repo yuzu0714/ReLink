@@ -291,11 +291,11 @@
   .nav-grid > .card-nav .ic,
   .nav-grid > .card-nav .emo,
   .nav-grid > .role-item .emo {
-    width: 64px;
-    height: 64px;
-    font-size: 32px;
-    margin-bottom: 12px;
-    border-radius: 16px;
+    width: 100px;
+    height: 100px;
+    font-size: 50px;
+    margin-bottom: 14px;
+    border-radius: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
