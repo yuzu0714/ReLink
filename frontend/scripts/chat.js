@@ -54,7 +54,7 @@
       <div class="chat-contacts">
         ${contacts.map((contact) => `
           <button class="chat-contact" type="button" data-contact-id="${contact.id}">
-            <div class="chat-avatar">${contact.role === 'shelter' ? '🏠' : '🐾'}</div>
+            <div class="chat-avatar">${contact.role === 'shelter' ? '<i class="fa-solid fa-house-heart"></i>' : '<i class="fa-solid fa-person"></i>'}</div>
             <div>
               <div class="chat-contact-name">${escHtml(contact.displayName)}</div>
               <div class="chat-contact-preview">${escHtml(contact.role)}</div>
@@ -81,7 +81,7 @@
       <div class="chat-room">
         <div class="chat-room-head">
           <button class="chat-back" type="button" aria-label="チャット相手一覧に戻る">‹</button>
-          <div class="chat-avatar">${activeContact.role === 'shelter' ? '🏠' : '🐾'}</div>
+          <div class="chat-avatar">${activeContact.role === 'shelter' ? '<i class="fa-solid fa-house-heart"></i>' : '<i class="fa-solid fa-person"></i>'}</div>
           <strong>${escHtml(activeContact.displayName)}</strong>
         </div>
         <div class="chat-messages" id="chat-messages"></div>
