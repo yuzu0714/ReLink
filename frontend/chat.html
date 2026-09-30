@@ -22,6 +22,9 @@
     .chat-bubble { max-width: 78%; padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
     .chat-bubble.them { align-self: flex-start; background: #f0f2f7; color: var(--navy); }
     .chat-bubble.me { align-self: flex-end; background: var(--orange); color: #fff; }
+    .chat-bubble { display: flex; flex-direction: column; gap: 2px; }
+    .chat-time { font-size: 10px; opacity: 0.65; align-self: flex-end; }
+    .chat-bubble.them .chat-time { align-self: flex-start; }
     .chat-form { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
     .chat-form .input { flex: 1; }
     .chat-form .btn { flex: none; width: auto; }
@@ -42,6 +45,6 @@
   <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
-  <script src="scripts/chat.js"></script>
+  <script src="scripts/chat.js?v=2"></script>
 </body>
 </html>

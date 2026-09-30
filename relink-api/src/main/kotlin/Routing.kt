@@ -327,6 +327,8 @@ fun Application.configureRouting() {
                     ?: throw IllegalArgumentException("idは数値で指定してください")
                 NotificationRepository.markAsRead(notificationId)
                 call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
             get("/chat/contacts") {
                 val role = requireChatRole(call)
                 val userId = authenticatedUserId(call)

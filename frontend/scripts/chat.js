@@ -93,19 +93,38 @@
 
   async function renderMessages() {
     const messageList = root.querySelector('#chat-messages');
+    if (!messageList) { console.error('[chat] #chat-messages not found'); return; }
     try {
-      const response = await fetch(`${API_BASE}/chat/conversations/${activeContact.id}/messages`, { headers: headers() });
-      if (!response.ok) throw new Error('メッセージを取得できませんでした');
-      const messages = (await response.json()).messages || [];
+      const url = `${API_BASE}/chat/conversations/${activeContact.id}/messages`;
+      console.log('[chat] fetching:', url);
+      const response = await fetch(url, { headers: headers() });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`メッセージを取得できませんでした (${response.status}) ${errText}`);
+      }
+      const data = await response.json();
+      console.log('[chat] raw data:', JSON.stringify(data).slice(0, 300));
+      const messages = data.messages || [];
       const currentUserId = Number(sessionStorage.getItem('userId'));
-      messageList.innerHTML = messages.length === 0
-        ? '<div class="chat-empty">まだメッセージはありません。</div>'
-        : messages.map((message) => `
-          <div class="chat-bubble ${message.senderId === currentUserId ? 'me' : 'them'}">${escHtml(message.message)}</div>
-        `).join('');
+      console.log('[chat] messages count:', messages.length, 'currentUserId:', currentUserId);
+
+      if (messages.length === 0) {
+        messageList.innerHTML = '<div class="chat-empty">まだメッセージはありません。</div>';
+      } else {
+        messageList.innerHTML = messages.map((message) => {
+          const isMe = Number(message.senderId) === currentUserId;
+          const time = new Date(message.createdAt).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
+          console.log('[chat] bubble senderId:', message.senderId, 'isMe:', isMe, 'text:', message.message);
+          return `<div class="chat-bubble ${isMe ? 'me' : 'them'}">
+            <span class="chat-text">${escHtml(message.message)}</span>
+            <span class="chat-time">${time}</span>
+          </div>`;
+        }).join('');
+      }
       messageList.scrollTop = messageList.scrollHeight;
     } catch (error) {
-      messageList.innerHTML = `<div class="chat-empty">${escHtml(error.message)}</div>`;
+      console.error('[chat] renderMessages error:', error);
+      if (messageList) messageList.innerHTML = `<div class="chat-empty">${escHtml(error.message)}</div>`;
     }
   }
 

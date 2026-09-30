@@ -522,7 +522,7 @@ const screens = {
           </div>
         </div>
         <div class="role-item" style="cursor:pointer" onclick="window.location.href='chat.html'">
-          <div class="emo">�</div>
+          <div class="emo">💬</div>
           <div>
             <div class="title">保護団体とチャット</div>
             <div class="desc">保護団体を選んでメッセージを送れます。</div>
