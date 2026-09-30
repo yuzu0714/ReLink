@@ -291,6 +291,47 @@
   color: #fff;
 }
 
+.owner-pet-card {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.owner-pet-card .owner-pet-photo {
+  width: 280px;
+  height: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  display: block;
+  font-size: initial;
+  color: initial;
+}
+
+.owner-pet-card .owner-pet-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.owner-pet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .owner-pet-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .owner-pet-card .owner-pet-photo {
+    width: 100%;
+  }
+}
+
 .owner-page .owner-pet-title {
   display: flex;
   align-items: center;
@@ -320,6 +361,21 @@
 
 .owner-page .owner-info-card b {
   font-size: 13px;
+}
+
+.owner-voice-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#ownerVoiceStatus {
+  margin: 10px 0 0;
+}
+
+#ownerVoicePlayer {
+  width: 100%;
+  margin-top: 12px;
 }
 
 .owner-page .loader-wrap {
@@ -599,6 +655,7 @@ h2.title {
 
 .pet-info {
   padding: 14px;
+  
 }
 
 .info-row {
@@ -608,9 +665,16 @@ h2.title {
   gap: 20px;
 }
 
+.info-row span {
+  font-size: 13px;
+  color: var(--navy);
+  font-weight: bold;
+}
+
 .info-row b {
   font-size: 13px;
   text-align: right;
+  color: var(--muted);
 }
 
 .section-title {

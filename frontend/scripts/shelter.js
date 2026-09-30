@@ -166,7 +166,7 @@ function renderShelterCard(item, index){
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
     return `
-        <div class="match-card" onclick="location.href='pet_detail.html'">
+        <div class="match-card" onclick="location.href='pet_detail.html?id=${item.id}&source=${item.source}&matchId=${item.matchId ?? ''}&lostPetId=${item.lostPetId ?? ''}'">
             <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
@@ -225,12 +225,28 @@ async function loadShelterList(){
         }
     }
 
-    loadShelterList();
+    //修正：pet_detail.htmlに対応させるため
+    if (document.getElementById('shelterListBody')) {
+      loadShelterList();
+    }
 
 /* ---------------- pet detail ---------------- */
-(() => {
+( async () => {
   const isPetDetailPage = document.getElementById('petPhoto');
   if (!isPetDetailPage) return;
+
+  //追加：URLのペットのidを読み取る
+  const params = new URLSearchParams(window.location.search);
+  const petId = params.get('id');
+  const source = params.get('source');
+  const matchId = params.get('matchId');
+  const lostPetId = params.get('lostPetId');
+
+  //正しいかデータか確認
+  console.log('保護ペットID:', petId);
+  console.log('保護元:', source);
+  console.log('照合ID:', matchId);
+  console.log('LostPetID:', lostPetId);
 
   const token = sessionStorage.getItem('authToken');
 
@@ -240,28 +256,97 @@ async function loadShelterList(){
     return;
   }
 
-  // Google Maps
-  window.initMap = function () {
-    const mapElement = document.getElementById('map');
+  try {
+    // 照合IDがある場合だけ照合詳細を取得
+    if (matchId && matchId !== 'null' && matchId !== 'undefined') {
+      const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-    if (!mapElement) return;
+      if (!res.ok) {
+        throw new Error(`照合詳細の取得に失敗しました。status: ${res.status}`);
+      }
 
-    const map = new google.maps.Map(mapElement, {
-      center: {
-        lat: 34.0703,
-        lng: 134.5548
-      },
-      zoom: 15
-    });
+      const detail = await res.json();
+      console.log('照合詳細:', detail);
 
-    new google.maps.Marker({
-      position: {
-        lat: 34.0703,
-        lng: 134.5548
-      },
-      map: map
-    });
-  };
+      //修正：実際の保護ペット情報に変更
+      const pet = detail.pet;
+
+      if (pet) {
+        // ペットの名前・ID
+        const petName = document.getElementById('petName');
+        if (petName) {
+          petName.textContent = `保護 #${detail.matchId}`;
+        }
+
+        // 種類
+        const petBreed = document.getElementById('petBreed');
+        if (petBreed) {
+          petBreed.textContent = pet.specie || '種類不明';
+        }
+
+        // 色
+        const petColor = document.getElementById('petColor');
+        if (petColor) {
+          petColor.textContent = pet.color || '色不明';
+        }
+        
+        // その他の特徴
+        const petCollar = document.getElementById('petCollar');
+        if (petCollar) {
+          petCollar.textContent = pet.other || '情報なし';
+        }
+
+        // 発見場所
+        const petLocation = document.getElementById('petLocation');
+        if (petLocation) {
+          petLocation.textContent = pet.foundPlace || '場所不明';
+        }
+
+        // 発見日
+        const petDate = document.getElementById('petDate');
+        if (petDate) {
+          petDate.textContent = pet.foundDate || '日付不明';
+        }
+
+        // ステータス
+        const petStatus = document.getElementById('petStatus');
+        if (petStatus) {
+          //追加：「照合状況」を表す項目がないため、暫定的な意味づけとして配置。後に変更する
+          petStatus.textContent = matchId ? '一致' : '照合中';
+        }
+
+        // 写真
+        const petPhoto = document.getElementById('petPhoto');
+        if (petPhoto && pet.photoUrls && pet.photoUrls.length > 0) {
+          petPhoto.style.backgroundImage = `url("${pet.photoUrls[0]}")`;
+          petPhoto.style.backgroundSize = 'cover';
+          petPhoto.style.backgroundPosition = 'center';
+          petPhoto.textContent = '';
+        }
+
+        // 飼い主の呼びかけ音声
+        const voiceSection = document.getElementById('petVoiceSection');
+        const voicePlayer = document.getElementById('petVoicePlayer');
+
+        if (voiceSection && voicePlayer) {
+          if (pet.voiceUrl) {
+            voicePlayer.src = pet.voiceUrl;
+            voiceSection.style.display = 'block';
+          } else {
+            voicePlayer.removeAttribute('src');
+            voiceSection.style.display = 'none';
+          }
+        }
+      }
+    }
+  
+  } catch (err) {
+      console.error('詳細情報の取得エラー:', err);
+    }
 
   // 保護情報更新
   const updateButton = document.getElementById('updateButton');
