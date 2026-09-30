@@ -1015,6 +1015,8 @@ html body .login-appbar .brand h1 {
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+}
+
 @media (min-width: 768px) {
   .finder-page .pad {
     padding: 36px 32px 48px;
