@@ -422,45 +422,20 @@
   letter-spacing: .5px;
 }
 
-.owner-page .notif {
-  display: flex;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-.owner-page .notif .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--magenta);
-  flex: none;
-  margin-top: 5px;
-}
-
-.owner-page .notif.read .dot {
-  background: var(--line);
-}
-
-.owner-page .notif .nt {
-  font-weight: 700;
-  font-size: 13.5px;
-}
-
-.owner-page .notif .nb {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 3px;
-  line-height: 1.5;
-}
-
-.owner-page .notif .tm {
-  font-size: 10.5px;
-  color: var(--muted);
-  margin-top: 6px;
-}
+.owner-page .notif { display:flex; gap:14px; padding:16px; border-radius:16px; border:1px solid var(--line); border-left:4px solid var(--line); background:#fff; position:relative; transition:background 0.15s, opacity 0.15s; }
+.owner-page .notif:not(.read) { border-left-color:var(--magenta); background:#fff8fc; }
+.owner-page .notif.read { opacity:0.65; }
+.owner-page .notif .notif-icon { width:44px; height:44px; border-radius:12px; background:linear-gradient(140deg,var(--magenta),#be185d); display:grid; place-items:center; font-size:20px; flex:none; align-self:flex-start; }
+.owner-page .notif.read .notif-icon { background:var(--line); }
+.owner-page .notif .dot { position:absolute; top:12px; right:12px; width:8px; height:8px; border-radius:50%; background:var(--magenta); flex:none; }
+.owner-page .notif.read .dot { display:none; }
+.owner-page .notif .notif-body { flex:1; min-width:0; }
+.owner-page .notif .notif-badge { display:inline-block; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px; background:var(--magenta); color:#fff; margin-bottom:5px; }
+.owner-page .notif .nt { font-weight:700; font-size:13.5px; color:var(--navy); }
+.owner-page .notif .nb { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.owner-page .notif .notif-footer { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.owner-page .notif .tm { font-size:10.5px; color:var(--muted); }
+.owner-page .notif .notif-link { font-size:11px; font-weight:700; color:var(--magenta); }
 
 
 /*ペット保護・登録画面用 CSS*/

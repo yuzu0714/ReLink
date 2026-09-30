@@ -38,20 +38,22 @@
   // 通知カードのHTML生成
   function buildCard(n) {
     const cardClass = n.isRead ? 'notif read' : 'notif';
-
+    const scoreMatch = (n.message || '').match(/(\d+)%/);
+    const badge = scoreMatch ? `<span class="notif-badge">マッチ率 ${scoreMatch[1]}%</span>` : '';
+    const detailLink = n.matchId ? `<span class="notif-link">詳細を見る →</span>` : '';
     return `
-      <div
-        class="${cardClass}"
-        style="cursor:pointer"
-        data-id="${n.id}"
-        data-match-id="${n.matchId || ''}"
-      >
-        <div class="dot" id="dot-${n.id}"></div>
-        <div>
-          <div class="nt">ペットのマッチング通知</div>
+      <div class="${cardClass}" style="cursor:pointer" data-id="${n.id}" data-match-id="${n.matchId || ''}">
+        <div class="notif-icon">🐾</div>
+        <div class="notif-body">
+          ${badge}
+          <div class="nt">マッチングが見つかりました</div>
           <div class="nb">${escHtml(n.message)}</div>
-          <div class="tm">${relativeTime(n.createdAt)}</div>
+          <div class="notif-footer">
+            <span class="tm">${relativeTime(n.createdAt)}</span>
+            ${detailLink}
+          </div>
         </div>
+        <div class="dot" id="dot-${n.id}"></div>
       </div>
     `;
   }
