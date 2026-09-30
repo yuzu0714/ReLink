@@ -494,6 +494,44 @@ const screens = {
 
       <button class="btn btn-primary" onclick="go('handoverList')">記録一覧へ戻る</button>
     </div>`;
+  },
+
+  finder(){
+    return `
+    ${appbar('発見者向け', null, S.role)}
+    <div class="pad stack fade">
+      <div class="hero-banner">
+        <div class="hi">発見者向け機能</div>
+        <div class="hn">保護したペットを撮影して照合できます。</div>
+        <div class="hs">保護場所と日時を記録して、すぐに登録に進めます。</div>
+      </div>
+
+      <div class="role-list">
+        <div class="role-item" style="cursor:pointer" onclick="go('register')">
+          <div class="emo">📸</div>
+          <div>
+            <div class="title">ペットを保護・撮影</div>
+            <div class="desc">全体像と首輪の写真を追加します。</div>
+          </div>
+        </div>
+        <div class="role-item" style="cursor:pointer" onclick="go('handoverList')">
+          <div class="emo">🔄</div>
+          <div>
+            <div class="title">受け渡し記録</div>
+            <div class="desc">引き渡しの記録を確認できます。</div>
+          </div>
+        </div>
+        <div class="role-item" style="cursor:pointer" onclick="window.location.href='chat.html'">
+          <div class="emo">�</div>
+          <div>
+            <div class="title">保護団体とチャット</div>
+            <div class="desc">保護団体を選んでメッセージを送れます。</div>
+          </div>
+        </div>
+      </div>
+
+      <a class="btn btn-primary" href="login.html">ホームへ戻る</a>
+    </div>`;
   }
 };
 

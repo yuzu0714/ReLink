@@ -2,11 +2,8 @@
 (() => {
   const list = document.getElementById('notify-list');
 
-  // notify.html 以外では何もしない
   if (!list) return;
 
-
-  // 相対時刻の生成
   function relativeTime(isoStr) {
     const diff = Date.now() - new Date(isoStr).getTime();
     const min = Math.floor(diff / 60000);
@@ -15,18 +12,14 @@
     if (min < 60) return `${min}分前`;
 
     const h = Math.floor(min / 60);
-
     if (h < 24) return `${h}時間前`;
 
     const d = Math.floor(h / 24);
-
     if (d < 7) return `${d}日前`;
 
     return new Date(isoStr).toLocaleDateString('ja-JP');
   }
 
-
-  // HTMLエスケープ
   function escHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -34,8 +27,6 @@
       .replace(/>/g, '&gt;');
   }
 
-
-  // 通知カードのHTML生成
   function buildCard(n) {
     const cardClass = n.isRead ? 'notif read' : 'notif';
 

@@ -50,10 +50,13 @@ object UserRepository {
             .where { UserTable.email eq email }
             .singleOrNull() ?: return@transaction null
 
+        val registeredRole = row[UserTable.role]
+        if (registeredRole != role) return@transaction null
+
         val hash = row[UserTable.passwordHash]
         if (!BCrypt.checkpw(password, hash)) return@transaction null
 
         val userId = row[UserTable.id].toString()
-        Pair(userId, role)
+        Pair(userId, registeredRole)
     }
 }
