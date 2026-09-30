@@ -29,7 +29,7 @@
     };
   }
   function roleIcon(role) {
-    return role === 'shelter' ? '<i class="fa-solid fa-house-heart"></i>' : '<i class="fa-solid fa-person"></i>';
+    return role === 'shelter' ? '<i class="fa-solid fa-building"></i>' : '<i class="fa-solid fa-user"></i>';
   }
   function roleLabel(role) {
     const map = { owner: '飼い主', finder: '発見者', shelter: '保護団体' };
