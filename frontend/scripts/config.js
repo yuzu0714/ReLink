@@ -3,7 +3,7 @@
    ===================================================== */
 
 // ローカル開発
-// const API_BASE = 'http://localhost:8080';
+const API_BASE = 'http://localhost:8080';
 
-// 本番サーバー
-const API_BASE = 'http://157.17.49.232:8080';
+// 本番サーバーへ接続する場合は、上の API_BASE と切り替える
+// const API_BASE = 'http://157.17.49.232:8080';

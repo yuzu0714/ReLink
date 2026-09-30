@@ -97,6 +97,11 @@ function initLoginPage() {
           );
 
           sessionStorage.setItem(
+            'userId',
+            result.userId
+          );
+
+          sessionStorage.setItem(
             'selectedRole',
             result.role
           );
@@ -142,7 +147,8 @@ async function apiLogin(email, password, role) {
 
       body: JSON.stringify({
         email,
-        password
+        password,
+        role
       })
     }
   );
@@ -168,6 +174,7 @@ async function apiLogin(email, password, role) {
   return {
     success: true,
     token: data.token,
+    userId: data.userId,
     role: data.role
   };
 }

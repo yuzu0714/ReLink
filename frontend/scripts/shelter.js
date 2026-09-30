@@ -179,6 +179,7 @@ function renderShelterCard(item, index){
 async function loadShelterList(){
     const countEl = document.getElementById('shelterCount');
     const bodyEl = document.getElementById('shelterListBody');
+  if(!countEl || !bodyEl) return;
     const token = sessionStorage.getItem('authToken');
 
     if(!token){

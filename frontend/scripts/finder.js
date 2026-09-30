@@ -512,11 +512,11 @@ const screens = {
             <div class="desc">引き渡しの記録を確認できます。</div>
           </div>
         </div>
-        <div class="role-item" style="cursor:pointer" onclick="go('notificationList')">
-          <div class="emo">🔔</div>
+        <div class="role-item" style="cursor:pointer" onclick="window.location.href='chat.html'">
+          <div class="emo">�</div>
           <div>
-            <div class="title">お知らせ</div>
-            <div class="desc">マッチング結果と引き渡し通知を確認します。</div>
+            <div class="title">保護団体とチャット</div>
+            <div class="desc">保護団体を選んでメッセージを送れます。</div>
           </div>
         </div>
       </div>
