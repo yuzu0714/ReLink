@@ -423,7 +423,14 @@ function initOwnerPage() {
 
             audioChunks = [];
 
-            mediaRecorder = new MediaRecorder(stream);
+            // クロスブラウザ対応：サポートされているMIMEタイプを自動選択
+            const preferredMime = [
+              'audio/webm;codecs=opus',
+              'audio/webm',
+              'audio/mp4',
+              'audio/ogg;codecs=opus',
+            ].find(t => MediaRecorder.isTypeSupported(t)) || '';
+            mediaRecorder = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : {});
 
             mediaRecorder.addEventListener('dataavailable', (event) => {
               if (event.data.size > 0) {
@@ -432,9 +439,10 @@ function initOwnerPage() {
             });
 
             mediaRecorder.addEventListener('stop', () => {
-              ownerState.voiceBlob = new Blob(audioChunks, {
-                type: 'audio/webm'
-              });
+              // 実際のMIMEタイプを使う（WebM/MP4どちらでも正しく保存）
+              const actualMime = mediaRecorder.mimeType || 'audio/webm';
+              ownerState.voiceBlob = new Blob(audioChunks, { type: actualMime });
+              ownerState.voiceMime = actualMime;
 
               stream.getTracks().forEach(track => track.stop());
 
@@ -716,10 +724,12 @@ function initOwnerPage() {
       if (ownerState.voiceBlob) {
         const voiceFormData = new FormData();
 
+        // MIMEタイプに応じたファイル拡張子を選択（WebM/MP4に対応）
+        const voiceExt = (ownerState.voiceMime || '').includes('mp4') ? '.m4a' : '.webm';
         voiceFormData.append(
           'file',
           ownerState.voiceBlob,
-          'pet-voice.webm'
+          `pet-voice${voiceExt}`
         );
 
         const voiceRes = await fetch(
@@ -1044,119 +1054,90 @@ function initOwnerPage() {
 
     const list = results || [];
 
+    /* ── 写真スタイル・コンテンツ ヘルパー ── */
+    function photoStyle(item, index) {
+      const url = item.photoUrls && item.photoUrls.length > 0
+        ? item.photoUrls[0] : null;
+      return url
+        ? `background-image:url('${url}');background-size:cover;background-position:center`
+        : `background:${petSwatch(index)}`;
+    }
+    function photoContent(item) {
+      return (item.photoUrls && item.photoUrls.length > 0) ? '' : '🐕';
+    }
 
-    const body =
-      list.length === 0
-
-        ? `
-          <div
-            class="card"
-            style="background:#f2f4ff;border-color:#d8ddfb"
-          >
-            <b style="color:var(--navy)">
-              候補が見つかりませんでした
-            </b>
-
+    /* ── 0件 ── */
+    if (list.length === 0) {
+      ownerScreen.innerHTML = `
+        ${ownerAppbar('マッチング結果')}
+        <div class="pad fade">
+          <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
+            <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
-              現在登録されている保護ペットの中には、
-              条件に近い子がいませんでした。
-              新しく保護情報が登録された際に
-              改めてお知らせします。
+              現在登録されている保護ペットの中には、<br>
+              条件に近い子がいませんでした。<br>
+              新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
-        `
+        </div>
+      `;
+      return;
+    }
 
-        : `
-          <div
-            class="card"
-            style="background:#f2f4ff;border-color:#d8ddfb"
-          >
-            <b style="color:var(--navy)">
-              ${list.length}件ヒットしました
-            </b>
-
-            <div class="lede">
-              マッチ率が高い順に表示しています。
-            </div>
+    /* ── 1位 ── */
+    const first = list[0];
+    const topCard = `
+      <div class="mr-top-card"
+           data-owner-action="pet-detail"
+           data-match-index="0">
+        <div class="mr-top-photo" style="${photoStyle(first, 0)}">
+          ${photoContent(first)}
+        </div>
+        <div class="mr-top-info">
+          <div class="mr-top-score">マッチ率：${Math.round(first.matchScore)}%</div>
+          <div class="mr-top-label">
+            ${first.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見された個体'}
           </div>
+          ${first.specie   ? `<div class="mr-top-meta">犬種：${first.specie}</div>`          : ''}
+          ${first.color    ? `<div class="mr-top-meta">毛色：${first.color}</div>`           : ''}
+          ${first.foundPlace ? `<div class="mr-top-meta">地域：${first.foundPlace}</div>`   : ''}
+          ${first.reason ? `<div class="mr-top-reason">${first.reason}</div>` : ''}
+        </div>
+      </div>
+    `;
 
-          ${list.map((item, index) => {
-
-            const sourceLabel =
-              item.protectedSource === 'rescued'
-                ? '保護団体で保護中の個体'
-                : '発見された個体';
-
-            const firstPhoto =
-              item.photoUrls &&
-              item.photoUrls.length > 0
-                ? item.photoUrls[0]
-                : null;
-
-            const thumbStyle =
-              firstPhoto
-                ? `
-                  background-image:url('${firstPhoto}');
-                  background-size:cover;
-                  background-position:center
-                `
-                : `
-                  background:${petSwatch(index)}
-                `;
-
-            const thumbContent =
-              firstPhoto
-                ? ''
-                : '🐕';
-
-
-            return `
-              <div
-                class="match-card"
-                data-owner-action="pet-detail"
-                data-match-index="${index}"
-              >
-
-                <div
-                  class="ph"
-                  style="${thumbStyle}"
-                >
-                  ${thumbContent}
-                </div>
-
-                <div>
-                  <div class="name">
-                    ${sourceLabel}
-                    #${item.protectedPetId}
-                  </div>
-
-                  <div class="meta">
-                    ${item.reason || ''}
-                  </div>
-                </div>
-
-                <div class="score">
-                  <b>
-                    ${Math.round(item.matchScore)}%
-                  </b>
-
-                  <span>
-                    マッチ率
-                  </span>
-                </div>
-
-              </div>
-            `;
-
-          }).join('')}
-        `;
-
+    /* ── 2位以下 グリッド ── */
+    const rest = list.slice(1);
+    const gridCards = rest.map((item, i) => {
+      const index = i + 1;
+      return `
+        <div class="mr-grid-card"
+             data-owner-action="pet-detail"
+             data-match-index="${index}">
+          <div class="mr-grid-photo" style="${photoStyle(item, index)}">
+            ${photoContent(item)}
+          </div>
+          <div class="mr-grid-score">マッチ率：${Math.round(item.matchScore)}%</div>
+        </div>
+      `;
+    }).join('');
 
     ownerScreen.innerHTML = `
       ${ownerAppbar('マッチング結果')}
 
-      <div class="pad stack fade">
-        ${body}
+      <div class="mr-page-bg fade">
+        <div class="mr-main-card">
+
+          <div class="mr-summary">
+            <div class="mr-count">${list.length}件ヒットしました。</div>
+            <div class="mr-desc">マッチ率が高い順に表示します。</div>
+          </div>
+
+          ${topCard}
+
+          ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
+
+        </div>
       </div>
     `;
   }

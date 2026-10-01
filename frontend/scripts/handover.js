@@ -1,8 +1,8 @@
 // handover.js — 受け渡し記録ページの処理
 
 (function () {
-  const token = sessionStorage.getItem('token');
-  const role  = sessionStorage.getItem('role');
+  const token = sessionStorage.getItem('authToken');
+  const role  = sessionStorage.getItem('selectedRole');
 
   // ロールチップ表示
   const chip = document.getElementById('roleChip');
