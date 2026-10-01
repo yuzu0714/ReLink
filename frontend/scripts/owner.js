@@ -1314,10 +1314,60 @@ function initOwnerPage() {
             この子について連絡する
           </button>
 
+          <button
+            class="btn"
+            type="button"
+            id="openChatBtn"
+            data-owner-action="open-chat"
+            data-match-id="${item.matchId}"
+            data-protected-source="${item.protectedSource}"
+            style="margin-top:8px;border:2px solid var(--orange,#f97316);color:var(--orange,#f97316);background:#fff"
+          >
+            💬 ${item.protectedSource === 'rescued' ? '保護団体' : '発見者'}にチャットで連絡する
+          </button>
+
         </div>
 
       </div>
     `;
+  }
+
+
+  /* ---------------- チャットで保護元へ連絡 ---------------- */
+
+  async function openChatWithProtector(matchId, protectedSource) {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      alert('ログインが必要です。');
+      return;
+    }
+
+    const btn = document.getElementById('openChatBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '読み込み中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`詳細取得失敗 (status ${res.status})`);
+
+      const d = await res.json();
+      const isShelter = (d.protectedSource || protectedSource) === 'rescued';
+      const contactId = d.contact && d.contact.userId;
+
+      sessionStorage.setItem('chatTargetName', (d.contact && d.contact.displayName) || (isShelter ? '保護団体' : '発見者'));
+      sessionStorage.setItem('chatTargetRole', isShelter ? 'shelter' : 'finder');
+
+      if (contactId) {
+        window.location.href = 'notify.html?sec=chat&contactId=' + contactId;
+      } else {
+        window.location.href = 'notify.html?sec=chat';
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'チャットの開始に失敗しました。');
+      if (btn) { btn.disabled = false; btn.textContent = '💬 チャットで連絡する'; }
+    }
   }
 
 
@@ -1584,6 +1634,15 @@ function initOwnerPage() {
             Number(
               action.dataset.matchId
             )
+          );
+        }
+
+        if (
+          name === 'open-chat'
+        ) {
+          openChatWithProtector(
+            Number(action.dataset.matchId),
+            action.dataset.protectedSource
           );
         }
 

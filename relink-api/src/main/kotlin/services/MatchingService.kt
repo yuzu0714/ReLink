@@ -154,6 +154,7 @@ object MatchingService {
             protectedPetId = candidate.id,
             matchScore = scorePercent,
             reason = resolvedReason,
+            photoUrls = candidatePhotoUrls,
         )
     }
 
