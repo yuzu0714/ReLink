@@ -196,6 +196,27 @@
       });
   }
 
+  /* ---- sidenav collapse ---- */
+  const notifBody = document.querySelector('.notif-body');
+  const navToggle = document.querySelector('.nnav-toggle');
+  const NAV_KEY = 'relink_notif_nav_collapsed';
+
+  function setNavCollapsed(on) {
+    notifBody?.classList.toggle('nav-collapsed', on);
+    navToggle?.setAttribute('aria-expanded', String(!on));
+    navToggle?.setAttribute('aria-label', on ? 'メニューを開く' : 'メニューを閉じる');
+  }
+
+  let savedNav = null;
+  try { savedNav = localStorage.getItem(NAV_KEY); } catch {}
+  setNavCollapsed(savedNav !== null ? savedNav === '1' : window.innerWidth < 768);
+
+  navToggle?.addEventListener('click', () => {
+    const on = !notifBody.classList.contains('nav-collapsed');
+    setNavCollapsed(on);
+    try { localStorage.setItem(NAV_KEY, on ? '1' : '0'); } catch {}
+  });
+
   /* ---- nav switching ---- */
   document.querySelectorAll('.nnav-btn').forEach(btn => {
     btn.addEventListener('click', () => {

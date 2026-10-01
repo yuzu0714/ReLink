@@ -1340,9 +1340,66 @@ html body .login-appbar .brand h1 {
 }
 .nnav-label { font-size:15px; font-weight:700; }
 
+.notif-sidenav { transition: width .2s ease, padding .2s ease; }
+
+.nnav-toggle {
+  align-self: flex-end;
+  display: grid; place-items: center;
+  width: 36px; height: 36px; margin-bottom: 4px;
+  border: none; border-radius: 8px;
+  background: none; color: #64748b; cursor: pointer;
+}
+.nnav-toggle:hover { background: #eff6ff; color: #2563eb; }
+.nnav-toggle svg { transition: transform .2s ease; }
+
+/* 閉じた状態：アイコンのみ */
+.notif-body.nav-collapsed .notif-sidenav { width: 56px; padding: 12px 6px; }
+.notif-body.nav-collapsed .nnav-label    { display: none; }
+.notif-body.nav-collapsed .nnav-btn      { justify-content: center; padding: 10px 0; }
+.notif-body.nav-collapsed .nnav-toggle   { align-self: center; }
+.notif-body.nav-collapsed .nnav-toggle svg { transform: rotate(180deg); }
+
 /* --- 右コンテンツエリア --- */
 .notif-content {
   flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:0;
+}
+
+/* --- スマホ：サイドバーを下部タブバーにする --- */
+@media (max-width: 767px) {
+  .notif-body { flex-direction: column; }
+  .notif-content { order: 1; }
+
+  .notif-sidenav,
+  .notif-body.nav-collapsed .notif-sidenav {
+    order: 2;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    gap: 0;
+    border-right: none;
+    border-top: 1px solid #dbeafe;
+    overflow: visible;
+  }
+
+  /* 開け閉めボタンはスマホでは不要 */
+  .nnav-toggle { display: none; }
+
+  /* アイコンの下に小さくラベル */
+  .nnav-btn,
+  .notif-body.nav-collapsed .nnav-btn {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    text-align: center;
+  }
+  .nnav-label,
+  .notif-body.nav-collapsed .nnav-label {
+    display: block;
+    font-size: 10.5px;
+  }
 }
 
 /* --- メール作成 --- */
