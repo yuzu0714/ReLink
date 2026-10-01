@@ -10,7 +10,7 @@ data class PhotoUploadResponse(
     val photoUrl: String
 )
 
-// 音声アップロード成功時に返すレスポンス
+//新規追加：音声アップロード成功時に返すレスポンス
 @Serializable
 data class VoiceUploadResponse(
     val voiceUrl: String

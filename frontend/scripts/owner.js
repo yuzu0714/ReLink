@@ -303,6 +303,85 @@ function initOwnerPage() {
 
           </div>
 
+        <div class="field">
+          <label>ペットの正式名称</label>
+
+          <input
+            class="input"
+            id="ownerPetName"
+            type="text"
+            placeholder="例）こころ"
+            maxlength="50"
+          >
+        </div>
+
+        <!-- 新規追加：ペットの呼び名の登録 -->
+        <div class="field">
+          <label>ペットの普段の呼び方</label>
+
+          <input
+            class="input"
+            id="ownerNickname"
+            type="text"
+            placeholder="例）ここちゃん"
+            maxlength="30"
+          >
+        </div>
+
+        <!-- 新規追加：呼び名の音声を登録する欄 -->
+        <div class="field">
+          <label>ペットを呼んでいる音声</label>
+
+          <div class="owner-voice-area">
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              id="ownerVoiceRecordBtn"
+            >
+              🎙 録音開始
+            </button>
+
+            <p id="ownerVoiceStatus">録音していません</p>
+
+            <audio
+              id="ownerVoicePlayer"
+              controls
+              style="display: none;"
+            ></audio>
+
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              id="ownerVoiceReplayBtn"
+              style="display: none;"
+            >
+              🔄 録り直す
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>そのほか</label>
+
+          <textarea
+            class="input"
+            id="ownerOther"
+            placeholder="例）左耳が欠けている。人懐っこい。"
+          ></textarea>
+        </div>
+
+
+        <button
+          class="btn btn-magenta"
+          type="button"
+          id="ownerSubmitBtn"
+          data-owner-action="submit-lost"
+        >
+          🐾 登録
+        </button>
+
+        <div class="footnote">
+          条件で絞り込んだ後、画像識別モデルが特徴を照合します。
         </div>
 
       </div>

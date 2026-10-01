@@ -4,7 +4,7 @@ import com.db.FoundPetRegisterTable
 import com.db.MatchesTable
 import com.db.RescuedPetRegisterTable
 import com.db.UserTable
-import com.db.LostPetRegisterTable  //追加：LostPetRegisterTableを使う
+import com.db.LostPetRegisterTable  //追加：LostPetRegisterTablを使う
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -55,7 +55,7 @@ object MatchDetailRepository {
 
         val source = matchRow[MatchesTable.protectedSource]
         val petId  = matchRow[MatchesTable.protectedPetId]
-        val lostPetId = matchRow[MatchesTable.lostPetId]        //追加：ペットのIDを取得
+        val lostPetId = matchRow[MatchesTable.lostPetId]  //追加：ペットのIDを取得
         val score  = matchRow[MatchesTable.matchScore].toDouble()
 
         val petRow: PetRow = when (source) {

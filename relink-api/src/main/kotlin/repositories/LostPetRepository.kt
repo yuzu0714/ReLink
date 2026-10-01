@@ -2,7 +2,7 @@ package com.repositories
 
 import com.db.LostPetRegisterTable
 import com.models.LostPetRegisterRequest
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.*//★修正：org.jetbrains.exposed.sql の機能をまとめて読み込む
 import org.jetbrains.exposed.sql.transactions.transaction
 
 // lostpet_register への書き込みだけを担当するクラス

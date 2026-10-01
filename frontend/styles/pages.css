@@ -204,164 +204,12 @@
   display: grid;
   place-items: center;
   font-size: 24px;
-  background: #eef2ff;
-  color: var(--navy);
-}
-
-.owner-page .hero-banner .hs,
-.shelter-page .hero-banner .hs {
-  font-weight: 600;
-  color: #d8dcf7;
-}
-
-.owner-page .hero-banner::after {
-  content: none;
-}
-
-.owner-page .hero-banner .hi {
-  color: var(--orange-dark);
-}
-
-.owner-page .hero-banner .hn {
-  font-size: 20px;
-  line-height: 1.5;
-}
-
-.owner-page .hero-banner .hs {
-  color: #4b5563;
-}
-
-.owner-page .role-list {
-  margin-left: -16px;
-  margin-right: -16px;
-  padding: 20px;
-  background: var(--navy);
-  border-radius: 0;
-}
-
-.owner-page .role-item {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: #fff;
-  text-decoration: none;
-  color: inherit;
-}
-
-.owner-page .role-item .title {
-  color: var(--navy);
-}
-
-.owner-page .role-item .desc {
-  color: #58627f;
-  font-weight: 600;
-}
-
-.owner-page .role-item[style*="cursor:pointer"]:hover {
-  border-color: var(--orange);
-  background: #fff7ed;
-}
-
-.owner-page .btn-primary {
-  background: var(--orange);
-}
-
-.owner-page .btn-primary:hover {
-  background: var(--orange-dark);
-}
-
-.shelter-page .hero-banner::after {
-  content: none;
-}
-
-.shelter-page .hero-banner .hi {
-  color: var(--orange-dark);
-}
-
-.shelter-page .hero-banner .hn {
-  font-size: 20px;
-  line-height: 1.5;
-}
-
-.shelter-page .hero-banner .hs {
-  color: #4b5563;
-}
-
-.shelter-page .role-list {
-  margin-left: -16px;
-  margin-right: -16px;
-  padding: 20px;
-  background: var(--navy);
-  border-radius: 0;
-}
-
-.shelter-page .role-item {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: #fff;
-}
-
-.shelter-page .role-item .title {
-  color: var(--navy);
-}
-
-.shelter-page .role-item .desc {
-  color: #58627f;
-  font-weight: 600;
-}
-
-.shelter-page .role-item[style*="cursor:pointer"]:hover {
-  border-color: var(--orange);
-  background: #fff7ed;
-}
-
-.shelter-page .btn-primary {
-  background: var(--orange);
-}
-
-.shelter-page .btn-primary:hover {
-  background: var(--orange-dark);
-}
-
-.owner-page,
-.shelter-page {
-  background: #fff;
-}
-
-.owner-page .phone,
-.shelter-page .phone {
-  width: 100%;
-  min-height: 100vh;
-  background: #fff;
-}
-
-.owner-page .notch,
-.shelter-page .notch {
-  display: none;
-}
-
-.owner-page .appbar,
-.shelter-page .appbar {
-  justify-content: flex-start;
-  padding: 14px 20px;
-  background: var(--navy);
-}
-
-.owner-page .hero-banner,
-.shelter-page .hero-banner {
-  padding: 26px 24px;
-  background: #fff;
-  color: var(--navy);
-  border: 1px solid var(--line);
-  border-left: 6px solid var(--orange);
-  border-radius: 12px;
-}
-
-.owner-page .owner-action .d,
-.shelter-page .card-nav .d {
-  color: #58627f;
-  font-weight: 600;
+  background: linear-gradient(140deg, var(--navy), var(--navy-2));
+  color: var(--cyan-soft);
 }
 
 .owner-notice-icon {
-  background: #eef2ff;
+  background: linear-gradient(140deg, var(--magenta), #be185d);
 }
 
 .owner-page .fade {
@@ -443,47 +291,6 @@
   color: #fff;
 }
 
-.owner-pet-card {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
-  align-items: center;
-}
-
-.owner-pet-card .owner-pet-photo {
-  width: 280px;
-  height: auto;
-  border-radius: 12px;
-  overflow: hidden;
-  display: block;
-  font-size: initial;
-  color: initial;
-}
-
-.owner-pet-card .owner-pet-photo img {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.owner-pet-info {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-@media (max-width: 600px) {
-  .owner-pet-card {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .owner-pet-card .owner-pet-photo {
-    width: 100%;
-  }
-}
-
 .owner-page .owner-pet-title {
   display: flex;
   align-items: center;
@@ -513,21 +320,6 @@
 
 .owner-page .owner-info-card b {
   font-size: 13px;
-}
-
-.owner-voice-area {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-#ownerVoiceStatus {
-  margin: 10px 0 0;
-}
-
-#ownerVoicePlayer {
-  width: 100%;
-  margin-top: 12px;
 }
 
 .owner-page .loader-wrap {
@@ -630,20 +422,64 @@
   letter-spacing: .5px;
 }
 
-.owner-page .notif { display:flex; gap:14px; padding:16px; border-radius:16px; border:1px solid var(--line); border-left:4px solid var(--line); background:#fff; position:relative; transition:background 0.15s, opacity 0.15s; }
-.owner-page .notif:not(.read) { border-left-color:var(--magenta); background:#fff8fc; }
-.owner-page .notif.read { opacity:0.65; }
-.owner-page .notif .notif-icon { width:44px; height:44px; border-radius:12px; background:linear-gradient(140deg,var(--magenta),#be185d); display:grid; place-items:center; font-size:20px; flex:none; align-self:flex-start; }
-.owner-page .notif.read .notif-icon { background:var(--line); }
-.owner-page .notif .dot { position:absolute; top:12px; right:12px; width:8px; height:8px; border-radius:50%; background:var(--magenta); flex:none; }
-.owner-page .notif.read .dot { display:none; }
-.owner-page .notif .notif-body { flex:1; min-width:0; }
-.owner-page .notif .notif-badge { display:inline-block; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px; background:var(--magenta); color:#fff; margin-bottom:5px; }
-.owner-page .notif .nt { font-weight:700; font-size:13.5px; color:var(--navy); }
-.owner-page .notif .nb { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.owner-page .notif .notif-footer { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
-.owner-page .notif .tm { font-size:10.5px; color:var(--muted); }
-.owner-page .notif .notif-link { font-size:11px; font-weight:700; color:var(--magenta); }
+.owner-page .notif {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.owner-page .notif .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--magenta);
+  flex: none;
+  margin-top: 5px;
+}
+
+.owner-page .notif.read .dot {
+  background: var(--line);
+}
+
+.owner-page .notif .nt {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.owner-page .notif .nb {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.owner-page .notif .tm {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+
+/* 音声録音エリア */
+.owner-voice-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 録音中の表示 */
+#ownerVoiceStatus {
+  margin: 10px 0 0;
+}
+
+/* 録音した音声 */
+#ownerVoicePlayer {
+  width: 100%;
+  margin-top: 12px;
+}
 
 
 /*ペット保護・登録画面用 CSS*/
@@ -764,7 +600,6 @@ h2.title {
   border-radius: 20px;
   display: grid;
   place-items: center;
-  background: #c8935f;
   font-size: 80px;
   color: #fff;
   overflow: hidden;
@@ -782,7 +617,6 @@ h2.title {
 
 .pet-info {
   padding: 14px;
-  
 }
 
 .info-row {
@@ -794,7 +628,7 @@ h2.title {
 
 .info-row span {
   font-size: 13px;
-  color: var(--navy);
+  color: navy;
   font-weight: bold;
 }
 
@@ -913,36 +747,35 @@ html body .login-appbar .brand h1 {
 }
 
 .login-panel {
+  background: #141466;
   border-radius: 16px;
   padding: 20px 16px;
+  color: #fff;
 }
-
-.login-panel.step-1 { background: #e8edf8; }
-.login-panel.step-2 { background: #e0e6f5; }
 
 .login-panel .step-label {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  color: #1f1f8c;
+  opacity: 0.85;
 }
 
 .login-panel .step-title {
   margin: 6px 0 0;
   font-size: 18px;
   font-weight: 800;
-  color: #141466;
+  color: #fff;
 }
 
 .login-panel .step-desc {
   margin: 8px 0 16px;
   font-size: 12px;
   line-height: 1.6;
-  color: #6B7096;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .login-panel .field { margin-top: 14px; }
-.login-panel .field label { color: #6B7096; font-size: 12px; }
+.login-panel .field label { color: #fff; font-size: 12px; }
 
 .login-panel .input {
   background: #eef2fb;
@@ -1011,7 +844,7 @@ html body .login-appbar .brand h1 {
   padding: 0;
   border: none;
   background: none;
-  color: #6B7096;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12.5px;
   font-family: inherit;
   text-align: left;
@@ -1019,630 +852,73 @@ html body .login-appbar .brand h1 {
 }
 
 @media (min-width: 768px) {
-  .finder-page .pad {
-    padding: 36px 32px 48px;
+  .login-page .pad {
+    max-width: 980px;
   }
 
-  .finder-page .pad {
-    max-width: none;
-  }
-
-  .finder-page .role-list {
-    width: auto;
-    margin-left: -32px;
-    margin-right: -32px;
-    padding: 28px 32px;
-    background: var(--navy);
-    grid-template-columns: repeat(3, minmax(0, 220px));
-    justify-content: center;
-    gap: 18px;
-  }
-
-  .finder-page .role-item {
-    min-height: 180px;
-    padding: 24px 18px;
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-    text-align: center;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
-  }
-
-  .finder-page .role-item .emo {
-    font-size: 32px;
-  }
-
-  .finder-page .role-item .title {
-    font-size: 18px;
-  }
-
-  .finder-page .role-item .desc {
-    font-size: 13px;
-    margin-top: 6px;
-  }
-
-  .finder-page .pad > .stack:last-child {
-    width: min(100%, 620px);
-    margin-left: auto;
-    margin-right: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .finder-page .pad > .stack:last-child > * + * {
-    margin-top: 0;
-  }
-
-  .owner-page .pad {
-    padding: 36px 32px 48px;
-    max-width: 1040px;
-  }
-
-  .owner-page .role-list {
-    width: auto;
-    margin-left: -32px;
-    margin-right: -32px;
-    padding: 28px 32px;
-    grid-template-columns: repeat(3, minmax(0, 220px));
-    justify-content: center;
-    gap: 18px;
-  }
-
-  .owner-page .role-item {
-    min-height: 180px;
-    padding: 24px 18px;
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-    text-align: center;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
-  }
-
-  .owner-page .role-item .emo {
-    font-size: 32px;
-  }
-
-  .owner-page .role-item .title {
-    font-size: 18px;
-  }
-
-  .owner-page .role-item .desc {
-    font-size: 13px;
-    margin-top: 6px;
-  }
-
-  .owner-page .pad > .stack:last-child {
-    width: min(100%, 620px);
-    margin-left: auto;
-    margin-right: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .owner-page .pad > .stack:last-child > * + * {
-    margin-top: 0;
-  }
-
-  .shelter-page .pad {
-    padding: 36px 32px 48px;
-    max-width: none;
-  }
-
-  .shelter-page .role-list {
-    width: auto;
-    margin-left: -32px;
-    margin-right: -32px;
-    padding: 28px 32px;
-    grid-template-columns: repeat(3, minmax(0, 220px));
-    justify-content: center;
-    gap: 18px;
-  }
-
-  .shelter-page .role-item {
-    min-height: 180px;
-    padding: 24px 18px;
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-    text-align: center;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(20, 20, 102, 0.08);
-  }
-
-  .shelter-page .role-item .emo {
-    width: 80px;
-    height: 80px;
-    border-radius: 24px;
-    background: #eef2ff;
-    color: var(--navy);
-    display: grid;
-    place-items: center;
-    font-size: 32px;
-    flex: none;
-  }
-
-  .shelter-page .role-item .title {
-    font-size: 18px;
-  }
-
-  .shelter-page .role-item .desc {
-    font-size: 13px;
-    margin-top: 6px;
-  }
-
-  .shelter-page .pad > .stack:last-child {
-    width: min(100%, 620px);
-    margin-left: auto;
-    margin-right: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .shelter-page .pad > .stack:last-child > * + * {
-    margin-top: 0;
-  }
-
-  .owner-page .hero-banner,
-  .shelter-page .hero-banner {
-    width: min(100%, 620px);
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .owner-page .hero-banner .hn,
-  .shelter-page .hero-banner .hn {
-    font-size: 28px;
-  }
-
-  .finder-page .hero-banner {
-    width: min(100%, 620px);
-    margin-left: auto;
-    margin-right: auto;
+  .login-page .hero-banner {
     padding: 32px;
   }
 
-  .finder-page .hero-banner .hn {
+  .login-page .hero-banner .hn {
     font-size: 28px;
   }
-}
 
-.login-pad .footnote {
-  margin-top: 8px;
-  color: #8a90a8;
-}
-/* =====================================================
-   通知ページ v2 — ライトブルーパレット
-   ===================================================== */
-
-/* --- レイアウト --- */
-.notif-screen { display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
-.notif-appbar { flex:none; }
-.notif-sec { display:none; flex:1; min-height:0; }
-.notif-sec.active { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
-.notif-list { padding:12px 14px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; min-height:0; }
-
-/* --- カード --- */
-.notif-card {
-  display:flex; gap:12px; padding:14px 16px;
-  border-bottom:1px solid #e2e8f0;
-  background:#fff; cursor:pointer;
-  transition:transform 0.18s ease, box-shadow 0.18s ease, background 0.12s;
-}
-.notif-card:hover {
-  background:#f0f6ff;
-  transform:translateY(-2px) scale(1.01);
-  box-shadow:0 6px 20px rgba(59,130,246,0.12);
-  z-index:1;
-  position:relative;
-  border-radius:10px;
-  transition:transform 0.18s ease, box-shadow 0.18s ease, background 0.12s;
-}
-.notif-card.unread { background:#f0f7ff; font-weight:500; }
-.notif-card.read { opacity:0.72; }
-
-
-/* --- body --- */
-.nc-body { flex:1; min-width:0; }
-
-/* --- head行 --- */
-.nc-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:5px; }
-.nc-title-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0; }
-.nc-title { font-weight:700; font-size:16px; color:#1e3a5f; }
-.nc-score {
-  font-size:10.5px; font-weight:800; padding:2px 8px;
-  border-radius:999px; background:#3b82f6; color:#fff;
-  flex:none;
-}
-.nc-right { display:flex; align-items:center; gap:6px; flex:none; }
-.nc-date { font-size:13px; color:#475569; white-space:nowrap; }
-
-/* --- 削除ボタン --- */
-.nc-del-btn {
-  width:22px; height:22px; border-radius:50%;
-  border:none; background:#f1f5f9; color:#475569;
-  font-size:11px; cursor:pointer; display:grid; place-items:center;
-  flex:none; transition:background 0.12s, color 0.12s;
-}
-.nc-del-btn:hover { background:#fee2e2; color:#ef4444; }
-
-/* --- メッセージ本文 --- */
-.nc-msg {
-  font-size:14px; color:#334155; line-height:1.6;
-  overflow:hidden; text-overflow:ellipsis;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-}
-
-/* --- 詳細リンク --- */
-.nc-detail-link { font-size:11px; font-weight:700; color:#3b82f6; margin-top:6px; display:inline-block; }
-
-/* --- 元に戻すボタン --- */
-.nc-restore-btn {
-  margin-top:6px; font-size:11px; color:#334155;
-  background:none; border:1px solid #cbd5e1; border-radius:6px;
-  padding:3px 10px; cursor:pointer;
-}
-
-/* --- ゴミ箱ヘッダー --- */
-.trash-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 14px 4px; font-size:12px; color:#475569;
-}
-.trash-clear-btn {
-  font-size:11px; color:#ef4444; background:none;
-  border:1px solid #fca5a5; border-radius:6px; padding:3px 10px; cursor:pointer;
-}
-
-/* --- 空メッセージ --- */
-.notif-empty {
-  text-align:center; padding:56px 20px;
-  color:#475569; font-size:13px;
-}
-.notif-loading {
-  text-align:center; padding:56px 20px;
-  color:#475569; font-size:13px;
-}
-
-/* --- 本体レイアウト（サイドバー＋コンテンツ） --- */
-.notif-body {
-  display:flex; flex:1; overflow:hidden; min-height:0;
-}
-
-/* --- 左サイドメニュー --- */
-.notif-sidenav {
-  width:200px; flex:none;
-  background:#f8faff;
-  border-right:1px solid #dbeafe;
-  display:flex; flex-direction:column;
-  padding:12px 8px; gap:4px;
-  overflow-y:auto;
-  align-self:stretch;
-}
-.nnav-btn {
-  display:flex; flex-direction:row;
-  align-items:center; gap:10px;
-  background:none; border:none; cursor:pointer;
-  color:#334155; border-radius:10px;
-  padding:10px 12px; text-align:left;
-  transition:background 0.12s, color 0.12s;
-  width:100%;
-}
-.nnav-btn:hover { background:#eff6ff; color:#2563eb; }
-.nnav-btn.active { background:#dbeafe; color:#1d4ed8; font-weight:700; }
-.nnav-icon {
-  flex:none;
-  width:22px; height:22px;
-  stroke-width:2;
-}
-.nnav-label { font-size:15px; font-weight:700; }
-
-.notif-sidenav { transition: width .2s ease, padding .2s ease; }
-
-.nnav-toggle {
-  align-self: flex-end;
-  display: grid; place-items: center;
-  width: 36px; height: 36px; margin-bottom: 4px;
-  border: none; border-radius: 8px;
-  background: none; color: #64748b; cursor: pointer;
-}
-.nnav-toggle:hover { background: #eff6ff; color: #2563eb; }
-.nnav-toggle svg { transition: transform .2s ease; }
-
-/* 閉じた状態：アイコンのみ */
-.notif-body.nav-collapsed .notif-sidenav { width: 56px; padding: 12px 6px; }
-.notif-body.nav-collapsed .nnav-label    { display: none; }
-.notif-body.nav-collapsed .nnav-btn      { justify-content: center; padding: 10px 0; }
-.notif-body.nav-collapsed .nnav-toggle   { align-self: center; }
-.notif-body.nav-collapsed .nnav-toggle svg { transform: rotate(180deg); }
-
-/* --- 右コンテンツエリア --- */
-.notif-content {
-  flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:0;
-}
-
-/* --- スマホ：サイドバーを下部タブバーにする --- */
-@media (max-width: 767px) {
-  .notif-body { flex-direction: column; }
-  .notif-content { order: 1; }
-
-  .notif-sidenav,
-  .notif-body.nav-collapsed .notif-sidenav {
-    order: 2;
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-around;
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-    gap: 0;
-    border-right: none;
-    border-top: 1px solid #dbeafe;
-    overflow: visible;
-  }
-
-  /* 開け閉めボタンはスマホでは不要 */
-  .nnav-toggle { display: none; }
-
-  /* アイコンの下に小さくラベル */
-  .nnav-btn,
-  .notif-body.nav-collapsed .nnav-btn {
-    flex: 1;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    padding: 6px 0;
-    text-align: center;
-  }
-  .nnav-label,
-  .notif-body.nav-collapsed .nnav-label {
-    display: block;
-    font-size: 10.5px;
+  .login-page .login-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
   }
 }
 
-/* --- メール作成 --- */
-.compose-wrap {
-  padding:16px 14px 20px; display:flex; flex-direction:column; gap:14px;
-}
-.compose-field { display:flex; flex-direction:column; gap:5px; }
-.compose-label { font-size:11.5px; font-weight:700; color:#475569; }
-.compose-input {
-  padding:10px 12px; border:1px solid #dbeafe; border-radius:10px;
-  font-size:14px; color:#1e3a5f; background:#f8fbff;
-  outline:none;
-}
-.compose-input:focus { border-color:#3b82f6; background:#fff; }
-.compose-textarea {
-  padding:10px 12px; border:1px solid #dbeafe; border-radius:10px;
-  font-size:14px; color:#1e3a5f; background:#f8fbff;
-  outline:none; resize:vertical; line-height:1.6; font-family:inherit;
-}
-.compose-textarea:focus { border-color:#3b82f6; background:#fff; }
-.compose-send {
-  padding:14px; border-radius:12px; border:none;
-  background:#3b82f6; color:#fff;
-  font-size:15px; font-weight:700; cursor:pointer;
-  transition:background 0.15s;
-}
-.compose-send:hover { background:#2563eb; }
-
-/* --- 送信完了 --- */
-.compose-sent {
-  display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:12px; padding:64px 20px;
-  text-align:center;
-}
-.compose-sent-icon { font-size:48px; }
-.compose-sent-title { font-size:18px; font-weight:700; color:#1e3a5f; }
-.compose-sent-msg { font-size:13px; color:#334155; }
-.compose-new-btn {
-  margin-top:8px; padding:10px 24px; border-radius:10px;
-  border:1px solid #3b82f6; background:#fff; color:#3b82f6;
-  font-size:13px; font-weight:700; cursor:pointer;
-}
-
-/* ===== owner-pets.html: 1カラム表示に戻す（2カラムグリッドのオーバーライド）===== */
-body[data-page="owner-pets"] .pad > .stack:last-child {
-  display: flex;
-  flex-direction: column;
-  grid-template-columns: none;
-  width: 100%;
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
-  gap: 20px;
-}
-
-body[data-page="owner-pets"] .pad > .stack:last-child > * + * {
-  margin-top: 0;
-}
-
-body[data-page="owner-pets"] .owner-pet-card {
+/* 飼い主：登録ペット一覧 */
+.owner-pet-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 2fr;
-  gap: 20px;
-  align-items: center;
-}
-
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
-  width: 100%;
-  max-width: 260px;
-}
-
-@media (max-width: 600px) {
-  body[data-page="owner-pets"] .owner-pet-card {
-    grid-template-columns: 1fr;
-  }
-  body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
-    max-width: 100%;
-  }
-}
-
-/* ===================================================================
-   マッチング結果 リニューアルレイアウト (.mr-*)
-   =================================================================== */
-
-/* ページ背景 */
-.mr-page-bg {
-  background: var(--paper);
-  min-height: calc(100vh - 64px);
-  padding: 28px 16px 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* メインカード（白い大きなコンテナ） */
-.mr-main-card {
-  width: 90%;
-  max-width: 680px;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  padding: 32px 28px 36px;
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 280px 1fr;
   gap: 24px;
-}
-
-/* サマリーテキスト */
-.mr-summary {
-  text-align: center;
-}
-.mr-count {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
-  line-height: 1.6;
-}
-.mr-desc {
-  font-size: 15px;
-  font-weight: 700;
-  color: #444;
-  line-height: 1.6;
-}
-
-/* 1位カード（横並び：画像左 + 情報右） */
-.mr-top-card {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  border: 1px solid #e0e0e0;
-  border-radius: 14px;
-  padding: 16px;
-  background: #fff;
-  cursor: pointer;
-  transition: box-shadow 0.15s;
-}
-.mr-top-card:hover {
-  box-shadow: 0 6px 18px rgba(0,0,0,0.10);
-}
-.mr-top-photo {
-  width: 160px;
-  aspect-ratio: 1 / 1;
-  flex: none;
-  border-radius: 10px;
-  background-size: cover;
-  background-position: center;
-  background-color: #e0d8c8;
-  display: grid;
-  place-items: center;
-  font-size: 48px;
-  color: #fff;
-  overflow: hidden;
-}
-.mr-top-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.mr-top-score {
-  font-size: 20px;
-  font-weight: 800;
-  color: #333;
-}
-.mr-top-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #555;
-  line-height: 1.5;
-}
-.mr-top-meta {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.5;
-}
-.mr-top-reason {
-  font-size: 12px;
-  color: #888;
-  line-height: 1.6;
-  margin-top: 2px;
-}
-
-/* 2位以下グリッド */
-.mr-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.mr-grid-card {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: opacity 0.15s;
 }
-.mr-grid-card:hover {
-  opacity: 0.85;
-}
-.mr-grid-photo {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 10px;
-  background-size: cover;
-  background-position: center;
-  background-color: #e0d8c8;
-  display: grid;
-  place-items: center;
-  font-size: 32px;
-  color: #fff;
+
+.owner-page .owner-pet-photo {
+  width: 280px;
+  height: auto;
+  border-radius: 12px;
   overflow: hidden;
-}
-.mr-grid-score {
-  font-size: 13px;
-  font-weight: 700;
-  color: #333;
-  text-align: center;
-}
-.mr-grid-meta {
-  font-size: 11.5px;
-  color: #666;
-  text-align: center;
-  line-height: 1.5;
+  display: block;
+  font-size: initial;
+  color: initial;
 }
 
-/* レスポンシブ */
+.owner-page .owner-pet-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.owner-pet-photo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.owner-pet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* スマホでは縦並び */
 @media (max-width: 600px) {
-  .mr-top-card {
-    flex-direction: column;
-    align-items: flex-start;
+  .owner-pet-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
-  .mr-top-photo {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-  }
-  .mr-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
 
-@media (min-width: 601px) and (max-width: 900px) {
-  .mr-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .owner-pet-photo {
+    width: 100%;
+    height: auto;
   }
 }
