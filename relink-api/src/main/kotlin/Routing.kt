@@ -42,10 +42,16 @@ import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
+import com.models.HandoverRequest
 import com.models.OwnerPetListItem
 import com.models.OwnerPetListResponse
+import com.repositories.HandoverRepository
 import com.repositories.PetPhotoRepository
 import com.db.LostPetRegisterTable
+import com.repositories.ChatRepository
+import com.models.ChatContactsResponse
+import com.models.ChatMessageRequest
+import com.models.ChatMessagesResponse
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -309,6 +315,62 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
             }
 
+            patch("/notifications/{id}/read") {
+                val notificationId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください")
+                NotificationRepository.markAsRead(notificationId)
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
+            get("/chat/contacts") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatContactsResponse(contacts = ChatRepository.findContacts(userId, role))
+                )
+            }
+
+            get("/chat/conversations/{userId}/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val otherUserId = call.parameters["userId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userIdは数値で指定してください")
+
+                if (userId == otherUserId || !ChatRepository.canChat(role, otherUserId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatMessagesResponse(
+                        messages = ChatRepository.findConversation(userId, otherUserId)
+                    )
+                )
+            }
+
+            post("/chat/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val request = call.receive<ChatMessageRequest>()
+                val message = request.message.trim()
+
+                if (message.isBlank()) {
+                    throw IllegalArgumentException("メッセージを入力してください")
+                }
+                if (message.length > 500) {
+                    throw IllegalArgumentException("メッセージは500文字以内で入力してください")
+                }
+                if (userId == request.receiverId || !ChatRepository.canChat(role, request.receiverId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    ChatRepository.insertMessage(userId, request.receiverId, message)
+                )
+            }
+
             get("/matches/{matchId}/detail") {
                 val matchId = call.parameters["matchId"]?.toLongOrNull()
                     ?: throw IllegalArgumentException("matchIdは数値で指定してください")
@@ -316,7 +378,26 @@ fun Application.configureRouting() {
                     ?: throw NoSuchElementException("指定されたmatchIdが見つかりません: $matchId")
                 call.respond(HttpStatusCode.OK, detail)
             }
+            // 受け渡し記録の登録(shelter/finder限定)
+            post("/handovers") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverRequest>()
+
+                if (!HandoverRepository.contactExists(request.contactId)) {
+                    throw NoSuchElementException("指定されたcontactIdが見つかりません: \${request.contactId}")
+                }
+
+                val response = HandoverRepository.insert(request)
+                call.respond(HttpStatusCode.Created, response)
+            }
         }
+
 
         get("/matching/test") {
             val specie = call.request.queryParameters["specie"]
@@ -350,6 +431,20 @@ fun Application.configureRouting() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+
+        // 受け渡し記録の取得(認証不要、誰でも確認可)
+        get("/handovers/{contactId}") {
+            val contactId = call.parameters["contactId"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("contactId(数値)をパスパラメータで指定してください")
+
+            val records = HandoverRepository.findByContactId(contactId)
+            call.respond(HttpStatusCode.OK, records)
+        }
+
+        get("/handovers") {
+            val records = HandoverRepository.getAll()
+            call.respond(HttpStatusCode.OK, records)
+        }
         post("/matching/run") {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
@@ -366,6 +461,27 @@ fun Application.configureRouting() {
             )
         }
     }
+}
+
+private fun authenticatedUserId(call: ApplicationCall): Long =
+    call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("userId")
+        ?.asString()
+        ?.toLongOrNull()
+        ?: throw IllegalArgumentException("userId が取得できません")
+
+private fun requireChatRole(call: ApplicationCall): String {
+    val role = call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("role")
+        ?.asString()
+
+    if (role == null || role !in setOf("owner", "finder", "shelter")) {
+        throw ForbiddenException("チャット機能には有効な利用者権限が必要です")
+    }
+
+    return role
 }
 
 @Serializable

@@ -131,8 +131,8 @@ function applyFilters() {
 
   const filtered = allPets.filter(pet => {
     // 地域（複数選択・OR）
-    if (activeFilters.places.size > 0 && !activeFilters.places.has(pet.place)) return false;
-    // 犬種（単一）
+    if (activeFilters.places.size > 0 && 
+        ![...activeFilters.places].some(pref => pet.place.includes(pref))) return false;    // 犬種（単一）
     if (activeFilters.specie && pet.specie !== activeFilters.specie) return false;
     // 毛色（複数選択・部分一致OR）
     if (activeFilters.colors.size > 0) {
@@ -181,6 +181,7 @@ function renderShelterCard(item, index){
 async function loadShelterList(){
     const countEl = document.getElementById('shelterCount');
     const bodyEl = document.getElementById('shelterListBody');
+  if(!countEl || !bodyEl) return;
     const token = sessionStorage.getItem('authToken');
 
     if(!token){
@@ -230,7 +231,7 @@ async function loadShelterList(){
     //修正：pet_detail.htmlに対応させるため
     if (document.getElementById('shelterListBody')) {
       loadShelterList();
-  }
+    }
 
 /* ---------------- pet detail ---------------- */
 ( async () => {
@@ -244,7 +245,7 @@ async function loadShelterList(){
   const matchId = params.get('matchId');
   const lostPetId = params.get('lostPetId');
 
-  //正しいかデータか確認
+  //正しいデータか確認
   console.log('保護ペットID:', petId);
   console.log('保護元:', source);
   console.log('照合ID:', matchId);
@@ -347,7 +348,7 @@ async function loadShelterList(){
     }
   
   } catch (err) {
-        console.error('詳細情報の取得エラー:', err);
+      console.error('詳細情報の取得エラー:', err);
     }
 
     // 保護情報更新

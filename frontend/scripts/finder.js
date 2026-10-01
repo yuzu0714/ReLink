@@ -14,6 +14,7 @@ const S = {
 };
 
 const screen = document.getElementById('screen');
+const homeMarkup = screen.innerHTML; // finder.htmlの静的HTMLをホーム画面として保存しておく
 const $ = (h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild;};
 
 // hidden file input for photo uploads
@@ -63,66 +64,74 @@ const screens = {
       <div>
         <div class="eyebrow">STEP 1 / 撮影</div>
         <h2 class="title" style="font-size:19px">${finder?'保護したペットを撮る':'手持ちの写真をアップ'}</h2>
-        <div class="lede" style="color:#e91e8c;font-weight:600">角度を変えた写真（正面、横、斜めなど）を複数枚登録すると精度が上がります。</div>
+        <div class="lede">全体像と、首輪がはっきり写った写真があるほど精度が上がります。事前登録は不要です。</div>
       </div>
 
-      <div class="imgbox" onclick="addPhoto()">
-        <div class="big">📸</div>
-        <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
+      <div class="register-grid">
+
+        <div class="register-photo">
+          <div class="imgbox" onclick="addPhoto()">
+            <div class="big"><i class="fa-solid fa-images"></i></div>
+            <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
+          </div>
+          <div class="thumbs" id="thumbs">${renderThumbs()}</div>
+
+          <button class="btn btn-ghost btn-sm" id="aiFillBtn" style="width:100%" onclick="aiAutoFill()">
+            🤖 写真からAIで自動入力（未入力の項目のみ）
+          </button>
+          <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
+        </div>
+
+        <div class="register-fields">
+          ${finder ? `
+          <div class="field"><label>発見場所</label>
+            <input class="input" id="foundPlace" value="${S.foundPlace||''}" placeholder="市区町村" oninput="setFoundPlace(this.value)"></div>
+          <div class="field"><label>発見日時</label>
+            <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate||''}" oninput="setFoundDate(this.value)"></div>
+          <button class="btn btn-primary btn-sm" id="lostMatchBtn" style="width:100%" onclick="matchLostPets()">
+            🔎 迷子報告を照合する
+          </button>
+          <div class="footnote" style="padding:0 0 4px">保護したペットの写真を迷子報告と照合します。候補が見つかった場合は登録前に確認できます。</div>
+          <div id="lostMatchResults"></div>
+          ` : `
+          <div class="field"><label>連絡先電話番号</label>
+            <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
+          `}
+
+          <div class="field"><label>種類・犬種</label>
+            <select class="input" id="specie" onchange="setSpecie(this.value)">
+              <option value="">選択してください</option>
+              <optgroup label="🐕 犬">
+                <option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option>
+                <option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option>
+                <option>パグ</option><option>秋田犬</option><option>雑種（中型）</option>
+              </optgroup>
+              <optgroup label="🐈 猫">
+                <option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option>
+                <option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option>
+                <option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option>
+                <option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option>
+                <option>猫（雑種）</option>
+              </optgroup>
+            </select></div>
+
+          <div class="field"><label>上記にない犬種・品種（任意）</label>
+            <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など" value="${S.otherSpecie||''}" oninput="setOtherSpecie(this.value)"></div>
+
+          <div class="field"><label>毛色（複数選択可）</label>
+            <div class="swatches" id="swatches">
+              ${petColors.map((c,i)=>`<div class="sw ${S.regColors.includes(i)?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
+            </div></div>
+
+          <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
+            <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="setOther(this.value)">${S.other||''}</textarea></div>
+
+          <button class="btn btn-orange" onclick="goToStep2()">
+            🐾 登録
+          </button>
+        </div>
+
       </div>
-      <div class="thumbs" id="thumbs">${renderThumbs()}</div>
-
-      <button class="btn btn-ghost btn-sm" id="aiFillBtn" style="width:100%" onclick="aiAutoFill()">
-        🤖 写真からAIで自動入力（未入力の項目のみ）
-      </button>
-      <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
-
-      ${finder ? `
-      <div class="field"><label>発見場所</label>
-        <input class="input" id="foundPlace" value="${S.foundPlace||''}" placeholder="市区町村" oninput="setFoundPlace(this.value)"></div>
-      <div class="field"><label>発見日時</label>
-        <input class="input" id="foundDate" type="datetime-local" value="${S.foundDate||''}" oninput="setFoundDate(this.value)"></div>
-      <button class="btn btn-primary btn-sm" id="lostMatchBtn" style="width:100%" onclick="matchLostPets()">
-        🔎 迷子報告を照合する
-      </button>
-      <div class="footnote" style="padding:0 0 4px">保護したペットの写真を迷子報告と照合します。候補が見つかった場合は登録前に確認できます。</div>
-      <div id="lostMatchResults"></div>
-      ` : `
-      <div class="field"><label>連絡先電話番号</label>
-        <input class="input" type="tel" value="090-1234-5678" placeholder="090-0000-0000"></div>
-      `}
-
-      <div class="field"><label>種類・犬種</label>
-        <select class="input" id="specie" onchange="setSpecie(this.value)">
-          <option value="">選択してください</option>
-          <optgroup label="🐕 犬">
-            <option>柴犬</option><option>トイプードル</option><option>ドーベルマン</option><option>チワワ</option>
-            <option>ゴールデン・レトリバー</option><option>ボーダー・コリー</option><option>ハスキー</option>
-            <option>パグ</option><option>秋田犬</option><option>雑種（中型）</option>
-          </optgroup>
-          <optgroup label="🐈 猫">
-            <option>アメリカン・ショートヘア</option><option>スコティッシュ・フォールド</option><option>マンチカン</option>
-            <option>ペルシャ</option><option>ロシアン・ブルー</option><option>シャム</option>
-            <option>ノルウェージアン・フォレスト・キャット</option><option>メインクーン</option><option>ラグドール</option>
-            <option>ブリティッシュ・ショートヘア</option><option>アビシニアン</option><option>ベンガル</option>
-            <option>猫（雑種）</option>
-          </optgroup>
-        </select></div>
-
-      <div class="field"><label>上記にない犬種・品種（任意）</label>
-        <input class="input" id="otherSpecie" type="text" placeholder="例）ビーグル、ミックス犬など" value="${S.otherSpecie||''}" oninput="setOtherSpecie(this.value)"></div>
-
-      <div class="field"><label>毛色（複数選択可）</label>
-        <div class="swatches" id="swatches">
-          ${petColors.map((c,i)=>`<div class="sw ${S.regColors.includes(i)?'on':''}" style="background:${c}" onclick="pickColor(${i})"></div>`).join('')}
-        </div></div>
-
-      <div class="field"><label>そのほか（アレルギー・伝えたいこと）</label>
-        <textarea class="input" id="other" placeholder="例）左耳が欠けている。人懐っこい。" oninput="setOther(this.value)">${S.other||''}</textarea></div>
-
-      <button class="btn btn-magenta" onclick="goToStep2()">
-        🐾 登録
-      </button>
       <div class="footnote">条件で絞り込んだ後、画像識別モデルが特徴を照合します。</div>
     </div>`;
   },
@@ -512,11 +521,11 @@ const screens = {
             <div class="desc">引き渡しの記録を確認できます。</div>
           </div>
         </div>
-        <div class="role-item" style="cursor:pointer" onclick="go('notificationList')">
-          <div class="emo">🔔</div>
+        <div class="role-item" style="cursor:pointer" onclick="window.location.href='chat.html'">
+          <div class="emo">💬</div>
           <div>
-            <div class="title">お知らせ</div>
-            <div class="desc">マッチング結果と引き渡し通知を確認します。</div>
+            <div class="title">保護団体とチャット</div>
+            <div class="desc">保護団体を選んでメッセージを送れます。</div>
           </div>
         </div>
       </div>
@@ -527,10 +536,14 @@ const screens = {
 };
 
 function go(name){
-if (!screen) return;
-screen.scrollTop = 0;
-screen.innerHTML = screens[name]();
-if (name === 'step2' && typeof initStep2 === 'function') initStep2();
+  if (!screen) return;
+  screen.scrollTop = 0;
+  if (name === 'finder') {
+    screen.innerHTML = homeMarkup;
+  } else {
+    screen.innerHTML = screens[name]();
+  }
+  if (name === 'step2' && typeof initStep2 === 'function') initStep2();
 }
 
 // 発見場所・発見日時・種類・そのほか欄の入力を S に反映するための関数。

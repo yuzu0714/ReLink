@@ -7,65 +7,78 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
-<body class="shelter-page">
+<body>
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>保護団体向け</h1>
           <div class="spacer"></div>
-          <span class="role-chip">Shelter</span>
+          <span class="role-chip">保護団体</span>
         </div>
 
         <div class="pad stack">
-          <div class="hero-banner">
+          <div class="hero-banner login-welcome">
             <div class="hi">保護団体向け機能</div>
             <div class="hn">保護中のペットを一覧で管理できます。</div>
             <div class="hs">照合状況やお知らせをまとめて確認できます。</div>
           </div>
 
-          <div class="stack">
+          <div class="stack nav-grid">
             <div class="card card-nav" onclick="location.href='shelter-list.html'">
-              <div class="ic">📋</div>
+              <div class="ic"><i class="fa-solid fa-paw"></i></div>
               <div>
-                <div class="t">保護ペット一覧</div>
-                <div class="d">現在保護中のペットを確認・照合</div>
+                <div class="title">保護ペット一覧</div>
+                <div class="desc">現在保護中のペットを確認・照合</div>
               </div>
-              <div class="arr">›</div>
             </div>
 
-            <div class="card card-nav" onclick="location.href='register.html'">
-              <div class="ic">📷</div>
+            <div class="role-item" style="cursor:pointer" onclick="location.href='register.html'">
+              <div class="emo"><i class="fa-solid fa-camera"></i></div>
               <div>
-                <div class="t">新規保護を登録</div>
-                <div class="d">保護したペットを撮影して登録</div>
+                <div class="title">新規保護を登録</div>
+                <div class="desc">保護したペットを撮影して登録</div>
+              </div>
+            </div>
+
+            <div class="card card-nav" onclick="location.href='handover.html'">
+              <div class="ic"><i class="fa-solid fa-handshake"></i></div>
+              <div>
+                <div class="t">受け渡しを記録</div>
+                <div class="d">引き渡し記録を登録・一覧確認</div>
               </div>
               <div class="arr">›</div>
             </div>
 
             <div class="card card-nav" onclick="location.href='notify.html'">
-              <div class="ic">🔔</div>
+              <div class="ic"><i class="fa-solid fa-bell"></i></div>
               <div>
-                <div class="t">お知らせ</div>
-                <div class="d">マッチング結果と受け渡し通知</div>
+                <div class="title">お知らせ</div>
+                <div class="desc">マッチング結果と受け渡し通知</div>
               </div>
-              <div class="arr">›</div>
             </div>
+
 
           </div>
 
-          <div class="stack">
-            <a class="btn btn-primary" href="login.html">ログアウト</a>
-            <button class="btn btn-ghost" type="button" onclick="switchRole()">役割を切り替える</button>
+          <div class="link-row">
+            <a class="btn btn-orange" data-owner-action="logout" href="login.html">
+              ログアウト
+            </a>
+
+            <button class="btn btn-orange" data-owner-action="switch-role">
+              役割を切り替える
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/shelter.js"></script>

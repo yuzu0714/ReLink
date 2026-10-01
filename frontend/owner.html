@@ -7,68 +7,68 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body data-page="owner" class="owner-page">
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>飼い主向け</h1>
           <div class="spacer"></div>
-          <span class="role-chip">Owner</span>
+          <span class="role-chip">飼い主</span>
         </div>
 
         <div class="pad stack">
-          <div class="hero-banner">
+          <div class="hero-banner login-welcome">
             <div class="hi">飼い主向け機能</div>
             <div class="hn">迷子のペットをすばやく登録できます。</div>
             <div class="hs">通知とマッチングの状況を確認して、安心して待てます。</div>
           </div>
 
-          <div class="owner-actions">
+          <div class="owner-actions nav-grid">
             <a class="card card-nav owner-action" href="owner-register.html">
-              <div class="emo">📷</div>
+              <div class="emo"><i class="fa-solid fa-camera"></i></div>
               <div>
                 <div class="t">ペット情報を登録</div>
-                <div class="d">迷子のペットの写真をアップして照合を開始</div>
+                <div class="d">迷子のペットの写真をアップ＆照合開始</div>
               </div>
-              <div class="arr">›</div>
             </a>
             <a class="card card-nav owner-action" href="owner-pet.html">
-              <div class="emo">🐕</div>
+              <div class="emo"><i class="fa-solid fa-list"></i></div>
               <div>
                 <div class="t">登録したペット</div>
                 <div class="d">登録済みのペット情報を確認できます。</div>
               </div>
               <div class="arr">›</div>
             </a>
-
             <div class="card card-nav owner-action" data-owner-action="notice-list">
-              <div class="ic owner-notice-icon">🐕</div>
+              <div class="ic owner-notice-icon"><i class="fa-solid fa-bell"></i></div>
               <div>
-                <div class="t">お知らせ一覧</div>
-                <div class="d">最新の照合・保護情報をまとめて確認</div>
+                <div class="title">お知らせ一覧</div>
+                <div class="desc">最新の照合・保護情報をまとめて確認</div>
               </div>
-              <div class="arr">›</div>
             </div>
+
           </div>
 
-          <div class="stack">
-          <a class="btn btn-primary" data-owner-action="logout" href="login.html">
-            ログアウト
-          </a>
+          <div class="link-row">
+            <a class="btn btn-orange" data-owner-action="logout" href="login.html">
+              ログアウト
+            </a>
 
-          <button class="btn btn-ghost" data-owner-action="switch-role">
-            役割を切り替える
-          </button>
-        </div>
+            <button class="btn btn-orange" data-owner-action="switch-role">
+              役割を切り替える
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-    <script src="scripts/config.js"></script>
+  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/owner.js"></script>

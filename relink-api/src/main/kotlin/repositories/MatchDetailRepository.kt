@@ -33,6 +33,7 @@ data class MatchedPetDetail(
 
 @Serializable
 data class ContactDetail(
+    val userId: Long?,
     val email: String?,
     val displayName: String?,
     val role: String?
@@ -102,12 +103,13 @@ object MatchDetailRepository {
                 .where { UserTable.id eq uid }
                 .firstOrNull()?.let { u ->
                     ContactDetail(
+                        userId      = uid,
                         email       = u[UserTable.email],
                         displayName = u[UserTable.displayName],
                         role        = u[UserTable.role]
                     )
                 }
-        } ?: ContactDetail(null, null, null)
+        } ?: ContactDetail(null, null, null, null)
 
         MatchDetailResponse(
             matchId         = matchId,

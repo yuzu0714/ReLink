@@ -45,7 +45,7 @@ class StorageService(
         contentType: String
     ): String {
         val objectPath = fileName
-
+        
         val response = client.put(
             "$supabaseUrl/storage/v1/object/$bucketName/$objectPath"
         ) {
