@@ -5,7 +5,7 @@ import io
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # ↓もしrelink-apiフォルダの外(リポジトリルート)で実行するならこのパス調整は不要かも、
 # common.pyがある場所に合わせて調整してね
 

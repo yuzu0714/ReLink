@@ -48,6 +48,7 @@ cd relink-api
 ①とは別のターミナルを起動して、以下を実行してください。
 
 ```
+cd ai
 uvicorn match_api:app --host 0.0.0.0 --port 8000
 ```
 
