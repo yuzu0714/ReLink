@@ -12,6 +12,7 @@ import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
+import com.models.VoiceUploadResponse
 import com.models.RegisterRequest
 import com.models.LoginRequest
 import com.models.AuthResponse
@@ -42,8 +43,18 @@ import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
 import com.models.HandoverRequest
+import com.models.OwnerPetListItem
+import com.models.OwnerPetListResponse
 import com.repositories.HandoverRepository
+import com.repositories.PetPhotoRepository
+import com.db.LostPetRegisterTable
+import com.repositories.ChatRepository
+import com.models.ChatContactsResponse
+import com.models.ChatMessageRequest
+import com.models.ChatMessagesResponse
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureRouting() {
     routing {
@@ -97,6 +108,58 @@ fun Application.configureRouting() {
 
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
+            }
+            
+            post("/pets/voice") {
+                val multipart = call.receiveMultipart()
+                var fileBytes: ByteArray? = null
+                var fileName = ""
+                var contentType = "audio/webm"
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "voice.webm")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        contentType = part.contentType?.toString() ?: contentType
+                        fileBytes = part.provider().readRemaining().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (fileBytes == null) {
+                    throw IllegalArgumentException("音声ファイルが見つかりません")
+                }
+
+                val voiceUrl = storageService.uploadVoice(
+                    fileName,
+                    fileBytes!!,
+                    contentType
+                )
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    VoiceUploadResponse(voiceUrl)
+                )
+            }
+            
+            get("/pets/{petId}/voice") {
+                val petId = call.parameters["petId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("petIdは数値で指定してください")
+
+                val voiceUrl = transaction {
+                    LostPetRegisterTable
+                        .selectAll()
+                        .where { LostPetRegisterTable.id eq petId }
+                        .firstOrNull()
+                        ?.get(LostPetRegisterTable.voiceUrl)
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf("voiceUrl" to voiceUrl)
+                )
             }
 
             post("/pets/extract-features") {
@@ -214,6 +277,42 @@ fun Application.configureRouting() {
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
             }
+            
+            /*★新規追加
+             * JWTトークンからログイン情報を取得
+             * 飼い主のペットを取得
+             */
+            get("/pets/lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "owner") {
+                    throw ForbiddenException("この操作にはowner権限が必要です")
+                }
+
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()//ログイン中のユーザーIDを取得
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val pets = LostPetRepository.findByUserId(userId)
+
+                val petItems = pets.map { pet ->
+                    val photos = PetPhotoRepository.findByPet("lost", pet.id)//ペットの写真を取得
+                    val firstPhoto = photos.firstOrNull()?.photoUrl
+                    OwnerPetListItem(
+                        photoUrl = firstPhoto,
+                        id = pet.id,
+                        specie = pet.specie,
+                        color = pet.color,
+                        lostPlace = pet.lostPlace,
+                        other = null
+                    )
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    OwnerPetListResponse(pets = petItems)
+                )
+            }
 
             get("/notifications") {
                 val principal = call.principal<JWTPrincipal>()
@@ -221,6 +320,62 @@ fun Application.configureRouting() {
                     ?: throw IllegalArgumentException("userId が取得できません")
                 val notifications = NotificationRepository.findByUser(userId)
                 call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
+            }
+
+            patch("/notifications/{id}/read") {
+                val notificationId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください")
+                NotificationRepository.markAsRead(notificationId)
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
+            get("/chat/contacts") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatContactsResponse(contacts = ChatRepository.findContacts(userId, role))
+                )
+            }
+
+            get("/chat/conversations/{userId}/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val otherUserId = call.parameters["userId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userIdは数値で指定してください")
+
+                if (userId == otherUserId || !ChatRepository.canChat(role, otherUserId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatMessagesResponse(
+                        messages = ChatRepository.findConversation(userId, otherUserId)
+                    )
+                )
+            }
+
+            post("/chat/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val request = call.receive<ChatMessageRequest>()
+                val message = request.message.trim()
+
+                if (message.isBlank()) {
+                    throw IllegalArgumentException("メッセージを入力してください")
+                }
+                if (message.length > 500) {
+                    throw IllegalArgumentException("メッセージは500文字以内で入力してください")
+                }
+                if (userId == request.receiverId || !ChatRepository.canChat(role, request.receiverId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    ChatRepository.insertMessage(userId, request.receiverId, message)
+                )
             }
 
             get("/matches/{matchId}/detail") {
@@ -313,6 +468,27 @@ fun Application.configureRouting() {
             )
         }
     }
+}
+
+private fun authenticatedUserId(call: ApplicationCall): Long =
+    call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("userId")
+        ?.asString()
+        ?.toLongOrNull()
+        ?: throw IllegalArgumentException("userId が取得できません")
+
+private fun requireChatRole(call: ApplicationCall): String {
+    val role = call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("role")
+        ?.asString()
+
+    if (role == null || role !in setOf("owner", "finder", "shelter")) {
+        throw ForbiddenException("チャット機能には有効な利用者権限が必要です")
+    }
+
+    return role
 }
 
 @Serializable

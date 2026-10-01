@@ -17,6 +17,26 @@ fun Application.configureDatabases() {
         password = dotenv["DATABASE_PASSWORD"]
     )
 
+    transaction {
+        exec(
+            """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id BIGSERIAL PRIMARY KEY,
+                sender_id BIGINT NOT NULL REFERENCES users(id),
+                receiver_id BIGINT NOT NULL REFERENCES users(id),
+                message TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """.trimIndent()
+        )
+        exec(
+            """
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
+            ON chat_messages (sender_id, receiver_id, created_at)
+            """.trimIndent()
+        )
+    }
+
     routing {
         get("/db-test") {
             try {

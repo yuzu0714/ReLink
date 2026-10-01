@@ -39,16 +39,12 @@
         <div class="pad stack fade">
 
             <div class="pet-main">
-                <div class="pet-photo" id="petPhoto">
-                🐕
-                </div>
+                <div class="pet-photo" id="petPhoto"></div>
             
                 <div class="pet-detail-info">
 
                     <div class="pet-title">
-                        <h2 class="title" id="petName">
-                            保護 #A21
-                        </h2>
+                        <h2 class="title" id="petName"></h2>
                         <span class="pill" id="petStatus">
                             照合中
                         </span>
@@ -57,43 +53,45 @@
                     <div class="card stack pet-info">
                         <div class="info-row">
                             <span class="lede">種類</span>
-                            <b id="petBreed">柴犬 / オス</b>
+                            <b id="petBreed"></b>
                         </div>
 
                         <div class="info-row">
                             <span class="lede">毛色</span>
-                            <b id="petColor">薄い茶色・白</b>
-                        </div>
-
-                        <div class="info-row">
-                            <span class="lede">首輪</span>
-                            <b id="petCollar">赤い革製</b>
+                            <b id="petColor"></b>
                         </div>
 
                         <div class="info-row">
                             <span class="lede">発見場所</span>
-                            <b id="petLocation">○○市○○町</b>
+                            <b id="petLocation"></b>
                         </div>
 
                         <div class="info-row">
                             <span class="lede">保護日</span>
-                            <b id="petDate">2026/07/06</b>
+                            <b id="petDate"></b>
                         </div>
+
+                        <div class="info-row">
+                            <span class="lede">その他</span>
+                            <b id="petCollar"></b>
+                        </div>
+          
+                    </div>
+                    <div class="card stack" id="petVoiceSection" style="display:none;">
+                      <div class="section-title">
+                          飼い主の音声
+                      </div>
+
+                      <p class="lede">
+                          飼い主が登録したペットの呼びかけ音声です。
+                      </p>
+
+                      <audio id="petVoicePlayer" controls style="width:100%;">
+                          お使いのブラウザでは音声を再生できません。
+                      </audio>
                     </div>
                 </div>
             </div>
-
-          <div>
-
-            <div class="section-title">
-              発見場所
-            </div>
-
-            <div class="map" id="map">
-              Google Maps
-            </div>
-
-          </div>
 
           <button
             class="btn btn-orange"
@@ -107,8 +105,10 @@
     </div>
   </div>
 
-
-  <script src="demo.js"></script>
+  <script src="scripts/config.js"></script>
+  <script src="scripts/common.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script src="scripts/shelter.js"></script>
 
 </body>
 </html>

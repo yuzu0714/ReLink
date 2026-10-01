@@ -2,8 +2,30 @@
    環境設定ファイル — ここだけ書き換えれば切り替わります
    ===================================================== */
 
-// ローカル開発
-const API_BASE = 'http://localhost:8080';
+// ========== 使い方 ==========
+//
+// 【ブラウザだけで確認する場合（PC）】
+//   → API_BASE = 'http://localhost:8080' のままでOK
+//
+// 【スマホから同じWi-Fiで確認する場合】
+//   1. PCのIPアドレスを調べる
+//      Mac: ターミナルで ipconfig getifaddr en0
+//      Win: コマンドプロンプトで ipconfig → IPv4アドレス
+//   2. 下の LAN_IP をそのIPアドレスに書き換える
+//   3. USE_LAN を true にする
+//   4. スマホのブラウザで http://<そのIP>:5500/finder.html などを開く
+//
+// 【本番サーバーへ接続する場合】
+//   USE_LAN を false にして、下の PROD_IP 行のコメントを外す
+//
+// ============================
 
-// 本番サーバー
+const USE_LAN = false;               // ← スマホ確認時は true にする
+const LAN_IP  = '192.168.0.165';     // ← PCのIPアドレスに書き換える
+
+const API_BASE = USE_LAN
+  ? `http://${LAN_IP}:8080`
+  : 'http://localhost:8080';
+
+// 本番サーバーへ接続する場合は、上の API_BASE を以下に差し替える
 // const API_BASE = 'http://157.17.49.232:8080';

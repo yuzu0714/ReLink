@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body data-page="owner" class="owner-page">
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>飼い主向け</h1>
@@ -30,32 +31,33 @@
 
           <div class="owner-actions nav-grid">
             <a class="card card-nav owner-action" href="owner-register.html">
-              <div class="emo">📷</div>
+              <div class="emo"><i class="fa-solid fa-camera"></i></div>
               <div>
                 <div class="t">ペット情報を登録</div>
                 <div class="d">迷子のペットの写真をアップ＆照合開始</div>
               </div>
               <div class="arr">›</div>
             </a>
-            <div class="card card-nav owner-action" data-owner-action="notify">
-              <div class="emo">🔔</div>
+            <a class="card card-nav owner-action" href="owner-pet.html">
+              <div class="emo"><i class="fa-solid fa-list"></i></div>
               <div>
-                <div class="t">通知を確認</div>
-                <div class="d">似たペットが保護されたら通知されます</div>
+                <div class="t">登録したペット</div>
+                <div class="d">登録済みのペット情報を確認できます。</div>
               </div>
               <div class="arr">›</div>
-            </div>
+            </a>
             <div class="card card-nav owner-action" data-owner-action="notice-list">
-              <div class="ic owner-notice-icon">🐕</div>
+              <div class="emo owner-notice-icon"><i class="fa-solid fa-bell"></i></div>
               <div>
                 <div class="t">お知らせ一覧</div>
                 <div class="d">最新の照合・保護情報をまとめて確認</div>
               </div>
               <div class="arr">›</div>
             </div>
+
           </div>
 
-          <div class="link-row">
+          <div class="link-row" style="max-width:880px;margin-left:auto;margin-right:auto">
             <a class="btn btn-orange" data-owner-action="logout" href="login.html">
               ログアウト
             </a>
@@ -68,7 +70,9 @@
       </div>
     </div>
   </div>
+  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
+  <script src="scripts/location-autocomplete.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/heic-to@1.4.2/dist/iife/heic-to.js"></script>
   <script src="scripts/owner.js"></script>

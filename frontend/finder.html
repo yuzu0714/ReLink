@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body data-page="finder">
   <div class="stage">
@@ -31,7 +32,7 @@
 
           <div class="role-list nav-grid">
             <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('register')">
-              <div class="emo">📸</div>
+              <div class="emo"><i class="fa-solid fa-camera"></i></div>
               <div>
                 <div class="t">ペットを保護・撮影</div>
                 <div class="d">全体像と首輪の写真を追加</div>
@@ -39,24 +40,25 @@
               <div class="arr">›</div>
             </div>
             <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('handoverList')">
-              <div class="emo">🔄</div>
+              <div class="emo"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
               <div>
                 <div class="t">受け渡し記録</div>
                 <div class="d">引き渡しの記録を確認</div>
               </div>
               <div class="arr">›</div>
             </div>
-            <div class="card card-nav owner-action" style="cursor:pointer" onclick="go('notificationList')">
-              <div class="emo">🔔</div>
+            <div class="card card-nav owner-action" style="cursor:pointer" onclick="window.location.href='notify.html'">
+              <div class="emo"><i class="fa-solid fa-bell"></i></div>
               <div>
                 <div class="t">お知らせ</div>
                 <div class="d">マッチング結果と引き渡し通知を確認</div>
               </div>
               <div class="arr">›</div>
             </div>
+
           </div>
 
-          <div class="link-row">
+          <div class="link-row" style="max-width:880px;margin-left:auto;margin-right:auto">
             <a class="btn btn-orange" data-owner-action="logout" href="login.html">
               ログアウト
             </a>
@@ -70,12 +72,12 @@
     </div>
   </div>
 
+  <script src="scripts/location-autocomplete.js"></script>
+  <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/finder.js"></script>
 </body>
 </html>
-
-
 
 

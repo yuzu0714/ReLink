@@ -71,7 +71,7 @@ const screens = {
 
         <div class="register-photo">
           <div class="imgbox" onclick="addPhoto()">
-            <div class="big">📸</div>
+            <div class="big"><i class="fa-solid fa-images"></i></div>
             <div class="cap"><b style="color:var(--navy)">タップして写真を追加</b><br>全体像 ＋ 首輪アップがおすすめ</div>
           </div>
           <div class="thumbs" id="thumbs">${renderThumbs()}</div>
@@ -494,6 +494,38 @@ const screens = {
 
       <button class="btn btn-primary" onclick="go('handoverList')">記録一覧へ戻る</button>
     </div>`;
+  },
+
+  finder(){
+    return `
+    ${appbar('発見者向け', null, S.role)}
+    <div class="pad stack fade">
+      <div class="hero-banner">
+        <div class="hi">発見者向け機能</div>
+        <div class="hn">保護したペットを撮影して照合できます。</div>
+        <div class="hs">保護場所と日時を記録して、すぐに登録に進めます。</div>
+      </div>
+
+      <div class="role-list">
+        <div class="role-item" style="cursor:pointer" onclick="go('register')">
+          <div class="emo">📸</div>
+          <div>
+            <div class="title">迷子ペットを登録</div>
+            <div class="desc">保護したペットを撮影して登録してください。</div>
+          </div>
+        </div>
+        <div class="role-item" style="cursor:pointer" onclick="go('handoverList')">
+          <div class="emo">🔄</div>
+          <div>
+            <div class="title">受け渡し記録</div>
+            <div class="desc">引き渡しの記録を確認できます。</div>
+          </div>
+        </div>
+
+      </div>
+
+      <a class="btn btn-primary" href="login.html">ホームへ戻る</a>
+    </div>`;
   }
 };
 
@@ -506,6 +538,7 @@ function go(name){
     screen.innerHTML = screens[name]();
   }
   if (name === 'step2' && typeof initStep2 === 'function') initStep2();
+  if (name === 'register' && typeof initLocationAutocomplete === 'function') initLocationAutocomplete('foundPlace');
 }
 
 // 発見場所・発見日時・種類・そのほか欄の入力を S に反映するための関数。

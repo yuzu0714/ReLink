@@ -94,7 +94,7 @@ function initOwnerPage() {
             >
 
             <div class="imgbox" data-owner-file>
-              <div class="big">📸</div>
+              <div class="big"><i class="fa-solid fa-images"></i></div>
 
               <div class="cap">
                 <b style="color:var(--navy)">
@@ -454,6 +454,8 @@ function initOwnerPage() {
         ownerState.lostPlace = lostPlace.value;
       });
     }
+
+    if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('ownerLostPlace');
 
     //新規追加：ペットの正式名称を保存
     const petNameInput = document.getElementById('ownerPetName');

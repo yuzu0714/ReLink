@@ -8,41 +8,285 @@
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/pages.css">
     <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <style>
-        .notify-empty {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--color-text-secondary, #888);
-            font-size: 14px;
+        /* ── スクロール固定 ──────────────────────────────────────────
+           pc.css は「html body .screen { height:auto; min-height:100vh }」を
+           持つため .notif-screen の height:100dvh が上書きされてしまう。
+           ここで同じ詳細度 + 後勝ち で再上書きし、body のスクロールを封じる。
+        ─────────────────────────────────────────────────────────── */
+        html, body {
+            overflow: hidden;
+            height: 100%;
         }
-        .notify-loading {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--color-text-secondary, #888);
-            font-size: 14px;
+        html body .notif-screen {
+            height: 100dvh;
+            min-height: 0;
+            overflow: hidden;
         }
+
+        /* ===================== チャット分割パネル =====================
+           各要素を flex チェーンで固定し、スクロール領域を明示する。
+           min-height:0 は flex 子要素がコンテンツ高を超えて縮めるために必須。
+        ============================================================== */
+
+        /* チャットセクション本体
+           display は .notif-sec { display:none } / .notif-sec.active { display:flex }
+           が制御するため、ここでは display を書かない（書くと display:none が上書きされる）。
+           active 時に flex column + overflow:hidden + min-height:0 は
+           pages.css の .notif-sec.active が既に付与している。          */
+        .notif-chat-sec {
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* 左右2分割コンテナ */
+        .chat-split {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* ─────────── 左：コンタクト一覧（固定幅・縦スクロール） ─────────── */
+        .chat-split-contacts {
+            width: 240px;
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;          /* 自身ははみ出さない */
+            border-right: 1px solid #dbeafe;
+            background: #f8faff;
+        }
+        .chat-contacts-header {
+            flex: none;                /* ヘッダーは固定 */
+            padding: 12px 14px 10px;
+            border-bottom: 1px solid #dbeafe;
+        }
+        /* ヘッダー直下の可変領域がスクロールする */
+        .chat-contacts-body {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .chat-contact-item {
+            display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            cursor: pointer; border-bottom: 1px solid #f0f4f8;
+            transition: background 0.12s; width: 100%;
+            background: none; border-left: 3px solid transparent;
+            text-align: left; font: inherit; outline: none;
+        }
+        .chat-contact-item:hover { background: #eff6ff; border-left-color: #93c5fd; }
+        .chat-contact-item.active { background: #dbeafe; border-left-color: #3b82f6; }
+        .chat-contact-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #dbeafe; color: var(--navy);
+            display: grid; place-items: center; font-size: 18px; flex: none;
+        }
+        .chat-contact-info { flex: 1; min-width: 0; }
+        .chat-contact-name {
+            font-weight: 700; font-size: 13.5px; color: #1e3a5f;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .chat-contact-sub { font-size: 11px; color: #64748b; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chat-contacts-empty, .chat-contacts-loading {
+            text-align: center; padding: 32px 12px; color: #94a3b8; font-size: 13px;
+        }
+
+        /* ─────────── 右：チャットルーム（3段 flex column） ─────────── */
+        .chat-split-room {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        /* プレースホルダー（相手未選択時） */
+        .chat-placeholder {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 12px; color: #94a3b8; font-size: 14px;
+        }
+        .chat-placeholder-icon { font-size: 52px; opacity: 0.5; }
+
+        /* ヘッダー行（固定） */
+        .split-room-head {
+            flex: none;
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #dbeafe;
+            background: #f8faff;
+        }
+        .split-room-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #dbeafe; color: var(--navy);
+            display: grid; place-items: center; font-size: 16px; flex: none;
+        }
+        .split-room-name { font-weight: 800; font-size: 15px; color: #1e3a5f; flex: 1; }
+
+        /* メッセージ一覧（可変・縦スクロール） */
+        .split-room-messages {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .split-bubble {
+            max-width: 75%; padding: 9px 13px; border-radius: 14px;
+            font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+            display: flex; flex-direction: column; gap: 3px;
+        }
+        .split-bubble.them { align-self: flex-start; background: #f0f2f7; color: #1e3a5f; }
+        .split-bubble.me   { align-self: flex-end;   background: var(--orange, #f97316); color: #fff; }
+        .split-bubble-time { font-size: 10px; opacity: 0.62; align-self: flex-end; }
+        .split-bubble.them .split-bubble-time { align-self: flex-start; }
+
+        /* 送信フォーム（固定・常に最下部） */
+        .split-room-form {
+            flex: none;
+            display: flex; gap: 8px;
+            padding: 10px 14px;
+            border-top: 1px solid #dbeafe;
+            background: #fff;
+        }
+        .split-room-form .input { flex: 1; }
+        .split-room-form .btn  { flex: none; width: auto; padding: 0 18px; }
+        .split-msg-empty, .split-msg-loading {
+            text-align: center; padding: 40px 16px; color: #94a3b8; font-size: 13px;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 600px) {
+            .chat-split-contacts { width: 64px; }
+            .chat-contact-info   { display: none; }
+            .chat-contact-avatar { margin: 0 auto; }
+            .chat-contacts-header { display: none; }
+            .chat-contact-item   { justify-content: center; padding: 10px 4px; }
+        }
+    
+        /* thin gray scrollbars */
+        .chat-contacts-body::-webkit-scrollbar,
+        .split-room-messages::-webkit-scrollbar { width: 4px; }
+        .chat-contacts-body::-webkit-scrollbar-track,
+        .split-room-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-contacts-body::-webkit-scrollbar-thumb,
+        .split-room-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e1; border-radius: 2px;
+        }
+        .chat-contacts-body::-webkit-scrollbar-thumb:hover,
+        .split-room-messages::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* search input */
+        .chat-contacts-title {
+            font-size: 11px; font-weight: 800;
+            letter-spacing: 0.08em; color: #64748b; text-transform: uppercase;
+        }
+        .chat-contacts-search {
+            display: block; width: 100%; margin-top: 8px;
+            padding: 5px 10px; font-size: 12px;
+            border: 1px solid #dbeafe; border-radius: 8px;
+            background: #fff; color: #1e3a5f;
+            outline: none; box-sizing: border-box;
+        }
+        .chat-contacts-search:focus { border-color: #3b82f6; }
+
     </style>
 </head>
 
-<body data-page="notify">
-    <main class="screen">
+<body data-page="notify" >
+    <main class="screen notif-screen">
 
-        <!-- 共通ヘッダー -->
-        <div class="appbar">
+        <!-- ヘッダー -->
+        <div class="appbar notif-appbar">
             <button class="back" onclick="history.back()">‹</button>
-            <h1>お知らせ</h1>
+            <h1 id="notif-title">受信トレイ</h1>
             <div class="spacer"></div>
         </div>
 
-        <!-- お知らせ一覧 (JSで描画) -->
-        <div class="pad stack notify-pad" id="notify-list">
-            <div class="notify-loading">読み込み中...</div>
-        </div>
+        <!-- 本体：左サイドバー＋右コンテンツ -->
+        <div class="notif-body">
+
+            <!-- 左サイドメニュー -->
+            <nav class="notif-sidenav">
+                <button class="nnav-btn active" data-sec="inbox" data-title="受信トレイ">
+                    <i data-lucide="inbox" class="nnav-icon"></i>
+                    <span class="nnav-label">受信トレイ</span>
+                </button>
+                <button class="nnav-btn" data-sec="similar" data-title="似たペットの確認">
+                    <i data-lucide="paw-print" class="nnav-icon"></i>
+                    <span class="nnav-label">似たペットの確認</span>
+                </button>
+                <button class="nnav-btn" data-sec="chat" data-title="チャット">
+                    <i data-lucide="message-circle" class="nnav-icon"></i>
+                    <span class="nnav-label">チャット</span>
+                </button>
+                <button class="nnav-btn" data-sec="trash" data-title="ゴミ箱">
+                    <i data-lucide="trash-2" class="nnav-icon"></i>
+                    <span class="nnav-label">ゴミ箱</span>
+                </button>
+
+            </nav>
+
+            <!-- 右コンテンツエリア -->
+            <div class="notif-content">
+
+                <!-- セクション：受信トレイ -->
+                <section class="notif-sec active" id="sec-inbox">
+                    <div class="notif-list" id="notify-list">
+                        <div class="notif-loading">読み込み中...</div>
+                    </div>
+                </section>
+
+                <!-- セクション：似たペットの確認 -->
+                <section class="notif-sec" id="sec-similar">
+                    <div class="notif-list" id="similar-list">
+                        <div class="notif-loading">読み込み中...</div>
+                    </div>
+                </section>
+
+                <!-- セクション：チャット（左:コンタクト一覧 / 右:チャットルーム） -->
+                <section class="notif-sec notif-chat-sec" id="sec-chat">
+                    <div class="chat-split">
+                        <!-- 左サブパネル：チャット相手一覧 -->
+                        <div class="chat-split-contacts" id="chat-contact-list">
+                            <div class="chat-contacts-header">
+                            <div class="chat-contacts-title">チャット</div>
+                            <input class="chat-contacts-search" type="text"
+                                   placeholder="アカウント名を検索..." autocomplete="off">
+                        </div>
+                            <div class="chat-contacts-body">
+                                <div class="chat-contacts-loading">読み込み中...</div>
+                            </div>
+                        </div>
+                        <!-- 右サブパネル：チャットルーム -->
+                        <div class="chat-split-room" id="chat-split-room">
+                            <div class="chat-placeholder">
+                                <div class="chat-placeholder-icon">💬</div>
+                                <div>チャット相手を選択してください</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- セクション：ゴミ箱 -->
+                <section class="notif-sec" id="sec-trash">
+                    <div class="notif-list" id="trash-list"></div>
+                </section>
+
+
+            </div><!-- /notif-content -->
+        </div><!-- /notif-body -->
 
     </main>
 
+    <script src="scripts/config.js"></script>
     <script src="scripts/common.js"></script>
-  <script src="scripts/auth.js"></script>
-  <script src="scripts/notification.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/notification.js"></script>
+    <script src="scripts/notif-chat.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

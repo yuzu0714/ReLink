@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
   <div class="stage">
     <div class="phone">
       <div class="notch"></div>
-      <div class="screen">
+      <div class="screen" id="screen">
         <div class="appbar">
           <a class="back" href="login.html">‹</a>
           <h1>保護団体向け</h1>
@@ -30,7 +31,7 @@
 
           <div class="stack nav-grid">
             <div class="card card-nav" onclick="location.href='shelter-list.html'">
-              <div class="ic">📋</div>
+              <div class="ic"><i class="fa-solid fa-paw"></i></div>
               <div>
                 <div class="t">保護ペット一覧</div>
                 <div class="d">現在保護中のペットを確認・照合</div>
@@ -38,8 +39,8 @@
               <div class="arr">›</div>
             </div>
 
-            <div class="card card-nav" onclick="location.href='register.html'">
-              <div class="ic">📷</div>
+            <div class="card card-nav" style="cursor:pointer" onclick="location.href='register.html'">
+              <div class="ic"><i class="fa-solid fa-camera"></i></div>
               <div>
                 <div class="t">新規保護を登録</div>
                 <div class="d">保護したペットを撮影して登録</div>
@@ -48,7 +49,7 @@
             </div>
 
             <div class="card card-nav" onclick="location.href='handover.html'">
-              <div class="ic">🤝</div>
+              <div class="ic"><i class="fa-solid fa-handshake"></i></div>
               <div>
                 <div class="t">受け渡しを記録</div>
                 <div class="d">引き渡し記録を登録・一覧確認</div>
@@ -57,7 +58,7 @@
             </div>
 
             <div class="card card-nav" onclick="location.href='notify.html'">
-              <div class="ic">🔔</div>
+              <div class="ic"><i class="fa-solid fa-bell"></i></div>
               <div>
                 <div class="t">お知らせ</div>
                 <div class="d">マッチング結果と受け渡し通知</div>
@@ -65,9 +66,10 @@
               <div class="arr">›</div>
             </div>
 
+
           </div>
 
-          <div class="link-row">
+          <div class="link-row" style="max-width:880px;margin-left:auto;margin-right:auto">
             <a class="btn btn-orange" data-owner-action="logout" href="login.html">
               ログアウト
             </a>

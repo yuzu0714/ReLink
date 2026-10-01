@@ -97,6 +97,11 @@ function initLoginPage() {
           );
 
           sessionStorage.setItem(
+            'userId',
+            result.userId
+          );
+
+          sessionStorage.setItem(
             'selectedRole',
             result.role
           );
@@ -169,6 +174,7 @@ async function apiLogin(email, password, role) {
   return {
     success: true,
     token: data.token,
+    userId: data.userId,
     role: data.role
   };
 }
@@ -253,8 +259,9 @@ function initSignupPage() {
   const signupForm =
     document.getElementById('signupForm');
 
-  let selectedRole = null;
-
+  // URLパラメータ ?role=shelter のとき保護団体を初期選択
+  const _presetRole = new URLSearchParams(location.search).get('role');
+  let selectedRole = _presetRole || null;
 
   roleButtons.forEach((button) => {
 
@@ -329,6 +336,11 @@ function initSignupPage() {
         sessionStorage.setItem(
           'authToken',
           result.token
+        );
+
+        sessionStorage.setItem(
+          'userId',
+          result.userId
         );
 
         sessionStorage.setItem(
