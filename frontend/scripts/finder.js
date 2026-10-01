@@ -510,8 +510,8 @@ const screens = {
         <div class="role-item" style="cursor:pointer" onclick="go('register')">
           <div class="emo">📸</div>
           <div>
-            <div class="title">ペットを保護・撮影</div>
-            <div class="desc">全体像と首輪の写真を追加します。</div>
+            <div class="title">迷子ペットを登録</div>
+            <div class="desc">保護したペットを撮影して登録してください。</div>
           </div>
         </div>
         <div class="role-item" style="cursor:pointer" onclick="go('handoverList')">
