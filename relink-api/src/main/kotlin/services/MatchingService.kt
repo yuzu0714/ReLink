@@ -154,6 +154,10 @@ object MatchingService {
             protectedPetId = candidate.id,
             matchScore = scorePercent,
             reason = resolvedReason,
+            photoUrls = candidatePhotoUrls,
+            specie = candidate.specie,
+            color = candidate.color,
+            foundPlace = candidate.foundPlace,
         )
     }
 

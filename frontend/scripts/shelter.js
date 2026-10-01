@@ -159,14 +159,26 @@ const statusPillClass = { '照合中': 'pill', '新規': 'pill mag', '一致': '
 
 function petSwatch(id){ return petColors[Number(id) % petColors.length]; }
 
+function openShelterPetDetail(item) {
+    // matchIdがない場合に備えて、一覧で取得済みのデータをsessionStorageに保存
+    try {
+        sessionStorage.setItem('shelterPetFallback', JSON.stringify(item));
+    } catch(e) { /* sessionStorage非対応環境は無視 */ }
+    const matchId = item.matchId ?? '';
+    const lostPetId = item.lostPetId ?? '';
+    location.href = `pet_detail.html?id=${item.id}&source=${item.source}&matchId=${matchId}&lostPetId=${lostPetId}`;
+}
+
 function renderShelterCard(item, index){
     const photoStyle = item.photoUrl
         ? `background-image:url('${item.photoUrl}');background-size:cover;background-position:center`
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
+    // インラインonclickにオブジェクトを直接埋め込めないため関数経由で呼ぶ
+    // item全体はallPetsから検索する
     return `
-        <div class="match-card" onclick="location.href='pet_detail.html?id=${item.id}&source=${item.source}&matchId=${item.matchId ?? ''}&lostPetId=${item.lostPetId ?? ''}'">
+        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'))">
             <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
@@ -257,13 +269,68 @@ async function loadShelterList(){
     return;
   }
 
+  // DOM更新ヘルパー
+  function fillPetDetail({ nameText, specie, color, other, foundPlace, foundDate, statusText, photoUrl, voiceUrl }) {
+    const petName = document.getElementById('petName');
+    if (petName) petName.textContent = nameText || '保護ペット';
+
+    const petBreed = document.getElementById('petBreed');
+    if (petBreed) petBreed.textContent = specie || '種類不明';
+
+    const petColor = document.getElementById('petColor');
+    if (petColor) petColor.textContent = color || '色不明';
+
+    const petCollar = document.getElementById('petCollar');
+    if (petCollar) petCollar.textContent = other || '情報なし';
+
+    const petLocation = document.getElementById('petLocation');
+    if (petLocation) petLocation.textContent = foundPlace || '場所不明';
+
+    const petDate = document.getElementById('petDate');
+    if (petDate) petDate.textContent = foundDate || '日付不明';
+
+    const petStatus = document.getElementById('petStatus');
+    if (petStatus) petStatus.textContent = statusText || '照合中';
+
+    const petPhoto = document.getElementById('petPhoto');
+    if (petPhoto && photoUrl) {
+      petPhoto.style.backgroundImage = `url("${photoUrl}")`;
+      petPhoto.style.backgroundSize = 'cover';
+      petPhoto.style.backgroundPosition = 'center';
+      petPhoto.textContent = '';
+    }
+
+    const voiceSection = document.getElementById('petVoiceSection');
+    const voicePlayer = document.getElementById('petVoicePlayer');
+    if (voiceSection && voicePlayer) {
+      if (voiceUrl) {
+        voicePlayer.src = voiceUrl;
+        voicePlayer.load(); // ブラウザに明示的にソース変更を通知
+        voiceSection.style.display = 'block';
+
+        // 音声ロード失敗時のフォールバック表示
+        voicePlayer.onerror = () => {
+          const errMsg = voiceSection.querySelector('.voice-error');
+          if (!errMsg) {
+            const msg = document.createElement('p');
+            msg.className = 'lede voice-error';
+            msg.style.color = 'var(--magenta)';
+            msg.textContent = 'お使いのブラウザではこの音声形式を再生できません。';
+            voiceSection.appendChild(msg);
+          }
+        };
+      } else {
+        voicePlayer.removeAttribute('src');
+        voiceSection.style.display = 'none';
+      }
+    }
+  }
+
   try {
-    // 照合IDがある場合だけ照合詳細を取得
-    if (matchId && matchId !== 'null' && matchId !== 'undefined') {
+    // 照合IDがある場合：照合詳細APIから取得
+    if (matchId && matchId !== 'null' && matchId !== 'undefined' && matchId !== '') {
       const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (!res.ok) {
@@ -273,78 +340,52 @@ async function loadShelterList(){
       const detail = await res.json();
       console.log('照合詳細:', detail);
 
-      //修正：実際の保護ペット情報に変更
       const pet = detail.pet;
-
       if (pet) {
-        // ペットの名前・ID
+        fillPetDetail({
+          nameText: `保護 #${detail.matchId}`,
+          specie: pet.specie,
+          color: pet.color,
+          other: pet.other,
+          foundPlace: pet.foundPlace,
+          foundDate: pet.foundDate,
+          statusText: '一致',
+          photoUrl: pet.photoUrls && pet.photoUrls.length > 0 ? pet.photoUrls[0] : null,
+          voiceUrl: pet.voiceUrl,
+        });
+      }
+
+    } else {
+      // 照合IDがない場合：一覧取得時にsessionStorageに保存したデータを使用
+      console.log('matchIdなし → sessionStorageのフォールバックデータを使用');
+      let fallback = null;
+      try {
+        const raw = sessionStorage.getItem('shelterPetFallback');
+        if (raw) fallback = JSON.parse(raw);
+      } catch(e) { /* 無視 */ }
+
+      if (fallback && String(fallback.id) === String(petId) && fallback.source === source) {
+        fillPetDetail({
+          nameText: `保護 #${fallback.id}`,
+          specie: fallback.specie,
+          color: fallback.color,
+          other: fallback.other,
+          foundPlace: fallback.place,   // ShelterPetListItemではplaceという名前
+          foundDate: fallback.date,     // ShelterPetListItemではdateという名前
+          statusText: '照合中',
+          photoUrl: fallback.photoUrl,  // ShelterPetListItemではphotoUrl（単数）
+          voiceUrl: null,
+        });
+      } else {
+        // フォールバックデータもない場合はデフォルト表示のまま
+        console.warn('フォールバックデータが見つかりませんでした。id:', petId, 'source:', source);
         const petName = document.getElementById('petName');
-        if (petName) {
-          petName.textContent = `保護 #${detail.matchId}`;
-        }
-
-        // 種類
-        const petBreed = document.getElementById('petBreed');
-        if (petBreed) {
-          petBreed.textContent = pet.specie || '種類不明';
-        }
-
-        // 色
-        const petColor = document.getElementById('petColor');
-        if (petColor) {
-          petColor.textContent = pet.color || '色不明';
-        }
-        
-        // その他の特徴
-        const petCollar = document.getElementById('petCollar');
-        if (petCollar) {
-          petCollar.textContent = pet.other || '情報なし';
-        }
-
-        // 発見場所
-        const petLocation = document.getElementById('petLocation');
-        if (petLocation) {
-          petLocation.textContent = pet.foundPlace || '場所不明';
-        }
-
-        // 発見日
-        const petDate = document.getElementById('petDate');
-        if (petDate) {
-          petDate.textContent = pet.foundDate || '日付不明';
-        }
-
-        // ステータス
+        if (petName) petName.textContent = `保護 #${petId}`;
         const petStatus = document.getElementById('petStatus');
-        if (petStatus) {
-          //追加：「照合状況」を表す項目がないため、暫定的な意味づけとして配置。後に変更する
-          petStatus.textContent = matchId ? '一致' : '照合中';
-        }
-
-        // 写真
-        const petPhoto = document.getElementById('petPhoto');
-        if (petPhoto && pet.photoUrls && pet.photoUrls.length > 0) {
-          petPhoto.style.backgroundImage = `url("${pet.photoUrls[0]}")`;
-          petPhoto.style.backgroundSize = 'cover';
-          petPhoto.style.backgroundPosition = 'center';
-          petPhoto.textContent = '';
-        }
-
-        // 飼い主の呼びかけ音声
-        const voiceSection = document.getElementById('petVoiceSection');
-        const voicePlayer = document.getElementById('petVoicePlayer');
-
-        if (voiceSection && voicePlayer) {
-          if (pet.voiceUrl) {
-            voicePlayer.src = pet.voiceUrl;
-            voiceSection.style.display = 'block';
-          } else {
-            voicePlayer.removeAttribute('src');
-            voiceSection.style.display = 'none';
-          }
-        }
+        if (petStatus) petStatus.textContent = '照合中';
       }
     }
-  
+
   } catch (err) {
       console.error('詳細情報の取得エラー:', err);
     }
