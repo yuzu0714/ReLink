@@ -538,6 +538,7 @@ function go(name){
     screen.innerHTML = screens[name]();
   }
   if (name === 'step2' && typeof initStep2 === 'function') initStep2();
+  if (name === 'register' && typeof initLocationAutocomplete === 'function') initLocationAutocomplete('foundPlace');
 }
 
 // 発見場所・発見日時・種類・そのほか欄の入力を S に反映するための関数。
