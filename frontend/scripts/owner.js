@@ -1271,62 +1271,16 @@ function initOwnerPage() {
         </div>
 
 
-        <div class="card">
-
-          <div class="field">
-
-            <label>
-              連絡先電話番号
-            </label>
-
-            <input
-              class="input"
-              id="contactPhone"
-              type="tel"
-              placeholder="090-0000-0000"
-            >
-
-          </div>
-
-
-          <div class="field">
-
-            <label>
-              メモ（任意）
-            </label>
-
-            <textarea
-              class="input"
-              id="contactNote"
-              placeholder="伝えたいことがあれば入力してください"
-            ></textarea>
-
-          </div>
-
-
-          <button
-            class="btn btn-magenta"
-            type="button"
-            id="sendContactBtn"
-            data-owner-action="send-contact"
-            data-match-id="${item.matchId}"
-          >
-            この子について連絡する
-          </button>
-
-          <button
-            class="btn"
-            type="button"
-            id="openChatBtn"
-            data-owner-action="open-chat"
-            data-match-id="${item.matchId}"
-            data-protected-source="${item.protectedSource}"
-            style="margin-top:8px;border:2px solid var(--orange,#f97316);color:var(--orange,#f97316);background:#fff"
-          >
-            💬 ${item.protectedSource === 'rescued' ? '保護団体' : '発見者'}にチャットで連絡する
-          </button>
-
-        </div>
+        <button
+          class="btn btn-magenta"
+          type="button"
+          id="openChatBtn"
+          data-owner-action="open-chat"
+          data-match-id="${item.matchId}"
+          data-protected-source="${item.protectedSource}"
+        >
+          💬 ${item.protectedSource === 'rescued' ? '保護団体' : '発見者'}にチャットで連絡する
+        </button>
 
       </div>
     `;
@@ -1625,16 +1579,6 @@ function initOwnerPage() {
 
         if (name === 'notice-list') {
           window.location.href = 'notify.html';
-        }
-
-        if (
-          name === 'send-contact'
-        ) {
-          sendContact(
-            Number(
-              action.dataset.matchId
-            )
-          );
         }
 
         if (
