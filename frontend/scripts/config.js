@@ -20,7 +20,7 @@
 //
 // ============================
 
-const USE_LAN = true;               // ← スマホ確認時は true にする
+const USE_LAN = false;               // ← スマホ確認時は true にする
 const LAN_IP  = '192.168.0.165';     // ← PCのIPアドレスに書き換える
 
 const API_BASE = USE_LAN
