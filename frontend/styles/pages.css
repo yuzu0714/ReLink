@@ -1076,7 +1076,7 @@ html body .login-appbar .brand h1 {
 
   .owner-page .pad {
     padding: 36px 32px 48px;
-    max-width: none;
+    max-width: 1040px;
   }
 
   .owner-page .role-list {

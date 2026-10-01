@@ -383,6 +383,8 @@ function initOwnerPage() {
       });
     }
 
+    if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('ownerLostPlace');
+
     //新規追加：ペットの正式名称を保存
     const petNameInput = document.getElementById('ownerPetName');
 
