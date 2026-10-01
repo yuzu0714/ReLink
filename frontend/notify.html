@@ -159,13 +159,30 @@
         }
 
         /* モバイル対応 */
-        @media (max-width: 600px) {
-            .chat-split-contacts { width: 64px; }
-            .chat-contact-info   { display: none; }
-            .chat-contact-avatar { margin: 0 auto; }
-            .chat-contacts-header { display: none; }
-            .chat-contact-item   { justify-content: center; padding: 10px 4px; }
+        .chat-split { container-type: inline-size; }
+
+        /* 戻るボタン（狭い幅のときだけ表示） */
+        .split-room-back {
+            display: none;
+            place-items: center;
+            width: 32px; height: 32px; margin-left: -6px;
+            border: none; border-radius: 8px;
+            background: none; color: var(--navy);
+            font-size: 24px; line-height: 1; cursor: pointer;
         }
+        .split-room-back:hover { background: #eff6ff; }
+
+        /* 狭い幅：一覧 ⇄ チャットルームを1画面ずつ切り替え */
+        @container (max-width: 560px) {
+            .chat-split-contacts { width: 100%; border-right: none; }
+            .chat-split-room     { display: none; }
+            .chat-split.room-open .chat-split-contacts { display: none; }
+            .chat-split.room-open .chat-split-room     { display: flex; }
+            .split-room-back { display: grid; }
+        }
+
+        /* 入力欄が送信ボタンを押し出さないように */
+        .split-room-form .input { min-width: 0; }
     
         /* thin gray scrollbars */
         .chat-contacts-body::-webkit-scrollbar,
@@ -211,6 +228,9 @@
 
             <!-- 左サイドメニュー -->
             <nav class="notif-sidenav">
+                <button class="nnav-toggle" type="button" aria-label="メニューを閉じる" aria-expanded="true">
+                    <i data-lucide="chevrons-left" class="nnav-icon"></i>
+                </button>
                 <button class="nnav-btn active" data-sec="inbox" data-title="受信トレイ">
                     <i data-lucide="inbox" class="nnav-icon"></i>
                     <span class="nnav-label">受信トレイ</span>
