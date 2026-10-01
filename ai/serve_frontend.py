@@ -12,7 +12,7 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    frontend_dir = Path(__file__).resolve().parent / "frontend"
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
     handler = partial(NoCacheHandler, directory=str(frontend_dir))
     server = ThreadingHTTPServer(("127.0.0.1", 5500), handler)
     print(f"Serving frontend from {frontend_dir} at http://127.0.0.1:5500")
