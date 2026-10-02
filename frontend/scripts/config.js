@@ -2,30 +2,16 @@
    環境設定ファイル — ここだけ書き換えれば切り替わります
    ===================================================== */
 
-// ========== 使い方 ==========
-//
-// 【ブラウザだけで確認する場合（PC）】
-//   → API_BASE = 'http://localhost:8080' のままでOK
-//
-// 【スマホから同じWi-Fiで確認する場合】
-//   1. PCのIPアドレスを調べる
-//      Mac: ターミナルで ipconfig getifaddr en0
-//      Win: コマンドプロンプトで ipconfig → IPv4アドレス
-//   2. 下の LAN_IP をそのIPアドレスに書き換える
-//   3. USE_LAN を true にする
-//   4. スマホのブラウザで http://<そのIP>:5500/finder.html などを開く
-//
-// 【本番サーバーへ接続する場合】
-//   USE_LAN を false にして、下の PROD_IP 行のコメントを外す
-//
-// ============================
+// アクセス元のホスト名を見て自動でAPIのURLを決める
+// - PC: localhost:5500 で開く → localhost:8080 に接続
+// - スマホ: 172.20.x.x:5500 で開く → 同じIPの:8080 に接続
+// 手動で切り替える必要はありません。
 
-const USE_LAN = true;               // ← スマホ確認時は true にする
-const LAN_IP  = '172.20.117.3';     // ← PCのIPアドレスに書き換える
-
-const API_BASE = USE_LAN
-  ? `http://${LAN_IP}:8080`
-  : 'http://localhost:8080';
-
-// 本番サーバーへ接続する場合は、上の API_BASE を以下に差し替える
-// const API_BASE = 'http://157.17.49.232:8080';
+const API_BASE = (() => {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8080';
+  }
+  // LAN経由（スマホなど）は同じIPのAPIを使う
+  return `http://${host}:8080`;
+})();
