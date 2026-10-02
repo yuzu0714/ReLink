@@ -425,9 +425,9 @@ function initOwnerPage() {
 
             // クロスブラウザ対応：サポートされているMIMEタイプを自動選択
             const preferredMime = [
+              'audio/mp4',
               'audio/webm;codecs=opus',
               'audio/webm',
-              'audio/mp4',
               'audio/ogg;codecs=opus',
             ].find(t => MediaRecorder.isTypeSupported(t)) || '';
             mediaRecorder = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : {});

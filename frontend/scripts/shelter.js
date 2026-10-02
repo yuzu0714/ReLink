@@ -315,7 +315,7 @@ async function loadShelterList(){
             const msg = document.createElement('p');
             msg.className = 'lede voice-error';
             msg.style.color = 'var(--magenta)';
-            msg.textContent = 'お使いのブラウザではこの音声形式を再生できません。';
+            msg.innerHTML = 'お使いのブラウザではWebM形式を再生できません。<br><a href="' + voiceUrl + '" download style="color:var(--magenta)">音声ファイルをダウンロード</a>';
             voiceSection.appendChild(msg);
           }
         };
