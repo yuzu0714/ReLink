@@ -157,7 +157,10 @@
     // このページは demo.js を読み込まない、完全に独立したスクリプトにしている。
     // (demo.js を読み込むと、末尾の共通ルーター処理が data-page 未設定のこのページでも動いてしまい、
     //  ここで組んだ画面をテンプレートの中身で上書きしてしまうため)
-    const API_BASE = 'http://localhost:8080';
+    const _host = window.location.hostname;
+    const API_BASE = (_host === 'localhost' || _host === '127.0.0.1')
+      ? 'http://localhost:8080'
+      : `http://${_host}:8080`;
     const MAX_PHOTOS_PER_PET = 10;
 
     // 毛色スウォッチの並び順と、バックエンドに送るテキストの対応(他ページと合わせている)
