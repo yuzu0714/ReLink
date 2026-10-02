@@ -1,5 +1,27 @@
 /* ---------------- ReLINK 認証・利用者選択処理 ---------------- */
 
+const LOGIN_CREDENTIALS_KEY = 'loginCredentials';
+
+function rememberLoginCredentials(email, password) {
+  sessionStorage.setItem(
+    LOGIN_CREDENTIALS_KEY,
+    JSON.stringify({ email, password })
+  );
+}
+
+function restoreLoginCredentials(form) {
+  const savedCredentials = sessionStorage.getItem(LOGIN_CREDENTIALS_KEY);
+  if (!savedCredentials || !form) return;
+
+  try {
+    const credentials = JSON.parse(savedCredentials);
+    form.email.value = credentials.email || '';
+    form.password.value = credentials.password || '';
+  } catch {
+    sessionStorage.removeItem(LOGIN_CREDENTIALS_KEY);
+  }
+}
+
 
 /* ---------------- ログインページ ---------------- */
 
@@ -8,6 +30,7 @@ function initLoginPage() {
   const roleChip = document.getElementById('roleChip');
   const loginButton = document.getElementById('loginButton');
   const loginForm = document.getElementById('loginForm');
+  restoreLoginCredentials(loginForm);
 
   let selectedUrl = null;
 
@@ -78,6 +101,7 @@ function initLoginPage() {
 
 
         if (result.success) {
+          rememberLoginCredentials(email, password);
 
           // DBから返ってきたroleを使って遷移先を決定する
 
@@ -331,7 +355,9 @@ function initSignupPage() {
             selectedRole,
             displayName
           );
-
+        
+        //役割を切り替えたときに前回のメールアドレスとパスワードを保持する
+        rememberLoginCredentials(email, password);
 
         sessionStorage.setItem(
           'authToken',
@@ -383,13 +409,18 @@ function initSignupPage() {
 // 認証トークンと選択中のロールを削除する。
 
 function logout() {
+  const loginUrl =
+    sessionStorage.getItem('selectedRole') === 'shelter'
+      ? 'shelter-login.html'
+      : 'login.html';
 
   sessionStorage.removeItem('authToken');
 
   sessionStorage.removeItem('selectedRole');
+  sessionStorage.removeItem(LOGIN_CREDENTIALS_KEY);
 
   window.location.href =
-    'login.html';
+    loginUrl;
 }
 
 
@@ -401,13 +432,17 @@ function logout() {
 // 現在選択されているロールをリセットしてログイン画面へ戻す。
 
 function switchRole() {
+  const loginUrl =
+    sessionStorage.getItem('selectedRole') === 'shelter'
+      ? 'shelter-login.html'
+      : 'login.html';
 
   sessionStorage.removeItem(
     'selectedRole'
   );
 
   window.location.href =
-    'login.html';
+    loginUrl;
 }
 
 
@@ -420,12 +455,33 @@ document.addEventListener(
   'DOMContentLoaded',
   () => {
 
+    document.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-owner-action]');
+      if (!action) return;
+
+      if (action.dataset.ownerAction === 'switch-role') {
+        event.preventDefault();
+        switchRole();
+      }
+
+      if (action.dataset.ownerAction === 'logout') {
+        event.preventDefault();
+        logout();
+      }
+      });
+
     const page =
       document.body?.dataset?.page;
 
 
     if (page === 'login') {
       initLoginPage();
+    }
+
+    if (page === 'shelter-login') {
+      restoreLoginCredentials(
+        document.getElementById('loginForm')
+      );
     }
 
 

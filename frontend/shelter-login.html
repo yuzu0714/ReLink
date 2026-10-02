@@ -162,6 +162,7 @@
           const result = await apiLogin(email, password, 'shelter');
 
           if (result.success) {
+            rememberLoginCredentials(email, password);
             sessionStorage.setItem('authToken', result.token);
             sessionStorage.setItem('selectedRole', result.role);
             sessionStorage.setItem('userId', result.userId);

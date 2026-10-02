@@ -64,15 +64,6 @@
     bindEvents(el, false);
   }
 
-  function renderSimilar() {
-    const trashIds = new Set(getTrash().map(x => x.id));
-    const items = allNotifs.filter(n => !trashIds.has(n.id) && (n.message || '').match(/\d+%/));
-    const el = document.getElementById('similar-list');
-    if (!el) return;
-    el.innerHTML = items.length ? items.map(n => buildCard(n, false)).join('') : emptyMsg('似たペットの通知はまだありません。');
-    bindEvents(el, false);
-  }
-
   function renderTrash() {
     const trash = getTrash();
     const el = document.getElementById('trash-list');
@@ -91,7 +82,6 @@
 
   function renderCurrent() {
     if (currentSec === 'inbox') renderInbox();
-    else if (currentSec === 'similar') renderSimilar();
     else if (currentSec === 'trash') renderTrash();
     /* 'chat' セクションは notif-chat.js が担当するためここでは何もしない */
   }
