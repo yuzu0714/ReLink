@@ -294,7 +294,7 @@ function initOwnerPage() {
               id="ownerSubmitBtn"
               data-owner-action="submit-lost"
             >
-              🐾 登録
+              登録
             </button>
 
             <div class="footnote">
@@ -1136,6 +1136,10 @@ function initOwnerPage() {
           ${topCard}
 
           ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
+
+          <div style="text-align:center;margin-top:24px">
+            <button class="btn btn-ghost" onclick="location.href='http://localhost:5500/owner.html'">TOPへ戻る</button>
+          </div>
 
         </div>
       </div>
