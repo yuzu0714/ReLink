@@ -25,7 +25,8 @@ data class ShelterPetListItem(
 // GET /shelter/pets 全体のレスポンス
 @Serializable
 data class ShelterPetListResponse(
-    val pets: List<ShelterPetListItem>
+    val pets: List<ShelterPetListItem>,
+    val nextCursor: Long? = null   // カーソルページネーション用：次ページのcursor。nullなら最終ページ
 )
 
 @Serializable

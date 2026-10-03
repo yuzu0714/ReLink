@@ -64,7 +64,7 @@
             <div class="register-fields">
               <div class="field">
                 <label>発見場所</label>
-                <input class="input" id="foundPlace" type="text" placeholder="市区町村">
+                <input class="input" id="foundPlace" type="text">
               </div>
 
               <div class="field">
@@ -153,6 +153,7 @@
     </div>
   </div>
 
+  <script src="scripts/location-autocomplete.js"></script>
   <script>
     // このページは demo.js を読み込まない、完全に独立したスクリプトにしている。
     // (demo.js を読み込むと、末尾の共通ルーター処理が data-page 未設定のこのページでも動いてしまい、
@@ -353,6 +354,9 @@
     }
 
     // 保護情報をrelink-apiに登録する(POST /pets/rescued。shelter権限が必要)
+    // 発見場所を都道府県＋市区町村の2段入力に変換
+    if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('foundPlace');
+
     submitBtn.addEventListener('click', async () => {
       const token = sessionStorage.getItem('authToken');
       if (!token) {

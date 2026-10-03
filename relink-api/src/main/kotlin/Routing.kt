@@ -274,8 +274,11 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
-                val pets = ShelterPetListRepository.getAll()
-                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = ShelterPetListRepository.getAllPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets, nextCursor = nextCursor))
             }
             
             /*★新規追加

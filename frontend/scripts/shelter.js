@@ -82,7 +82,7 @@ function renderSpecieFilter(pets) {
           <label class="filter-radio-label">
             <input type="radio" name="specieRadio" value="${s}"
               ${activeFilters.specie === s ? "checked" : ""}
-              onchange="selectSpecie('${s.replace(/'/g, "\'")}')">
+              onchange="selectSpecie('${s.replace(/'/g, "\\'")}')">
             <span>${s}</span>
           </label>`).join("")}
       </div>
@@ -104,7 +104,7 @@ function renderColorFilter(pets) {
     <label class="filter-check-label">
       <input type="checkbox" value="${c}"
         ${activeFilters.colors.has(c) ? "checked" : ""}
-        onchange="toggleColor('${c.replace(/'/g, "\'")}', this.checked)">
+        onchange="toggleColor('${c.replace(/'/g, "\\'")}', this.checked)">
       <span>${c}</span>
     </label>`).join("");
 }
@@ -131,21 +131,28 @@ function applyFilters() {
 
   const filtered = allPets.filter(pet => {
     // 地域（複数選択・OR）
-    if (activeFilters.places.size > 0 && 
-        ![...activeFilters.places].some(pref => pet.place.includes(pref))) return false;    // 犬種（単一）
+    if (activeFilters.places.size > 0 &&
+        ![...activeFilters.places].some(pref => pet.place.includes(pref))) return false;
+    // 犬種（単一）
     if (activeFilters.specie && pet.specie !== activeFilters.specie) return false;
     // 毛色（複数選択・部分一致OR）
     if (activeFilters.colors.size > 0) {
       const petColors = new Set(splitColors(pet.color));
-      const matched = [...activeFilters.colors].some(c => petColors.has(c));
-      if (!matched) return false;
+      if (![...activeFilters.colors].some(c => petColors.has(c))) return false;
     }
     return true;
   });
 
   bodyEl.innerHTML = filtered.length
-    ? filtered.map((item, i) => renderShelterCard(item, i)).join("")
+    ? filtered.map((item, i) => renderShelterCard(item, allPets.indexOf(item))).join("")
     : "<div class=\"lede\" style=\"color:var(--magenta)\">該当するペットがいません。</div>";
+
+  // sentinelを常に末尾に戻す
+  if (sentinelEl) bodyEl.appendChild(sentinelEl);
+}
+
+function hasActiveFilter() {
+  return activeFilters.places.size > 0 || activeFilters.specie !== null || activeFilters.colors.size > 0;
 }
 
 // ---- フィルター機能 ここまで ----
@@ -153,7 +160,7 @@ function applyFilters() {
 
 // 注意: バックエンドにはまだ「照合状況」を表す項目が無いため、実データの一覧でも
 // 元のデザイン通り4種類のタグを順番に割り当てて表示している(見た目優先の暫定対応)。
-// // 実際の照合状況をAPIが返せるようになったら、ここをそのフィールドに置き換える。
+// 実際の照合状況をAPIが返せるようになったら、ここをそのフィールドに置き換える。
 const statusCycle = ['照合中', '新規', '一致', '完了'];
 const statusPillClass = { '照合中': 'pill', '新規': 'pill mag', '一致': 'pill mag', '完了': 'pill' };
 
@@ -175,11 +182,9 @@ function renderShelterCard(item, index){
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
-    // インラインonclickにオブジェクトを直接埋め込めないため関数経由で呼ぶ
-    // item全体はallPetsから検索する
     return `
         <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'))">
-            <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
+            <div class="ph" style="${photoStyle}" loading="lazy">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
                 <div class="meta">${metaParts.join(' / ')}</div>
@@ -188,60 +193,156 @@ function renderShelterCard(item, index){
         </div>`;
 }
 
-async function loadShelterList(){
-    const countEl = document.getElementById('shelterCount');
+
+// ---- 無限スクロール ・ ページネーション ----
+
+const PAGE_SIZE = 12;
+let currentOffset = 0;
+let isFetching = false;
+let noMorePages = false;
+let sentinelEl = null;
+let scrollObserver = null;
+
+function updateCountEl() {
+  const countEl = document.getElementById('shelterCount');
+  if (!countEl) return;
+  const waitingCount = allPets.filter((_, i) => statusCycle[i % statusCycle.length] === '照合中').length;
+  countEl.innerHTML = `現在の保護： <b style="color:var(--navy)">${allPets.length}頭</b>／照合待ち： <b style="color:var(--magenta)">${waitingCount}頭</b>`;
+}
+
+async function fetchNextPage() {
+  if (isFetching || noMorePages) return;
+  isFetching = true;
+
+  // ロード中表示
+  if (sentinelEl) {
+    sentinelEl.style.display = '';
+    sentinelEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--gray,#888);font-size:.9rem;">読み込み中…</div>';
+  }
+
+  const token = sessionStorage.getItem('authToken');
+  try {
+    const res = await fetch(`${API_BASE}/shelter/pets?limit=${PAGE_SIZE}&offset=${currentOffset}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
+      const body = await res.json().catch(() => null);
+      throw new Error((body && body.message) || `一覧の取得に失敗しました。(status ${res.status})`);
+    }
+
+    const data = await res.json();
+    const newPets = data.pets || [];
+    // nextCursorがnullまたは未定義なら最終ページ
+    noMorePages = data.nextCursor === null || data.nextCursor === undefined || newPets.length === 0;
+
+    // 初回で0件
+    if (newPets.length === 0 && currentOffset === 0) {
+      const countEl = document.getElementById('shelterCount');
+      if (countEl) countEl.textContent = '現在、登録されている保護ペットはいません。';
+      if (sentinelEl) { sentinelEl.innerHTML = ''; sentinelEl.style.display = 'none'; }
+      isFetching = false;
+      return;
+    }
+
+    const prevLength = allPets.length;
+    allPets.push(...newPets);
+    currentOffset += newPets.length;
+
+    // カウント更新
+    updateCountEl();
+
+    // 初回ページのみフィルターを初期化（選択肢が確定するタイミング）
+    if (prevLength === 0) {
+      renderFilters(allPets);
+    }
+
+    // カード描画
     const bodyEl = document.getElementById('shelterListBody');
-  if(!countEl || !bodyEl) return;
-    const token = sessionStorage.getItem('authToken');
-
-    if(!token){
-        countEl.textContent = 'ログインが必要です。';
-        bodyEl.innerHTML = '<div class="lede">ログイン画面からやり直してください。</div>';
-        setTimeout(() => { window.location.href = 'login.html'; }, 1200);
-        return;
-    }
-
-    try {
-        const res = await fetch(`${API_BASE}/shelter/pets`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if(!res.ok){
-            if(res.status === 403){
-                throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
-            }
-            const body = await res.json().catch(()=>null);
-            throw new Error((body && body.message) || ('一覧の取得に失敗しました。(status ' + res.status + ')'));
-        }
-
-        const data = await res.json();
-        const pets = data.pets || [];
-
-        if(pets.length === 0){
-            countEl.textContent = '現在、登録されている保護ペットはいません。';
-            bodyEl.innerHTML = '';
-            return;
-        }
-
-        const waitingCount = pets.filter((_, i) => statusCycle[i % statusCycle.length] === '照合中').length;
-        countEl.innerHTML = `現在の保護： <b style="color:var(--navy)">${pets.length}頭</b>／照合待ち： <b style="color:var(--magenta)">${waitingCount}頭</b>`;
-
-        // フィルター初期化
-        allPets = pets;
-        renderFilters(pets);
+    if (bodyEl) {
+      if (hasActiveFilter()) {
+        // フィルター適用中は全件再描画（applyFilters内でsentinelも戻す）
         applyFilters();
-
-        }catch (err) {
-            console.error(err);
-            countEl.textContent = '';
-            bodyEl.innerHTML = `<div class="lede" style="color:var(--magenta)">${err.message || '一覧の取得中にエラーが発生しました。'}</div>`;
+      } else {
+        // フィルターなし：新規カードを sentinel の直前に追加（プログレッシブ表示）
+        const frag = document.createDocumentFragment();
+        newPets.forEach((item, i) => {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderShelterCard(item, prevLength + i);
+          frag.appendChild(tmp.firstElementChild);
+        });
+        if (sentinelEl && sentinelEl.parentNode === bodyEl) {
+          bodyEl.insertBefore(frag, sentinelEl);
+        } else {
+          bodyEl.appendChild(frag);
+          if (sentinelEl) bodyEl.appendChild(sentinelEl);
         }
+      }
     }
 
-    //修正：pet_detail.htmlに対応させるため
-    if (document.getElementById('shelterListBody')) {
-      loadShelterList();
+    // sentinelの表示制御
+    if (sentinelEl) {
+      if (noMorePages) {
+        sentinelEl.innerHTML = '';
+        sentinelEl.style.display = 'none';
+      } else {
+        sentinelEl.innerHTML = '';
+      }
     }
+
+  } catch (err) {
+    console.error(err);
+    const countEl = document.getElementById('shelterCount');
+    if (countEl) countEl.textContent = '';
+    const bodyEl = document.getElementById('shelterListBody');
+    if (bodyEl && currentOffset === 0) {
+      bodyEl.innerHTML = `<div class="lede" style="color:var(--magenta)">${err.message || '一覧の取得中にエラーが発生しました。'}</div>`;
+    }
+    if (sentinelEl) { sentinelEl.innerHTML = ''; }
+  }
+
+  isFetching = false;
+}
+
+async function loadShelterList() {
+  const countEl = document.getElementById('shelterCount');
+  const bodyEl = document.getElementById('shelterListBody');
+  if (!countEl || !bodyEl) return;
+
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    countEl.textContent = 'ログインが必要です。';
+    bodyEl.innerHTML = '<div class="lede">ログイン画面からやり直してください。</div>';
+    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
+    return;
+  }
+
+  // sentinelを作成してbodyElに追加
+  sentinelEl = document.createElement('div');
+  sentinelEl.id = 'shelterLoadMoreSentinel';
+  sentinelEl.style.height = '40px';
+  bodyEl.appendChild(sentinelEl);
+
+  // 最初のページを取得
+  await fetchNextPage();
+
+  // IntersectionObserverで無限スクロール
+  if ('IntersectionObserver' in window) {
+    scrollObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isFetching && !noMorePages) {
+        fetchNextPage();
+      }
+    }, { rootMargin: '200px' });
+    if (sentinelEl) scrollObserver.observe(sentinelEl);
+  }
+}
+
+// 一覧ページでのみ実行
+if (document.getElementById('shelterListBody')) {
+  loadShelterList();
+}
+
 
 /* ---------------- pet detail ---------------- */
 ( async () => {
