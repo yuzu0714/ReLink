@@ -40,5 +40,6 @@ data class OwnerPetListItem(
 
 @Serializable
 data class OwnerPetListResponse(
-    val pets: List<OwnerPetListItem>
+    val pets: List<OwnerPetListItem>,
+    val nextCursor: Long? = null   // カーソルページネーション用：次ページのcursor。nullなら最終ページ
 )
