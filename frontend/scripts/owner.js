@@ -133,7 +133,7 @@ function initOwnerPage() {
                 class="input"
                 id="ownerPhone"
                 type="tel"
-                placeholder="090-0000-0000"
+                placeholder=""
               >
             </div>
 
