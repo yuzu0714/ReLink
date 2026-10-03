@@ -110,7 +110,7 @@ function initOwnerPage() {
               type="button"
               data-owner-action="ai-fill"
             >
-              🤖 写真からAIで自動入力（未入力の項目のみ）
+              写真からAIで自動入力（未入力の項目のみ）
             </button>
 
             <div
