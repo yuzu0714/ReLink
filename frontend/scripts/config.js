@@ -8,7 +8,6 @@
 const _host = window.location.hostname;
 const API_BASE = (_host === 'localhost' || _host === '127.0.0.1')
   ? 'http://localhost:8080'          // PCのブラウザからのアクセス
-  : `http://${_host}:8080`;          // スマホ・別PC・サーバーからのアクセス
-
+  : 'http://157.17.49.232:8080';
 // 接続先の確認（開発時のみ）
 // console.log('API_BASE:', API_BASE);
