@@ -245,8 +245,161 @@ async function loadShelterList(){
 
 /* ---------------- ★新規追加：迷子ペット一覧(shelter-lost-list.html 専用) ---------------- */
 
-// ★迷子ペット1件分のカード。既存の .match-card を流用してデザインを揃えている
+// ★迷子一覧のデータと、選択中のフィルター条件
+// 保護側の allPets / activeFilters とは別に持つ(同じ shelter.js を読んでいても干渉しないように)
+// 地域・毛色は Set(複数選択)、犬種は string|null(単一選択)
+let lostPets = [];
+const lostFilters = { places: new Set(), specie: null, colors: new Set() };
+
+/* ---- ★地域フィルター(チェックボックス)。地域の一覧は保護側の REGION_MAP を共用 ---- */
+function renderLostPlaceFilter() {
+  const el = document.getElementById("lostFilterPlace");
+  if (!el) return;
+
+  el.innerHTML = REGION_MAP.map(region => `
+    <div class="filter-region">
+      <div class="filter-region-name">${region.name}</div>
+      <div class="filter-check-group">
+        ${region.prefs.map(pref => `
+          <label class="filter-check-label">
+            <input type="checkbox" value="${pref}"
+              ${lostFilters.places.has(pref) ? "checked" : ""}
+              onchange="toggleLostPlace(this.value, this.checked)">
+            <span>${pref}</span>
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+// ★チェックされたら Set に入れる/外す → すぐ絞り込み
+function toggleLostPlace(pref, checked) {
+  if (checked) lostFilters.places.add(pref);
+  else lostFilters.places.delete(pref);
+  applyLostFilters();
+}
+
+/* ---- ★犬種フィルター(ラジオボタン)。犬種の一覧は保護側の SPECIE_MAP を共用 ---- */
+function renderLostSpecieFilter() {
+  const el = document.getElementById("lostFilterSpecie");
+  if (!el) return;
+
+  // 固定リストに無い種類(飼い主が自由入力した犬種)は「その他」グループにまとめる
+  const knownItems = SPECIE_MAP.flatMap(g => g.items);
+  const extraItems = unique(lostPets.map(p => p.specie)).filter(s => !knownItems.includes(s));
+  const groups = [...SPECIE_MAP];
+  if (extraItems.length) groups.push({ group: "その他", items: extraItems });
+
+  // ★value は escapeHtml して属性に入れる(自由入力の文字に " や ' があっても壊れないように)
+  el.innerHTML = groups.map(group => `
+    <div class="filter-specie-group">
+      <div class="filter-specie-group-name">${group.group}</div>
+      <div class="filter-radio-group">
+        ${group.items.map(s => `
+          <label class="filter-radio-label">
+            <input type="radio" name="lostSpecieRadio" value="${escapeHtml(s)}"
+              ${lostFilters.specie === s ? "checked" : ""}
+              onchange="selectLostSpecie(this.value)">
+            <span>${escapeHtml(s)}</span>
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function selectLostSpecie(value) {
+  lostFilters.specie = value;
+  applyLostFilters();
+}
+
+/* ---- ★毛色フィルター(チェックボックス)。実際に登録されている毛色だけを選択肢にする ---- */
+function renderLostColorFilter() {
+  const el = document.getElementById("lostFilterColor");
+  if (!el) return;
+
+  // 「茶色・白」のような複数色は splitColors(保護側と共用)で1色ずつに分けて集める
+  const allColors = unique(lostPets.flatMap(p => splitColors(p.color)));
+  el.innerHTML = allColors.map(c => `
+    <label class="filter-check-label">
+      <input type="checkbox" value="${escapeHtml(c)}"
+        ${lostFilters.colors.has(c) ? "checked" : ""}
+        onchange="toggleLostColor(this.value, this.checked)">
+      <span>${escapeHtml(c)}</span>
+    </label>`).join("");
+}
+
+function toggleLostColor(color, checked) {
+  if (checked) lostFilters.colors.add(color);
+  else lostFilters.colors.delete(color);
+  applyLostFilters();
+}
+
+/* ---- ★3つのフィルター画面をまとめて描画して、フィルター枠を表示する ---- */
+function renderLostFilters() {
+  const filtersEl = document.getElementById("lostFilters");
+  if (filtersEl) filtersEl.style.display = "";
+  renderLostPlaceFilter();
+  renderLostSpecieFilter();
+  renderLostColorFilter();
+}
+
+/* ---- ★条件のリセット：選択状態を空に戻して、画面を描き直す ---- */
+function resetLostFilters() {
+  lostFilters.places.clear();
+  lostFilters.specie = null;
+  lostFilters.colors.clear();
+  renderLostFilters();
+  applyLostFilters();
+}
+
+/* ---- ★絞り込みの本体：3条件すべてを満たすペットだけを残して描画する(AND条件) ---- */
+function applyLostFilters() {
+  const countEl = document.getElementById("lostCount");
+  const bodyEl = document.getElementById("lostListBody");
+  if (!bodyEl) return;
+
+  const filtered = lostPets.filter(pet => {
+    // 地域(複数選択・OR)：lostPlace が「徳島県 阿南市」形式なので、都道府県名(徳島)の部分一致で判定
+    if (lostFilters.places.size > 0 &&
+        ![...lostFilters.places].some(pref => (pet.lostPlace || "").includes(pref))) return false;
+
+    // 犬種(単一)：完全一致
+    if (lostFilters.specie && pet.specie !== lostFilters.specie) return false;
+
+    // 毛色(複数選択・OR)：選んだ色のどれか1つでも持っていればOK
+    if (lostFilters.colors.size > 0) {
+      const petColors = new Set(splitColors(pet.color));
+      if (![...lostFilters.colors].some(c => petColors.has(c))) return false;
+    }
+    return true;
+  });
+
+  // ★件数表示を「全体 → 絞り込み後」に更新する
+  if (countEl) {
+    countEl.innerHTML = `登録されている迷子ペット： <b style="color:var(--magenta)">${lostPets.length}頭</b>` +
+      (filtered.length !== lostPets.length
+        ? `／表示中： <b style="color:var(--navy)">${filtered.length}頭</b>`
+        : "");
+  }
+
+  bodyEl.innerHTML = filtered.length
+    ? filtered.map(renderLostCard).join("")
+    : '<div class="lede" style="color:var(--magenta)">該当するペットがいません。</div>';
+}
+
+// ★新規追加：バックエンドの状態コード → 画面に出すラベルと色の対応表
+// ラベルを変えたい時はここの label を書き換えるだけでOK
+const lostStatusMap = {
+  lost:       { label: '迷子',       cls: 'pill mag'  },   // ピンク
+  candidate:  { label: '候補あり',   cls: 'pill warn' },   // オレンジ
+  contacting: { label: '連絡中',     cls: 'pill'      },   // 青系
+  confirmed:  { label: '引渡し待ち', cls: 'pill'      },   // 青系
+  completed:  { label: '完了',       cls: 'pill ok'   },   // 緑
+};
+
+// ★迷子ペット1件分のカード(変更なし)。既存の .match-card を流用してデザインを揃えている
 function renderLostCard(item) {
+  // ★追加：状態コードからラベルと色を取り出す(未知のコードが来ても「迷子」にフォールバック)
+  const st = lostStatusMap[item.status] || lostStatusMap.lost;
+  
   const photoStyle = item.photoUrl
     ? `background-image:url('${item.photoUrl}');background-size:cover;background-position:center`
     : `background:${petSwatch(item.id)}`;
@@ -265,7 +418,9 @@ function renderLostCard(item) {
     </div>`;
 }
 
-// ★GET /shelter/lost-pets を呼んで一覧を描画する(loadShelterList と同じ流れ)
+// ★GET /shelter/lost-pets を呼んで一覧を描画する
+// ★修正：取得したデータを lostPets に保存し、フィルター表示→絞り込み描画の流れに変更
+//        (前は取得してすぐ描画して終わりだったが、絞り込みのたびに元データが必要になるため)
 async function loadLostList() {
   const countEl = document.getElementById('lostCount');
   const bodyEl = document.getElementById('lostListBody');
@@ -292,10 +447,17 @@ async function loadLostList() {
     const data = await res.json();
     const pets = data.pets || [];
 
-    countEl.innerHTML = pets.length
-      ? `登録されている迷子ペット： <b style="color:var(--magenta)">${pets.length}頭</b>`
-      : '現在、登録されている迷子ペットはいません。';
-    bodyEl.innerHTML = pets.map(renderLostCard).join('');
+    // ★0件ならフィルターは出さずにメッセージだけ表示する(絞り込む対象が無いため)
+    if (pets.length === 0) {
+      countEl.textContent = '現在、登録されている迷子ペットはいません。';
+      bodyEl.innerHTML = '';
+      return;
+    }
+
+    // ★ここから変更：元データを保存 → フィルター表示 → 絞り込み描画
+    lostPets = pets;
+    renderLostFilters();
+    applyLostFilters();
   } catch (err) {
     console.error(err);
     countEl.textContent = '';

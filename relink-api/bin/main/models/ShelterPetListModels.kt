@@ -54,11 +54,15 @@ data class ShelterLostPetListItem(
     val color: String? = null,        // 毛色
     val lostPlace: String? = null,    // いなくなった場所
     val other: String? = null,        // そのほか(特徴メモ)
-    val phoneNumber: String? = null   // 飼い主の連絡先(shelterだけが見られるAPIなので返している)
+    val phoneNumber: String? = null,   // 飼い主の連絡先(shelterだけが見られるAPIなので返している)
+    // ★新規追加：いまの状態コード。lost / candidate / contacting / confirmed / completed のどれか
+    // (表示ラベルへの変換はフロント側で行う。バックエンドは「コード」だけ返す)
+    val status: String = "lost"
 )
 
 // ★新規追加：GET /shelter/lost-pets 全体のレスポンス
 @Serializable
 data class ShelterLostPetListResponse(
     val pets: List<ShelterLostPetListItem>
+    
 )

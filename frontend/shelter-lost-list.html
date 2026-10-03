@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/pages.css">
   <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <!-- ★追加：状態ピルの色違い(オレンジ=候補あり / 緑=完了) -->
+  <style>
+    .pill.warn { background:#fff4e5; color:#b45309; border-color:#fed7aa; }
+    .pill.ok   { background:#eafaf3; color:#0f7a4b; border-color:#a7f3d0; }
+  </style>
 </head>
 <body>
   <div class="stage">
@@ -25,6 +30,43 @@
         <div class="pad stack fade">
           <!-- 件数表示(JSが書き換える) -->
           <div class="lede" style="margin-top:2px" id="lostCount">読み込み中…</div>
+          <!-- ★新規追加：絞り込みフィルター(最初は非表示。データ取得後にJSが表示する)
+          shelter-list.html とデザインは同じだけど、IDは lost〜 にして保護側と区別している -->
+          <div id="lostFilters" style="display:none" class="filter-bg">
+            <div class="filter-wrapper">
+              <div class="filter-wrapper-title">絞り込み条件を選択してください</div>
+              <div class="filter-outer">
+                <div class="filter-cols">
+
+                  <!-- 左：地域 -->
+                  <div class="filter-col-left">
+                    <div class="filter-row filter-row-vertical">
+                      <div class="filter-row-label">地域</div>
+                      <div class="filter-row-body" id="lostFilterPlace"></div>
+                    </div>
+                  </div>
+
+                  <!-- 右：犬種・毛色(縦に並ぶ) -->
+                  <div class="filter-col-right">
+                    <div class="filter-row filter-row-vertical" style="border-bottom:1px solid #e0e4ef">
+                      <div class="filter-row-label">犬種・種類</div>
+                      <div class="filter-row-body" id="lostFilterSpecie"></div>
+                    </div>
+                    <div class="filter-row filter-row-vertical">
+                      <div class="filter-row-label">毛色</div>
+                      <div class="filter-row-body" id="lostFilterColor"></div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+            <!-- ★新規追加：条件をまとめて解除するボタン
+                 (犬種のラジオボタンは一度選ぶと外せないので、リセット用に用意した) -->
+            <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="resetLostFilters()">
+              条件をリセット
+            </button>
+          </div>
 
           <!-- 迷子ペットのカードが入る場所(JSが書き込む) -->
           <div id="lostListBody" class="match-grid"></div>
