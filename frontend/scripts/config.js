@@ -1,13 +1,4 @@
-/* =====================================================
-   環境設定ファイル — 自動でAPIのURLを切り替えます
-   ===================================================== */
-
-// アクセス元のホスト名に応じて自動でAPIのURLを決定する
-// 手動で書き換える必要はありません
-
 const _host = window.location.hostname;
-const API_BASE = (_host === 'localhost' || _host === '127.0.0.1')
-  ? 'http://localhost:8080'          // PCのブラウザからのアクセス
+const API_BASE = _host === 'localhost' || _host === '127.0.0.1'
+  ? `http://${_host}:8080`
   : 'http://157.17.49.232:8080';
-// 接続先の確認（開発時のみ）
-// console.log('API_BASE:', API_BASE);
