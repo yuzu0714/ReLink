@@ -105,14 +105,29 @@ async function callAiExtractFeatures(photoFiles) {
     );
   }
 
-  return res.json();
-  // {
-  //   animalType,
-  //   breed,
-  //   coatColor,
-  //   hasCollar,
-  //   collarFeatures
-  // }
+  const data = await res.json();
+
+  // API の出力 (animalType/breed/coatColor/...) を
+  // owner.js / finder.js が期待するフィールドに変換して返す。
+  const coatColors = (data.coatColor || '').split(',').map(s => s.trim());
+  let colorIndex = -1;
+  for (const c of coatColors) {
+    const idx = colorNames.indexOf(c);
+    if (idx >= 0) { colorIndex = idx; break; }
+  }
+
+  let other = '';
+  if (data.hasCollar) {
+    other = '首輪あり';
+    if (data.collarFeatures) other += `（${data.collarFeatures}）`;
+  }
+
+  return {
+    specie:      data.breed  || '',
+    otherSpecie: data.breed  || '',
+    colorIndex:  colorIndex >= 0 ? colorIndex : null,
+    other:       other || null,
+  };
 }
 
 
