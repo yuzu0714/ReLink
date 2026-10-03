@@ -243,6 +243,71 @@ async function loadShelterList(){
       loadShelterList();
     }
 
+/* ---------------- ★新規追加：迷子ペット一覧(shelter-lost-list.html 専用) ---------------- */
+
+// ★迷子ペット1件分のカード。既存の .match-card を流用してデザインを揃えている
+function renderLostCard(item) {
+  const photoStyle = item.photoUrl
+    ? `background-image:url('${item.photoUrl}');background-size:cover;background-position:center`
+    : `background:${petSwatch(item.id)}`;
+  // escapeHtml(common.js)で飼い主の入力文字をエスケープしてXSSを防ぐ
+  const metaParts = [item.specie, item.color, item.lostPlace].filter(Boolean).map(escapeHtml);
+  return `
+    <div class="match-card">
+      <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
+      <div style="min-width:0">
+        <div class="name">${escapeHtml(item.petName || item.specie || '名前未登録')}</div>
+        <div class="meta">${metaParts.join(' / ')}</div>
+        ${item.other ? `<div class="meta">${escapeHtml(item.other)}</div>` : ''}
+        ${item.phoneNumber ? `<div class="meta">📞 ${escapeHtml(item.phoneNumber)}</div>` : ''}
+      </div>
+      <span class="pill mag">迷子</span>
+    </div>`;
+}
+
+// ★GET /shelter/lost-pets を呼んで一覧を描画する(loadShelterList と同じ流れ)
+async function loadLostList() {
+  const countEl = document.getElementById('lostCount');
+  const bodyEl = document.getElementById('lostListBody');
+  if (!countEl || !bodyEl) return;
+
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    countEl.textContent = 'ログインが必要です。';
+    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/shelter/lost-pets`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
+      }
+      throw new Error('迷子ペット一覧の取得に失敗しました。(status ' + res.status + ')');
+    }
+
+    const data = await res.json();
+    const pets = data.pets || [];
+
+    countEl.innerHTML = pets.length
+      ? `登録されている迷子ペット： <b style="color:var(--magenta)">${pets.length}頭</b>`
+      : '現在、登録されている迷子ペットはいません。';
+    bodyEl.innerHTML = pets.map(renderLostCard).join('');
+  } catch (err) {
+    console.error(err);
+    countEl.textContent = '';
+    bodyEl.innerHTML = `<div class="lede" style="color:var(--magenta)">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ★迷子一覧ページ(lostListBody がある時)だけ実行する。他のページでは何もしない
+if (document.getElementById('lostListBody')) {
+  loadLostList();
+}
+
 /* ---------------- pet detail ---------------- */
 ( async () => {
   const isPetDetailPage = document.getElementById('petPhoto');

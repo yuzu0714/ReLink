@@ -2,9 +2,9 @@ package com.repositories
 
 import com.db.LostPetRegisterTable
 import com.models.LostPetRegisterRequest
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import com.models.ShelterLostPetListItem // ★追加：一覧用DTOを使うため
 
 // lostpet_register への書き込みだけを担当するクラス
 object LostPetRepository {
@@ -18,6 +18,12 @@ object LostPetRepository {
                 it[color] = request.color
                 it[other] = request.other
                 it[lostPlace] = request.lostPlace
+                //新規追加：ペットの名前を保存
+                it[LostPetRegisterTable.nickname] = request.nickname
+                //新規追加：ペットの正式名称を保存
+                it[LostPetRegisterTable.petName] = request.petName
+                //新規追加：音声を保存
+                it[LostPetRegisterTable.voiceUrl] = request.voiceUrl
                 // ★新規追加：登録したユーザーのIDを保存
                 it[LostPetRegisterTable.userId] = userId
             } get LostPetRegisterTable.id
@@ -50,6 +56,48 @@ object LostPetRepository {
                 )
             }
             .firstOrNull()
+    }
+    
+    /*★新規追加：
+    指定されたユーザーIDのペットを探して、ペットのリストとして返す
+    「lostpet_registerから全部取得
+    ただし、その中から指定したユーザーIDのものだけにして
+    新しく登録した順番に並べてデータベースの行を LostPetRegisterRow に変換して
+    ペット一覧として返す
+    */
+    fun findByUserId(userId: Long): List<LostPetRegisterRow> = transaction {
+        LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.userId eq userId }
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC)
+            .map {
+                LostPetRegisterRow(
+                    id = it[LostPetRegisterTable.id],
+                    specie = it[LostPetRegisterTable.specie],
+                    color = it[LostPetRegisterTable.color],
+                    lostPlace = it[LostPetRegisterTable.lostPlace],
+                    userId = it[LostPetRegisterTable.userId]
+                )
+            }
+    }
+        // ★新規追加：保護団体向けに、全飼い主の迷子ペットを新しい順で全件返す
+    // findByUserId と違って userId で絞り込まない(shelterは全員分を見られる)
+    // 写真は ShelterPetListRepository と同じ作りで、pet_photos から代表写真を取る
+    fun findAllForShelter(): List<ShelterLostPetListItem> = transaction {
+        LostPetRegisterTable.selectAll()
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC) // created_atをExposed側で定義していないのでid降順＝新しい順
+            .map { row ->
+                val id = row[LostPetRegisterTable.id]
+                ShelterLostPetListItem(
+                    id = id,
+                    photoUrl = PetPhotoRepository.findByPet("lost", id).firstOrNull()?.photoUrl,
+                    petName = row[LostPetRegisterTable.petName],
+                    specie = row[LostPetRegisterTable.specie],
+                    color = row[LostPetRegisterTable.color],
+                    lostPlace = row[LostPetRegisterTable.lostPlace],
+                    other = row[LostPetRegisterTable.other],
+                    phoneNumber = row[LostPetRegisterTable.phoneNumber]
+                )
+            }
     }
 }
 

@@ -55,6 +55,7 @@ import com.models.ChatMessagesResponse
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import com.models.ShelterLostPetListResponse // ★追加：迷子一覧のレスポンスDTO
 
 fun Application.configureRouting() {
     routing {
@@ -276,6 +277,21 @@ fun Application.configureRouting() {
 
                 val pets = ShelterPetListRepository.getAll()
                 call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+            }
+            
+            // ★新規追加：保護団体向け「迷子ペット一覧」API
+            // /shelter/pets と同じく shelter 権限のみ。authenticate{} の直下に置くこと
+            // (他のルートの中にネストするとビルドは通るのに404になるよ！)
+            get("/shelter/lost-pets") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val pets = LostPetRepository.findAllForShelter()
+                call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets))
             }
             
             /*★新規追加
