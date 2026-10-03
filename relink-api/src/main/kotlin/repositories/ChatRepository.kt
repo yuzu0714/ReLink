@@ -46,11 +46,19 @@ object ChatRepository {
             .map(::toResponse)
     }
 
-    fun insertMessage(senderId: Long, receiverId: Long, message: String): ChatMessageResponse = transaction {
+    fun insertMessage(
+        senderId: Long,
+        receiverId: Long,
+        message: String,
+        messageType: String = "text",
+        audioUrl: String? = null
+    ): ChatMessageResponse = transaction {
         val id = ChatMessageTable.insert {
             it[ChatMessageTable.senderId] = senderId
             it[ChatMessageTable.receiverId] = receiverId
             it[ChatMessageTable.message] = message
+            it[ChatMessageTable.messageType] = messageType
+            it[ChatMessageTable.audioUrl] = audioUrl
         }[ChatMessageTable.id]
 
         ChatMessageTable
@@ -80,6 +88,8 @@ object ChatRepository {
         senderId = row[ChatMessageTable.senderId],
         receiverId = row[ChatMessageTable.receiverId],
         message = row[ChatMessageTable.message],
+        messageType = row[ChatMessageTable.messageType],
+        audioUrl = row[ChatMessageTable.audioUrl],
         createdAt = row[ChatMessageTable.createdAt].format(isoFormatter)
     )
 
