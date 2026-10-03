@@ -290,16 +290,23 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはowner権限が必要です")
                 }
 
-                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()//ログイン中のユーザーIDを取得
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                     ?: throw IllegalArgumentException("ユーザーIDを取得できません")
 
-                val pets = LostPetRepository.findByUserId(userId)
+                // ★改善：カーソルページネーション対応
+                // limit: 1回あたりの取得件数（1〜50件、デフォルト12件）
+                // cursor: 前ページの最後のペットID（省略時は先頭から取得）
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 12
+                val cursor = call.request.queryParameters["cursor"]?.toLongOrNull()
+
+                val (pets, nextCursor) = LostPetRepository.findByUserIdPaged(userId, limit, cursor)
+
+                // ★改善：N+1クエリ解消 → 全ペット分の代表写真を1回のクエリで一括取得
+                val photoMap = PetPhotoRepository.findFirstPhotoByPets("lost", pets.map { it.id })
 
                 val petItems = pets.map { pet ->
-                    val photos = PetPhotoRepository.findByPet("lost", pet.id)//ペットの写真を取得
-                    val firstPhoto = photos.firstOrNull()?.photoUrl
                     OwnerPetListItem(
-                        photoUrl = firstPhoto,
+                        photoUrl = photoMap[pet.id],
                         id = pet.id,
                         specie = pet.specie,
                         color = pet.color,
@@ -310,7 +317,7 @@ fun Application.configureRouting() {
 
                 call.respond(
                     HttpStatusCode.OK,
-                    OwnerPetListResponse(pets = petItems)
+                    OwnerPetListResponse(pets = petItems, nextCursor = nextCursor)
                 )
             }
 
