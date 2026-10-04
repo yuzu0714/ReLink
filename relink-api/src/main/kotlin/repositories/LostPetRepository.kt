@@ -144,6 +144,42 @@ object LostPetRepository {
             }
     }
 
+    // ★追加：offset ページネーション対応の迷子ペット一覧(N+1解消)
+    fun findAllForShelterPaged(limit: Int, offset: Int): Pair<List<ShelterLostPetListItem>, Boolean> = transaction {
+        val resolveStatus = buildLostStatusResolver()
+
+        // ① 全件の基本情報だけを取得(写真なし)し、ソートしてからページ切り出し
+        val allRows = LostPetRegisterTable.selectAll()
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC)
+            .toList()
+
+        val page = allRows.drop(offset).take(limit + 1)
+        val hasMore = page.size > limit
+        val pageRows = if (hasMore) page.dropLast(1) else page
+
+        if (pageRows.isEmpty()) return@transaction Pair(emptyList<ShelterLostPetListItem>(), false)
+
+        // ② このページ分の写真を一括取得(N+1解消)
+        val pageIds = pageRows.map { it[LostPetRegisterTable.id] }
+        val photos = PetPhotoRepository.findFirstPhotoByPets("lost", pageIds)
+
+        // ③ 組み立て
+        val items = pageRows.map { row ->
+            val id = row[LostPetRegisterTable.id]
+            ShelterLostPetListItem(
+                id = id,
+                photoUrl = photos[id],
+                petName = row[LostPetRegisterTable.petName],
+                specie = row[LostPetRegisterTable.specie],
+                color = row[LostPetRegisterTable.color],
+                lostPlace = row[LostPetRegisterTable.lostPlace],
+                other = row[LostPetRegisterTable.other],
+                status = resolveStatus(id)
+            )
+        }
+        Pair(items, hasMore)
+    }
+
     // ★新規追加：保護団体向けの迷子ペット詳細(1件)。存在しないidなら null を返す
     // 一覧と違って、電話番号・全写真・音声URL も入れて返す
     fun findDetailForShelter(id: Long): ShelterLostPetDetail? = transaction {

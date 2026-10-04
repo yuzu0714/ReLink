@@ -285,8 +285,11 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
-                val pets = LostPetRepository.findAllForShelter()
-                call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets))
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = LostPetRepository.findAllForShelterPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets, nextCursor = nextCursor))
             }
             
             // ★新規追加：保護団体向け「迷子ペット詳細」API(1件)

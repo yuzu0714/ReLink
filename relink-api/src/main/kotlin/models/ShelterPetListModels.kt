@@ -65,8 +65,8 @@ data class ShelterLostPetListItem(
 // ★新規追加：GET /shelter/lost-pets 全体のレスポンス
 @Serializable
 data class ShelterLostPetListResponse(
-    val pets: List<ShelterLostPetListItem>
-    
+    val pets: List<ShelterLostPetListItem>,
+    val nextCursor: Long? = null   // 次ページのoffset。nullなら最終ページ
 )
 
 // ★新規追加：保護団体向け「迷子ペット詳細」のDTO
