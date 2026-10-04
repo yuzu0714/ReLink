@@ -1,0 +1,15 @@
+> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+
+> Task :run
+2026-10-03 22:41:15.537 [main] INFO  Application [] - Autoreload is disabled because the development mode is off.
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/kris5/.gradle/caches/modules-2/files-2.1/org.fusesource.jansi/jansi/2.4.3/c8dc6e80d4ff74b0ece025cf7efa583c49cecf70/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2026-10-03 22:41:17.650 [main] INFO  Application [] - Application started in 2.647 seconds.
+2026-10-03 22:41:18.141 [DefaultDispatcher-worker-1] INFO  Application [] - Responding at http://127.0.0.1:8080

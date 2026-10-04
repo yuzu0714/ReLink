@@ -21,3 +21,7 @@ Authorization: Bearer {{ownerLogin.response.body.$.token}}
 
 ### ④ トークン無しで呼ぶと401のはず
 GET http://localhost:8080/shelter/pets
+
+### ★追加：迷子一覧(shelter権限で200が返るはず)
+GET http://localhost:8080/shelter/lost-pets
+Authorization: Bearer {{shelterLogin.response.body.$.token}}

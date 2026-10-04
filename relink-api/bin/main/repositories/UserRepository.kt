@@ -43,6 +43,8 @@ object UserRepository {
             .firstOrNull()
     }
 
+    // ログイン：メール＋パスワードが一致すれば、ログイン画面で選択したロールでトークンを発行する。
+    // 登録時のロールと異なるロールでのログインも許可（同一ユーザーが飼い主・発見者を兼ねるケースに対応）。
     fun login(email: String, password: String, role: String): Pair<String, String>? = transaction {
         if (role !in allowedRoles) return@transaction null
 
