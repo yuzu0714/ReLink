@@ -155,6 +155,15 @@ function hasActiveFilter() {
   return activeFilters.places.size > 0 || activeFilters.specie !== null || activeFilters.colors.size > 0;
 }
 
+/* ---- 条件をリセット ---- */
+function resetShelterFilters() {
+  activeFilters.places.clear();
+  activeFilters.specie = null;
+  activeFilters.colors.clear();
+  renderFilters(allPets);
+  applyFilters();
+}
+
 // ---- フィルター機能 ここまで ----
 
 
