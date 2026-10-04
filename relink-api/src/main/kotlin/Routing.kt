@@ -294,6 +294,25 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets))
             }
             
+            // ★新規追加：保護団体向け「迷子ペット詳細」API(1件)
+            // /shelter/lost-pets と同じく shelter 権限のみ。電話番号・音声URLはここで返す
+            get("/shelter/lost-pets/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val id = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください") // → 400
+
+                val detail = LostPetRepository.findDetailForShelter(id)
+                    ?: throw NoSuchElementException("指定された迷子ペットが見つかりません: $id") // → 404
+
+                call.respond(HttpStatusCode.OK, detail)
+            }
+            
             /*★新規追加
              * JWTトークンからログイン情報を取得
              * 飼い主のペットを取得

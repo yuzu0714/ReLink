@@ -54,7 +54,7 @@ data class ShelterLostPetListItem(
     val color: String? = null,        // 毛色
     val lostPlace: String? = null,    // いなくなった場所
     val other: String? = null,        // そのほか(特徴メモ)
-    val phoneNumber: String? = null,   // 飼い主の連絡先(shelterだけが見られるAPIなので返している)
+    // ★修正：phoneNumber を削除(電話番号は一覧では見せず、詳細ページだけで返す)
     // ★新規追加：いまの状態コード。lost / candidate / contacting / confirmed / completed のどれか
     // (表示ラベルへの変換はフロント側で行う。バックエンドは「コード」だけ返す)
     val status: String = "lost"
@@ -65,4 +65,21 @@ data class ShelterLostPetListItem(
 data class ShelterLostPetListResponse(
     val pets: List<ShelterLostPetListItem>
     
+)
+
+// ★新規追加：保護団体向け「迷子ペット詳細」のDTO
+// 一覧(ShelterLostPetListItem)より項目が多く、電話番号・全写真・音声URLを持つ
+@Serializable
+data class ShelterLostPetDetail(
+    val id: Long,
+    val petName: String? = null,      // ペットの正式名称
+    val nickname: String? = null,     // 普段の呼び名
+    val specie: String? = null,
+    val color: String? = null,
+    val lostPlace: String? = null,
+    val other: String? = null,
+    val phoneNumber: String? = null,  // 飼い主の連絡先(詳細だけで返す)
+    val photoUrls: List<String> = emptyList(), // 登録された全写真(sort_order順。0番目が代表)
+    val voiceUrl: String? = null,     // 飼い主が録音した「呼び声」(無ければnull)
+    val status: String = "lost"
 )

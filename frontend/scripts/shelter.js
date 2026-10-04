@@ -311,12 +311,28 @@ function selectLostSpecie(value) {
 }
 
 /* ---- ★毛色フィルター(チェックボックス)。実際に登録されている毛色だけを選択肢にする ---- */
+// ★新規追加：迷子側の毛色フィルターに常に表示する毛色の一覧
+// 保護ペット一覧の毛色フィルターに出ている色と同じ並び順にしている
+// (色を増やしたい時はここに足すだけでOK)
+const LOST_COLOR_OPTIONS = [
+  "こげ茶色", "茶色", "クリーム色", "黒白", "黒", "茶白",
+  "黒茶", "白", "茶", "白茶", "白黒", "グレー"
+];
+
+// ★修正：選択肢を「登録されている毛色だけ」から「固定リスト＋登録済みの毛色」に変更
 function renderLostColorFilter() {
   const el = document.getElementById("lostFilterColor");
   if (!el) return;
 
-  // 「茶色・白」のような複数色は splitColors(保護側と共用)で1色ずつに分けて集める
-  const allColors = unique(lostPets.flatMap(p => splitColors(p.color)));
+  // 登録されている毛色を1色ずつに分ける(「茶色・白」→「茶色」「白」。splitColorsは保護側と共用)
+  const registeredColors = unique(lostPets.flatMap(p => splitColors(p.color)));
+
+  // ★追加：固定リストに無い毛色(自由入力などで登録された色)だけを取り出す
+  const extraColors = registeredColors.filter(c => !LOST_COLOR_OPTIONS.includes(c));
+
+  // ★追加：固定リストを先に並べて、その後ろに「リストに無い色」を付け足す
+  const allColors = [...LOST_COLOR_OPTIONS, ...extraColors];
+
   el.innerHTML = allColors.map(c => `
     <label class="filter-check-label">
       <input type="checkbox" value="${escapeHtml(c)}"
@@ -406,15 +422,16 @@ function renderLostCard(item) {
   // escapeHtml(common.js)で飼い主の入力文字をエスケープしてXSSを防ぐ
   const metaParts = [item.specie, item.color, item.lostPlace].filter(Boolean).map(escapeHtml);
   return `
-    <div class="match-card">
+    <!-- ★修正：クリックで詳細ページへ移動する(idは数値なのでそのまま埋め込んで安全) -->
+    <div class="match-card" style="cursor:pointer" onclick="location.href='shelter-lost-detail.html?id=${item.id}'">
       <div class="ph" style="${photoStyle}">${item.photoUrl ? '' : '🐕'}</div>
       <div style="min-width:0">
         <div class="name">${escapeHtml(item.petName || item.specie || '名前未登録')}</div>
         <div class="meta">${metaParts.join(' / ')}</div>
         ${item.other ? `<div class="meta">${escapeHtml(item.other)}</div>` : ''}
-        ${item.phoneNumber ? `<div class="meta">📞 ${escapeHtml(item.phoneNumber)}</div>` : ''}
+        <!-- ★削除：電話番号の行(詳細ページだけで見せる) -->
       </div>
-      <span class="pill mag">迷子</span>
+      <span class="${st.cls}">${st.label}</span>
     </div>`;
 }
 
@@ -624,5 +641,122 @@ if (document.getElementById('lostListBody')) {
     updateButton.addEventListener('click', () => {
       alert('保護情報の更新機能は準備中です。');
     });
+  }
+})();
+
+/* ---------------- ★新規追加：迷子ペット詳細(shelter-lost-detail.html 専用) ---------------- */
+(async () => {
+  // 迷子詳細ページの時だけ動かす(他のページでは何もしない)
+  const photoEl = document.getElementById('lostPetPhoto');
+  if (!photoEl) return;
+
+  // URLの ?id=123 から迷子ペットのIDを読み取る
+  const id = new URLSearchParams(window.location.search).get('id');
+  const token = sessionStorage.getItem('authToken');
+
+  if (!token) {
+    alert('ログインが必要です。');
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // ★指定したIDの要素に、エスケープした文字を入れるヘルパー(空なら「未登録」)
+  const setText = (elId, value, fallback = '未登録') => {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = value || fallback;
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/shelter/lost-pets/${encodeURIComponent(id)}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
+      if (res.status === 404) throw new Error('迷子ペットが見つかりませんでした。');
+      throw new Error('詳細の取得に失敗しました。(status ' + res.status + ')');
+    }
+    const d = await res.json();
+
+    // --- 基本情報(textContentで入れるので、飼い主の入力した文字もそのまま安全に表示される) ---
+    setText('lostPetName', d.petName || d.specie, '名前未登録');
+    setText('lostPetNickname', d.nickname);
+    setText('lostPetSpecie', d.specie);
+    setText('lostPetColor', d.color);
+    setText('lostPetPlace', d.lostPlace);
+    setText('lostPetOther', d.other, '情報なし');
+
+    // --- 状態ピル(一覧と同じ lostStatusMap を使うので表示が揃う) ---
+    const st = lostStatusMap[d.status] || lostStatusMap.lost;
+    const statusEl = document.getElementById('lostPetStatus');
+    if (statusEl) { statusEl.className = st.cls; statusEl.textContent = st.label; }
+
+    // --- ★電話番号：タップで電話できるリンクにする(数字・+ 以外は除いて安全にする) ---
+    const phoneEl = document.getElementById('lostPetPhone');
+    if (phoneEl) {
+      if (d.phoneNumber) {
+        const a = document.createElement('a');
+        a.href = 'tel:' + d.phoneNumber.replace(/[^0-9+]/g, '');
+        a.textContent = d.phoneNumber;
+        phoneEl.textContent = '';
+        phoneEl.appendChild(a);
+      } else {
+        phoneEl.textContent = '未登録';
+      }
+    }
+
+        // --- ★修正：写真ギャラリー。上に大きい1枚、下に「他の写真」を3枚ずつ並べる ---
+    const urls = d.photoUrls || [];
+    const thumbsEl = document.getElementById('lostPetThumbs');
+    let current = 0; // いま大きく表示している写真の番号(最初は0番目＝代表写真)
+
+    // ★大きい写真と、それ以外の写真(グリッド)を描き直す関数
+    const renderGallery = () => {
+      if (urls.length === 0) return; // 写真が無い時は🐕のまま
+
+      // 大きい写真：<img> を入れる。escapeHtml(common.js)でURLを属性に安全に埋め込む
+      photoEl.innerHTML = `<img src="${escapeHtml(urls[current])}" alt="迷子ペットの写真">`;
+
+      // 他の写真：いま大きく出している写真は除いて、残りを3列グリッドに並べる
+      thumbsEl.innerHTML = urls
+        .map((u, i) => i === current
+          ? ''  // ← 大きく表示中の写真は、グリッドには出さない
+          : `<img class="lost-thumb" data-i="${i}" src="${escapeHtml(u)}" alt="他の写真">`)
+        .join('');
+    };
+
+    // ★グリッドの写真をクリックしたら、それを大きい写真に入れ替える
+    // (入れ替わると、さっきまで大きかった写真がグリッド側に移る)
+    thumbsEl.addEventListener('click', (e) => {
+      const t = e.target.closest('.lost-thumb');
+      if (!t) return;
+      current = Number(t.dataset.i);
+      renderGallery();
+      photoEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // 大きい写真が見える位置に戻す
+    });
+
+    renderGallery(); // 最初の描画
+
+    // --- ★呼び声：voiceUrl があれば <audio> で再生できるようにする ---
+    const player = document.getElementById('lostVoicePlayer');
+    const msg = document.getElementById('lostVoiceMessage');
+    if (d.voiceUrl) {
+      player.src = d.voiceUrl;
+      player.style.display = 'block';
+      msg.textContent = '';
+      // ブラウザが形式を再生できない時(例：WebMが苦手なSafari)の代わりに、ダウンロードリンクを出す
+      player.onerror = () => {
+        player.style.display = 'none';
+        msg.innerHTML = 'この形式の音声は、お使いのブラウザでは再生できません。<br>' +
+          `<a href="${encodeURI(d.voiceUrl)}" download style="color:var(--magenta)">音声ファイルをダウンロード</a>`;
+      };
+    } else {
+      msg.textContent = '飼い主は音声を登録していません。';
+    }
+
+  } catch (err) {
+    console.error(err);
+    setText('lostPetName', '', '読み込みに失敗しました');
+    const msg = document.getElementById('lostVoiceMessage');
+    if (msg) msg.textContent = err.message || '詳細の取得中にエラーが発生しました。';
   }
 })();

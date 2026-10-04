@@ -8,6 +8,7 @@ import com.models.ShelterLostPetListItem // ★追加：一覧用DTOを使うた
 import com.db.MatchesTable   // ★追加：候補(マッチ)の有無とスコアを見るため
 import com.db.ContactTable   // ★追加：飼い主からの連絡の有無と進捗を見るため
 import com.db.HandoverTable  // ★追加：引き渡し完了かどうかを見るため
+import com.models.ShelterLostPetDetail // ★追加：詳細用DTOを使うため
 
 // lostpet_register への書き込みだけを担当するクラス
 object LostPetRepository {
@@ -82,15 +83,10 @@ object LostPetRepository {
                 )
             }
     }
-        // ★新規追加：保護団体向けに、全飼い主の迷子ペットを新しい順で全件返す
-    // findByUserId と違って userId で絞り込まない(shelterは全員分を見られる)
-    // 写真は ShelterPetListRepository と同じ作りで、pet_photos から代表写真を取る
-        // ★修正：各迷子ペットに「いまの状態(status)」を付けて返すように変更
-    fun findAllForShelter(): List<ShelterLostPetListItem> = transaction {
-
-        // ★追加：状態の判定に使う3つのテーブルを「最初に1回ずつ」全件取得してメモリに持っておく
-        // (迷子ペット1匹ごとにDBへ問い合わせるとN+1で遅くなるため、まとめて取って後はメモリ上で振り分ける)
-
+    // ★新規追加：「迷子ペットIDから状態コードを返す関数」を作る
+    // 前は findAllForShelter の中に直接書いていた判定を切り出して、一覧と詳細で共用する
+    // 3つのテーブルを最初に1回ずつ全件取得してメモリに持ち、返す関数はメモリ上で振り分けるだけ(DBに追加で問い合わせない)
+    private fun buildLostStatusResolver(): (Long) -> String = transaction {
         // 迷子ペットID → そのペットのマッチ一覧 (Triple = matchId, lostPetId, スコア0〜100)
         val matchesByLostPet = MatchesTable.selectAll()
             .map { Triple(it[MatchesTable.id], it[MatchesTable.lostPetId], it[MatchesTable.matchScore].toDouble()) }
@@ -101,34 +97,40 @@ object LostPetRepository {
             .map { ContactStateRow(it[ContactTable.id], it[ContactTable.matchId], it[ContactTable.status]) }
             .groupBy { it.matchId }
 
-        // 引き渡し「完了」の記録がある contactId の集合(「あるか無いか」だけ分かればいいのでSet)
+        // 引き渡し「完了」の記録がある contactId の集合
         val handedOverContactIds = HandoverTable.selectAll()
             .where { HandoverTable.status eq "completed" }
             .map { it[HandoverTable.contactId] }
             .toSet()
 
+        // 判定ロジック(前回と同じ)。上から順に評価して、最初に当てはまったものを採用する
+        val resolver: (Long) -> String = { lostPetId ->
+            val myMatches = matchesByLostPet[lostPetId].orEmpty()
+            // 「rejected(見当違いだった)」の連絡は状態を進めない扱いにするので除外
+            val myContacts = myMatches
+                .flatMap { contactsByMatch[it.first].orEmpty() }
+                .filter { it.status != "rejected" }
+
+            when {
+                myContacts.any { it.contactId in handedOverContactIds } -> "completed"  // 引き渡し記録あり
+                myContacts.any { it.status == "confirmed" } -> "confirmed"              // 一致確認済み・引き渡し待ち
+                myContacts.isNotEmpty() -> "contacting"                                  // 連絡済み
+                myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "candidate"   // 有力な候補あり
+                else -> "lost"                                                           // まだ見つかっていない
+            }
+        }
+        resolver
+    }
+
+    // ★修正：状態判定は buildLostStatusResolver に任せる形に変更。
+    // ★修正：一覧からは電話番号を外した(電話番号は詳細ページだけで見せるため)
+    fun findAllForShelter(): List<ShelterLostPetListItem> = transaction {
+        val resolveStatus = buildLostStatusResolver() // ★状態を調べる関数を1回だけ作る
+
         LostPetRegisterTable.selectAll()
-            .orderBy(LostPetRegisterTable.id to SortOrder.DESC) // created_atをExposed側で定義していないのでid降順＝新しい順
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC) // id降順＝新しい順
             .map { row ->
                 val id = row[LostPetRegisterTable.id]
-
-                // ★追加：このペットのマッチ → それに対する連絡 を順にたどる
-                // 「rejected(見当違いだった)」の連絡は、状態を進めない扱いにするので除外
-                val myMatches = matchesByLostPet[id].orEmpty()
-                val myContacts = myMatches
-                    .flatMap { contactsByMatch[it.first].orEmpty() }
-                    .filter { it.status != "rejected" }
-
-                // ★追加：状態の判定。上から順に評価して、最初に当てはまったものを採用する
-                // (進んだ状態ほど上に書く。例:完了済みなら「連絡中」にも当てはまるが「完了」を優先)
-                val status = when {
-                    myContacts.any { it.contactId in handedOverContactIds } -> "completed"  // 引き渡し記録あり
-                    myContacts.any { it.status == "confirmed" } -> "confirmed"              // 一致確認済み・引き渡し待ち
-                    myContacts.isNotEmpty() -> "contacting"                                  // 連絡済み
-                    myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "candidate"   // 有力な候補あり
-                    else -> "lost"                                                           // まだ見つかっていない
-                }
-
                 ShelterLostPetListItem(
                     id = id,
                     photoUrl = PetPhotoRepository.findByPet("lost", id).firstOrNull()?.photoUrl,
@@ -137,10 +139,32 @@ object LostPetRepository {
                     color = row[LostPetRegisterTable.color],
                     lostPlace = row[LostPetRegisterTable.lostPlace],
                     other = row[LostPetRegisterTable.other],
-                    phoneNumber = row[LostPetRegisterTable.phoneNumber],
-                    status = status // ★追加：判定した状態コードを返す
+                    status = resolveStatus(id)
                 )
             }
+    }
+
+    // ★新規追加：保護団体向けの迷子ペット詳細(1件)。存在しないidなら null を返す
+    // 一覧と違って、電話番号・全写真・音声URL も入れて返す
+    fun findDetailForShelter(id: Long): ShelterLostPetDetail? = transaction {
+        val row = LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.id eq id }
+            .firstOrNull() ?: return@transaction null // 見つからなければ null(Routing側で404にする)
+
+        ShelterLostPetDetail(
+            id = id,
+            petName = row[LostPetRegisterTable.petName],
+            nickname = row[LostPetRegisterTable.nickname],
+            specie = row[LostPetRegisterTable.specie],
+            color = row[LostPetRegisterTable.color],
+            lostPlace = row[LostPetRegisterTable.lostPlace],
+            other = row[LostPetRegisterTable.other],
+            phoneNumber = row[LostPetRegisterTable.phoneNumber],
+            // 全写真を sort_order 順に取得(findByPet が昇順で返す)
+            photoUrls = PetPhotoRepository.findByPet("lost", id).map { it.photoUrl },
+            voiceUrl = row[LostPetRegisterTable.voiceUrl],
+            status = buildLostStatusResolver()(id) // 状態を判定して、このペット分だけ取り出す
+        )
     }
 }
 
