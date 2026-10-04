@@ -44,7 +44,7 @@ function initOwnerPage() {
 
         <div class="spacer"></div>
 
-        <span class="role-chip">Owner</span>
+        <span class="role-chip">飼い主</span>
       </div>
     `;
   }
