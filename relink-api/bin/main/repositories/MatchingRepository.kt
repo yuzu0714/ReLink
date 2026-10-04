@@ -32,16 +32,21 @@ object MatchingRepository {
     ): Op<Boolean> {
         var condition: Op<Boolean> = Op.TRUE
 
+        // ★修正：完全一致(eq)から部分一致(like)に変更。
+        // 「犬」と「小型犬」、「猫」と「三毛猫」なども候補に含まれるようにする。
         if (!specie.isNullOrBlank()) {
-            condition = condition and (specieCol eq specie)
+            condition = condition and (specieCol like "%$specie%")
         }
 
         if (!color.isNullOrBlank()) {
             condition = condition and (colorCol like "%$color%")
         }
 
+        // ★修正：lostPlaceが「徳島県 阿南市」形式の場合、市区町村部分だけ抽出してLIKE検索。
+        // スペースで分割して最後のトークンを使う（「阿南市」単体でも「徳島県 阿南市」でも動く）。
         if (!lostPlace.isNullOrBlank()) {
-            condition = condition and (placeCol like "%$lostPlace%")
+            val cityPart = lostPlace.trim().split(" ").last()
+            condition = condition and (placeCol like "%$cityPart%")
         }
 
         return condition
