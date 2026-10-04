@@ -512,6 +512,8 @@ function applyLostFilters() {
   bodyEl.innerHTML = filtered.length
     ? filtered.map(renderLostCard).join("")
     : '<div class="lede" style="color:var(--magenta)">該当するペットがいません。</div>';
+  // sentinelを末尾に戻す（IntersectionObserverが機能し続けるように）
+  if (lostSentinelEl) bodyEl.appendChild(lostSentinelEl);
 }
 
 // ★新規追加：バックエンドの状態コード → 画面に出すラベルと色の対応表
@@ -549,8 +551,122 @@ function renderLostCard(item) {
 }
 
 // ★GET /shelter/lost-pets を呼んで一覧を描画する
-// ★修正：取得したデータを lostPets に保存し、フィルター表示→絞り込み描画の流れに変更
-//        (前は取得してすぐ描画して終わりだったが、絞り込みのたびに元データが必要になるため)
+// ---- 迷子ペット一覧：無限スクロール・ページネーション ----
+
+const LOST_PAGE_SIZE = 12;
+let lostCurrentOffset = 0;
+let lostIsFetching = false;
+let lostNoMorePages = false;
+let lostSentinelEl = null;
+let lostScrollObserver = null;
+
+function hasActiveLostFilter() {
+  return lostFilters.places.size > 0 || lostFilters.specie !== null || lostFilters.colors.size > 0;
+}
+
+function updateLostCountEl() {
+  const countEl = document.getElementById('lostCount');
+  if (!countEl) return;
+  const bodyEl = document.getElementById('lostListBody');
+  if (!bodyEl) return;
+  const filtered = lostPets.filter(pet => {
+    if (lostFilters.places.size > 0 &&
+        ![...lostFilters.places].some(pref => (pet.lostPlace || '').includes(pref))) return false;
+    if (lostFilters.specie && pet.specie !== lostFilters.specie) return false;
+    if (lostFilters.colors.size > 0) {
+      const petColors = new Set(splitColors(pet.color));
+      if (![...lostFilters.colors].some(c => petColors.has(c))) return false;
+    }
+    return true;
+  });
+  countEl.innerHTML = `登録されている迷子ペット： <b style="color:var(--magenta)">${lostPets.length}頭</b>` +
+    (filtered.length !== lostPets.length
+      ? ` <span style="color:var(--gray,#888);font-size:.85rem">（絞り込み後: ${filtered.length}頭）</span>`
+      : '');
+}
+
+async function fetchNextLostPage() {
+  if (lostIsFetching || lostNoMorePages) return;
+  lostIsFetching = true;
+
+  if (lostSentinelEl) {
+    lostSentinelEl.style.display = '';
+    lostSentinelEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--gray,#888);font-size:.9rem;">読み込み中…</div>';
+  }
+
+  const token = sessionStorage.getItem('authToken');
+  try {
+    const res = await fetch(`${API_BASE}/shelter/lost-pets?limit=${LOST_PAGE_SIZE}&offset=${lostCurrentOffset}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
+      throw new Error('迷子ペット一覧の取得に失敗しました。(status ' + res.status + ')');
+    }
+
+    const data = await res.json();
+    const newPets = data.pets || [];
+    lostNoMorePages = data.nextCursor === null || data.nextCursor === undefined || newPets.length === 0;
+
+    if (newPets.length === 0 && lostCurrentOffset === 0) {
+      const countEl = document.getElementById('lostCount');
+      if (countEl) countEl.textContent = '現在、登録されている迷子ペットはいません。';
+      if (lostSentinelEl) { lostSentinelEl.innerHTML = ''; lostSentinelEl.style.display = 'none'; }
+      lostIsFetching = false;
+      return;
+    }
+
+    const prevLength = lostPets.length;
+    lostPets.push(...newPets);
+    lostCurrentOffset += newPets.length;
+
+    updateLostCountEl();
+
+    if (prevLength === 0) renderLostFilters();
+
+    const bodyEl = document.getElementById('lostListBody');
+    if (bodyEl) {
+      if (hasActiveLostFilter()) {
+        applyLostFilters();
+      } else {
+        const frag = document.createDocumentFragment();
+        newPets.forEach(item => {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderLostCard(item);
+          frag.appendChild(tmp.firstElementChild);
+        });
+        if (lostSentinelEl && lostSentinelEl.parentNode === bodyEl) {
+          bodyEl.insertBefore(frag, lostSentinelEl);
+        } else {
+          bodyEl.appendChild(frag);
+          if (lostSentinelEl) bodyEl.appendChild(lostSentinelEl);
+        }
+      }
+    }
+
+    if (lostSentinelEl) {
+      if (lostNoMorePages) {
+        lostSentinelEl.innerHTML = '';
+        lostSentinelEl.style.display = 'none';
+      } else {
+        lostSentinelEl.innerHTML = '';
+      }
+    }
+
+  } catch (err) {
+    console.error(err);
+    const countEl = document.getElementById('lostCount');
+    if (countEl) countEl.textContent = '';
+    const bodyEl = document.getElementById('lostListBody');
+    if (bodyEl && lostCurrentOffset === 0) {
+      bodyEl.innerHTML = `<div class="lede" style="color:var(--magenta)">${escapeHtml(err.message)}</div>`;
+    }
+    if (lostSentinelEl) lostSentinelEl.innerHTML = '';
+  }
+
+  lostIsFetching = false;
+}
+
 async function loadLostList() {
   const countEl = document.getElementById('lostCount');
   const bodyEl = document.getElementById('lostListBody');
@@ -564,35 +680,20 @@ async function loadLostList() {
     return;
   }
 
-  try {
-    const res = await fetch(`${API_BASE}/shelter/lost-pets`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      if (res.status === 403) {
-        throw new Error('この画面には保護団体(shelter)権限が必要です。ログインし直してください。');
+  lostSentinelEl = document.createElement('div');
+  lostSentinelEl.id = 'lostLoadMoreSentinel';
+  lostSentinelEl.style.height = '40px';
+  bodyEl.appendChild(lostSentinelEl);
+
+  await fetchNextLostPage();
+
+  if ('IntersectionObserver' in window) {
+    lostScrollObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !lostIsFetching && !lostNoMorePages) {
+        fetchNextLostPage();
       }
-      throw new Error('迷子ペット一覧の取得に失敗しました。(status ' + res.status + ')');
-    }
-
-    const data = await res.json();
-    const pets = data.pets || [];
-
-    // ★0件ならフィルターは出さずにメッセージだけ表示する(絞り込む対象が無いため)
-    if (pets.length === 0) {
-      countEl.textContent = '現在、登録されている迷子ペットはいません。';
-      bodyEl.innerHTML = '';
-      return;
-    }
-
-    // ★元データを保存 → フィルター表示 → 絞り込み描画
-    lostPets = pets;
-    renderLostFilters();
-    applyLostFilters();
-  } catch (err) {
-    console.error(err);
-    countEl.textContent = '';
-    bodyEl.innerHTML = `<div class="lede" style="color:var(--magenta)">${escapeHtml(err.message)}</div>`;
+    }, { rootMargin: '200px' });
+    if (lostSentinelEl) lostScrollObserver.observe(lostSentinelEl);
   }
 }
 
