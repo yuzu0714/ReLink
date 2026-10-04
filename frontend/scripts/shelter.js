@@ -182,8 +182,9 @@ function renderShelterCard(item, index){
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
+    //詳細画面と保護ペット一覧の照合状況を対応
     return `
-        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'))">
+        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'), '${status}')">
             <div class="ph" style="${photoStyle}" loading="lazy">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
