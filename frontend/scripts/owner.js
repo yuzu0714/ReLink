@@ -518,9 +518,27 @@ function initOwnerPage() {
           background-size:cover;
           background-position:center;
         "
-      ></div>
+      >
+        <button
+          class="x"
+          type="button"
+          aria-label="写真を削除"
+          data-owner-action="remove-photo"
+          data-owner-photo-index="${index}"
+        >×</button>
+      </div>
     `).join('');
 
+  }
+
+  function removeOwnerPhoto(index) {
+    const photo = ownerState.photos[index];
+
+    if (!photo) return;
+
+    URL.revokeObjectURL(photo.src);
+    ownerState.photos.splice(index, 1);
+    renderOwnerThumbs();
   }
 
 
@@ -1504,6 +1522,13 @@ function initOwnerPage() {
 
         const name =
           action.dataset.ownerAction;
+
+        if (name === 'remove-photo') {
+          removeOwnerPhoto(
+            Number(action.dataset.ownerPhotoIndex)
+          );
+          return;
+        }
 
 
         // マッチング中の処理を停止
