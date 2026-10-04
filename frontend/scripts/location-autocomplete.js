@@ -598,7 +598,7 @@ function initLocationAutocomplete(inputId) {
   const prefCtrl = createAutocomplete({
     container: prefWrap,
     items: LOC_PREFS,
-    placeholder: '',
+    placeholder: '例: 東京都',
     onSelect(item) {
       if (item) {
         selectedPref = item.name;
@@ -616,7 +616,7 @@ function initLocationAutocomplete(inputId) {
   const cityCtrl = createAutocomplete({
     container: cityWrap,
     items: Object.values(LOC_CITIES).flat(),
-    placeholder: '',
+    placeholder: '例: 渋谷区',
     onSelect() { syncValue(); },
   });
 

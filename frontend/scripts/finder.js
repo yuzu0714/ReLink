@@ -77,7 +77,7 @@ const screens = {
           <div class="thumbs" id="thumbs">${renderThumbs()}</div>
 
           <button class="btn btn-ghost btn-sm" id="aiFillBtn" style="width:100%" onclick="aiAutoFill()">
-            写真からAIで自動入力（未入力の項目のみ）
+            🤖 写真からAIで自動入力（未入力の項目のみ）
           </button>
           <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         </div>

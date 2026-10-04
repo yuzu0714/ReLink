@@ -1443,105 +1443,40 @@ html body .login-appbar .brand h1 {
   font-size:13px; font-weight:700; cursor:pointer;
 }
 
-/* ===== owner-pets.html: カード型グリッドレイアウト ===== */
-
-/* ── グリッドコンテナ（PCで3列） ── */
+/* ===== owner-pets.html: 1カラム表示に戻す（2カラムグリッドのオーバーライド）===== */
 body[data-page="owner-pets"] .pad > .stack:last-child {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
   width: 100%;
-  max-width: 960px;
+  max-width: 720px;
   margin-left: auto;
   margin-right: auto;
+  gap: 20px;
 }
 
-/* .stack の > * + * マージンを打ち消す */
 body[data-page="owner-pets"] .pad > .stack:last-child > * + * {
   margin-top: 0;
 }
 
-/* ローディング・エラーカードはフル幅 */
-body[data-page="owner-pets"] .pad > .stack:last-child > .card:not(.owner-pet-card) {
-  grid-column: 1 / -1;
-}
-
-/* ── 各ペットカード ── */
 body[data-page="owner-pets"] .owner-pet-card {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 14px;
-  align-items: stretch;
-  cursor: default;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2fr;
+  gap: 20px;
+  align-items: center;
 }
 
-/* ── 画像エリア（上部・固定高） ── */
 body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
   width: 100%;
-  height: 180px;
-  border-radius: 0;
-  overflow: hidden;
-  display: block;
-  flex-shrink: 0;
+  max-width: 260px;
 }
 
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* 写真なしプレースホルダー */
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-no-photo {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  color: #777;
-  font-size: 14px;
-}
-
-/* ── 情報エリア（下部） ── */
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-info {
-  padding: 14px 16px 16px;
-  flex: 1;
-  gap: 8px;
-}
-
-/* 種類・犬種：太文字＋やや大きめ */
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .t {
-  font-weight: 700;
-  font-size: 16px;
-}
-
-/* 毛色・いなくなった場所：薄いグレー */
-body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .d {
-  color: #777;
-  font-size: 13px;
-}
-
-/* タブレット：2列 */
-@media (max-width: 760px) {
-  body[data-page="owner-pets"] .pad > .stack:last-child {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-}
-
-/* スマートフォン：1列 */
-@media (max-width: 480px) {
-  body[data-page="owner-pets"] .pad > .stack:last-child {
+@media (max-width: 600px) {
+  body[data-page="owner-pets"] .owner-pet-card {
     grid-template-columns: 1fr;
-    gap: 14px;
   }
-
   body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
-    height: 200px;
+    max-width: 100%;
   }
 }
 
@@ -1710,53 +1645,4 @@ body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .d {
   .mr-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-/* ===================================================================
-   owner-pets.html: スケルトンローディング & 無限スクロール sentinel
-   =================================================================== */
-
-/* シマーアニメーション */
-@keyframes pet-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* スケルトン：画像エリア */
-body[data-page="owner-pets"] .owner-pet-skeleton .skel-box {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: pet-shimmer 1.4s ease-in-out infinite;
-  height: 180px;
-}
-
-/* スケルトン：テキスト行 */
-.skel-line {
-  height: 13px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: pet-shimmer 1.4s ease-in-out infinite;
-  margin-bottom: 8px;
-}
-
-.skel-line-lg {
-  width: 65%;
-  height: 17px;
-  margin-bottom: 12px;
-}
-
-.skel-line-sm {
-  width: 80%;
-}
-
-/* スケルトンカードの情報エリア余白 */
-body[data-page="owner-pets"] .owner-pet-skeleton .owner-pet-info {
-  padding: 14px 16px 16px;
-}
-
-/* IntersectionObserver 監視要素（非表示・フル幅） */
-.pet-sentinel {
-  height: 1px;
-  grid-column: 1 / -1;
 }

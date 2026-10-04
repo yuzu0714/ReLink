@@ -8,7 +8,6 @@ fun Application.configureHTTP() {
     install(CORS) {
         allowHost("127.0.0.1:5500")
         allowHost("localhost:5500")
-        allowHost("157.17.49.232")
         // ローカルネットワーク（スマホ確認用）
         // allowHost("192.168.0.165:5500")
         // allowHost("192.168.1.165:5500")
