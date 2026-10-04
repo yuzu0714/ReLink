@@ -166,14 +166,14 @@ const statusPillClass = { '照合中': 'pill', '新規': 'pill mag', '一致': '
 
 function petSwatch(id){ return petColors[Number(id) % petColors.length]; }
 
-function openShelterPetDetail(item) {
+function openShelterPetDetail(item, status) {
     // matchIdがない場合に備えて、一覧で取得済みのデータをsessionStorageに保存
     try {
         sessionStorage.setItem('shelterPetFallback', JSON.stringify(item));
     } catch(e) { /* sessionStorage非対応環境は無視 */ }
     const matchId = item.matchId ?? '';
     const lostPetId = item.lostPetId ?? '';
-    location.href = `pet_detail.html?id=${item.id}&source=${item.source}&matchId=${matchId}&lostPetId=${lostPetId}`;
+    location.href = `pet_detail.html?id=${item.id}&source=${item.source}&matchId=${matchId}&lostPetId=${lostPetId}&status=${encodeURIComponent(status)}`;
 }
 
 function renderShelterCard(item, index){
@@ -182,8 +182,9 @@ function renderShelterCard(item, index){
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
     const status = statusCycle[index % statusCycle.length];
+    //詳細画面と保護ペット一覧の照合状況を対応
     return `
-        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'))">
+        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'), '${status}')">
             <div class="ph" style="${photoStyle}" loading="lazy">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
@@ -601,6 +602,8 @@ if (document.getElementById('lostListBody')) {
   const source = params.get('source');
   const matchId = params.get('matchId');
   const lostPetId = params.get('lostPetId');
+  const requestedStatus = params.get('status');
+  const detailStatus = statusCycle.includes(requestedStatus) ? requestedStatus : null;
 
   //正しいかデータか確認
   console.log('保護ペットID:', petId);
@@ -637,7 +640,11 @@ if (document.getElementById('lostListBody')) {
     if (petDate) petDate.textContent = foundDate || '日付不明';
 
     const petStatus = document.getElementById('petStatus');
-    if (petStatus) petStatus.textContent = statusText || '照合中';
+    const resolvedStatus = statusPillClass[statusText] ? statusText : '照合中';
+    if (petStatus) {
+      petStatus.textContent = resolvedStatus;
+      petStatus.className = statusPillClass[resolvedStatus];
+    }
 
     const petPhoto = document.getElementById('petPhoto');
     if (petPhoto && photoUrl) {
@@ -696,7 +703,7 @@ if (document.getElementById('lostListBody')) {
           other: pet.other,
           foundPlace: pet.foundPlace,
           foundDate: pet.foundDate,
-          statusText: '一致',
+          statusText: detailStatus || '一致',
           photoUrl: pet.photoUrls && pet.photoUrls.length > 0 ? pet.photoUrls[0] : null,
           voiceUrl: pet.voiceUrl,
         });
@@ -719,7 +726,7 @@ if (document.getElementById('lostListBody')) {
           other: fallback.other,
           foundPlace: fallback.place,   // ShelterPetListItemではplaceという名前
           foundDate: fallback.date,     // ShelterPetListItemではdateという名前
-          statusText: '照合中',
+          statusText: detailStatus || '照合中',
           photoUrl: fallback.photoUrl,  // ShelterPetListItemではphotoUrl（単数）
           voiceUrl: null,
         });
@@ -729,7 +736,11 @@ if (document.getElementById('lostListBody')) {
         const petName = document.getElementById('petName');
         if (petName) petName.textContent = `保護 #${petId}`;
         const petStatus = document.getElementById('petStatus');
-        if (petStatus) petStatus.textContent = '照合中';
+        const resolvedStatus = detailStatus || '照合中';
+        if (petStatus) {
+          petStatus.textContent = resolvedStatus;
+          petStatus.className = statusPillClass[resolvedStatus];
+        }
       }
     }
 
