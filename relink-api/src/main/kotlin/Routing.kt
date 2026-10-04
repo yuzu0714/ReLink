@@ -37,7 +37,6 @@ import com.repositories.MatchingRepository
 import com.services.MatchingService
 import com.models.MatchingRunResponse
 import com.models.ContactStatusUpdateRequest
-import com.models.MatchResultItem
 import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
@@ -224,16 +223,9 @@ fun Application.configureRouting() {
                 val request = call.receive<LostPetRegisterRequest>()
                 val insertedId = LostPetRepository.insert(request, userId)
 
-                val matchResults: List<MatchResultItem> = try {
-                    MatchingService.runMatching(insertedId)
-                } catch (e: Exception) {
-                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
-                    emptyList()
-                }
-
                 call.respond(
                     HttpStatusCode.Created,
-                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                    LostPetRegisterResponse(id = insertedId)
                 )
             }
 
