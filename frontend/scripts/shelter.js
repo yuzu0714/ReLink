@@ -218,7 +218,9 @@ async function fetchNextPage() {
   // ロード中表示
   if (sentinelEl) {
     sentinelEl.style.display = '';
-    sentinelEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--gray,#888);font-size:.9rem;">読み込み中…</div>';
+    sentinelEl.innerHTML = currentOffset > 0
+      ? '<div style="text-align:left;padding:0;color:var(--gray,#888);font-size:.9rem;">読み込み中…</div>'
+      : '';
   }
 
   const token = sessionStorage.getItem('authToken');
