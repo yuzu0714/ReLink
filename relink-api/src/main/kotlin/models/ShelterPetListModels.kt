@@ -25,7 +25,8 @@ data class ShelterPetListItem(
 // GET /shelter/pets 全体のレスポンス
 @Serializable
 data class ShelterPetListResponse(
-    val pets: List<ShelterPetListItem>
+    val pets: List<ShelterPetListItem>,
+    val nextCursor: Long? = null   // カーソルページネーション用：次ページのcursor。nullなら最終ページ
 )
 
 @Serializable
@@ -40,7 +41,8 @@ data class OwnerPetListItem(
 
 @Serializable
 data class OwnerPetListResponse(
-    val pets: List<OwnerPetListItem>
+    val pets: List<OwnerPetListItem>,
+    val nextCursor: Long? = null   // カーソルページネーション用：次ページのcursor。nullなら最終ページ
 )
 
 // ★新規追加：保護団体向けの「迷子ペット一覧」1件分のDTO

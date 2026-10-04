@@ -428,21 +428,16 @@ function logout() {
 
 // ロール切り替え
 //
-// 「飼い主」「発見者」「保護団体」を変更する場合は、
-// 現在選択されているロールをリセットしてログイン画面へ戻す。
+// 保護団体から飼い主・発見者へ切り替える場合は、
+// 一般ログイン画面へ戻して役割を選び直す。
 
 function switchRole() {
-  const loginUrl =
-    sessionStorage.getItem('selectedRole') === 'shelter'
-      ? 'shelter-login.html'
-      : 'login.html';
-
   sessionStorage.removeItem(
     'selectedRole'
   );
 
   window.location.href =
-    loginUrl;
+    'login.html';
 }
 
 

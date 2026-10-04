@@ -55,7 +55,7 @@
 
               <!-- AIによる自動入力 -->
               <button class="btn btn-ghost btn-sm" id="aiFillBtn" type="button">
-                🤖 写真からAIで自動入力（未入力の項目のみ）
+                写真からAIで自動入力（未入力の項目のみ）
               </button>
               <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
             </div>
@@ -64,7 +64,7 @@
             <div class="register-fields">
               <div class="field">
                 <label>発見場所</label>
-                <input class="input" id="foundPlace" type="text" placeholder="市区町村">
+                <input class="input" id="foundPlace" type="text">
               </div>
 
               <div class="field">
@@ -153,11 +153,15 @@
     </div>
   </div>
 
+  <script src="scripts/location-autocomplete.js"></script>
   <script>
     // このページは demo.js を読み込まない、完全に独立したスクリプトにしている。
     // (demo.js を読み込むと、末尾の共通ルーター処理が data-page 未設定のこのページでも動いてしまい、
     //  ここで組んだ画面をテンプレートの中身で上書きしてしまうため)
-    const API_BASE = 'http://localhost:8080';
+    const _host = window.location.hostname;
+    const API_BASE = (_host === 'localhost' || _host === '127.0.0.1')
+      ? 'http://localhost:8080'
+      : `http://${_host}:8080`;
     const MAX_PHOTOS_PER_PET = 10;
 
     // 毛色スウォッチの並び順と、バックエンドに送るテキストの対応(他ページと合わせている)
@@ -350,6 +354,9 @@
     }
 
     // 保護情報をrelink-apiに登録する(POST /pets/rescued。shelter権限が必要)
+    // 発見場所を都道府県＋市区町村の2段入力に変換
+    if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('foundPlace');
+
     submitBtn.addEventListener('click', async () => {
       const token = sessionStorage.getItem('authToken');
       if (!token) {

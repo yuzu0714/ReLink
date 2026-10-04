@@ -166,6 +166,40 @@ object LostPetRepository {
             status = buildLostStatusResolver()(id) // 状態を判定して、このペット分だけ取り出す
         )
     }
+
+    /*★新規追加：カーソルページネーション対応のペット取得
+     * cursor: 直前の最後のペットID。nullなら先頭から取得
+     * limit: 1回に取得する件数
+     * 戻り値: (ペットリスト, 次ページのcursor) ※次ページがなければcursorはnull
+     */
+    fun findByUserIdPaged(userId: Long, limit: Int, cursor: Long?): Pair<List<LostPetRegisterRow>, Long?> = transaction {
+        var query = LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.userId eq userId }
+
+        // cursor指定あり：そのIDより小さいもの（=より古い）を取得（DESC順のため）
+        if (cursor != null) {
+            query = query.andWhere { LostPetRegisterTable.id less cursor }
+        }
+
+        // limit+1件取得して「次のページがあるか」を確認する
+        val rows = query
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC)
+            .limit(limit + 1)
+            .map {
+                LostPetRegisterRow(
+                    id = it[LostPetRegisterTable.id],
+                    specie = it[LostPetRegisterTable.specie],
+                    color = it[LostPetRegisterTable.color],
+                    lostPlace = it[LostPetRegisterTable.lostPlace],
+                    userId = it[LostPetRegisterTable.userId]
+                )
+            }
+
+        val hasMore = rows.size > limit
+        val items = if (hasMore) rows.dropLast(1) else rows
+        val nextCursor = if (hasMore) items.lastOrNull()?.id else null
+        Pair(items, nextCursor)
+    }
 }
 
 // ★新規追加：findById()の戻り値専用の内部DTO
