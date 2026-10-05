@@ -655,36 +655,28 @@ async function aiAutoFill(){
   }
 }
 
-// AIの解析結果({animalType, breed, coatColor, hasCollar, collarFeatures})を、未入力の項目にだけ反映する
-// (そのほか欄には首輪情報のみを書く。犬種・毛色はセレクト/スウォッチの選択だけに使う)
+// callAiExtractFeatures()が返す共通形式を、未入力の項目にだけ反映する
 function applyAiTags(tags){
-  const notes = [];
-
   if(!S.specie){
-    const guess = guessSpecieOption(tags.animalType, tags.breed);
+    const guess = guessSpecieOption(tags.specie, tags.otherSpecie);
     if(guess){
       S.specie = guess;
       const sel = document.getElementById('specie');
       if(sel) sel.value = guess;
-    } else if(tags.breed && !S.otherSpecie){
+    } else if(tags.otherSpecie && !S.otherSpecie){
       // 選択肢にない犬種はテキスト欄に入れる
-      S.otherSpecie = [tags.animalType, tags.breed].filter(Boolean).join(' ');
+      S.otherSpecie = tags.otherSpecie;
       const inp = document.getElementById('otherSpecie');
       if(inp) inp.value = S.otherSpecie;
     }
   }
 
-  if(S.regColors.length === 0 && tags.coatColor){
-    const idx = colorKeywordIndex(tags.coatColor);
-    if(idx !== -1) pickColor(idx);
+  if(S.regColors.length === 0 && Number.isInteger(tags.colorIndex)){
+    pickColor(tags.colorIndex);
   }
 
-  if(tags.hasCollar){
-    notes.push(`首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`);
-  }
-
-  if(!S.other && notes.length > 0){
-    S.other = notes.join(' / ');
+  if(!S.other && tags.other){
+    S.other = tags.other;
     const ta = document.getElementById('other');
     if(ta) ta.value = S.other;
   }

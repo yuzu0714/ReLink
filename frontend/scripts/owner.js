@@ -932,49 +932,23 @@ function initOwnerPage() {
 
     let progress = 0;
 
-
     ownerMatchTimer = setInterval(() => {
+      progress = Math.min(95, progress + 5);
 
-      progress =
-        Math.min(
-          95,
-          progress + 5
-        );
+      const bar = document.getElementById('ownerBar');
+      const pct = document.getElementById('ownerPct');
 
-      const bar =
-        document.getElementById('ownerBar');
-
-      const pct =
-        document.getElementById('ownerPct');
-
-
-      if (bar) {
-        bar.style.width =
-          `${progress}%`;
-      }
-
-      if (pct) {
-        pct.textContent =
-          `${progress}%`;
-      }
-
+      if (bar) bar.style.width = `${progress}%`;
+      if (pct) pct.textContent = `${progress}%`;
     }, 200);
-
 
     fetch(
       `${API_BASE}/matching/run?lostPetId=${lostPetId}`,
-      {
-        method: 'POST'
-      }
+      { method: 'POST' }
     )
-
       .then(async (res) => {
-
         if (!res.ok) {
-
-          const body =
-            await res.json().catch(() => null);
-
+          const body = await res.json().catch(() => null);
           throw new Error(
             (body && body.message) ||
             `マッチングに失敗しました。(status ${res.status})`
@@ -982,85 +956,40 @@ function initOwnerPage() {
         }
 
         return res.json();
-
       })
-
       .then((data) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
 
+        ownerMatchResults = (data && data.results) || [];
 
-        ownerMatchResults =
-          (data && data.results) || [];
+        const bar = document.getElementById('ownerBar');
+        const pct = document.getElementById('ownerPct');
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
 
-
-        const bar =
-          document.getElementById('ownerBar');
-
-        const pct =
-          document.getElementById('ownerPct');
-
-
-        if (bar) {
-          bar.style.width = '100%';
-        }
-
-        if (pct) {
-          pct.textContent = '100%';
-        }
-
-
-        setTimeout(() => {
-
-          if (
-            myToken === ownerMatchRequestToken
-          ) {
+        ownerMatchTimer = setTimeout(() => {
+          ownerMatchTimer = null;
+          if (myToken === ownerMatchRequestToken) {
             showResults(ownerMatchResults);
           }
-
         }, 350);
-
       })
-
       .catch((error) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
 
-
         console.error(error);
-
-        alert(
-          error.message ||
-          'マッチング処理中にエラーが発生しました。'
-        );
-
-        ownerScreen.innerHTML =
-          homeMarkup;
-
+        alert(error.message || 'マッチング処理中にエラーが発生しました。');
+        ownerScreen.innerHTML = homeMarkup;
       });
 
   }
@@ -1529,7 +1458,6 @@ function initOwnerPage() {
           );
           return;
         }
-
 
         // マッチング中の処理を停止
         if (ownerMatchTimer) {
