@@ -185,8 +185,8 @@ async def batch_compare_photos(request: BatchCompareRequest):
     results: List[CandidateResult] = []
     errors = []
 
-    # 候補の数だけ並列でAIに投げる（最大8並列）
-    max_workers = min(len(request.candidates), 8)
+    # 1プロセス内の画像比較を絞り、AI APIや画像ダウンロードへの集中を避ける。
+    max_workers = min(len(request.candidates), 2)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_candidate = {
             executor.submit(compare_one, c): c for c in request.candidates

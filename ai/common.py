@@ -17,14 +17,18 @@
 # apikeyヘッダーのみで送り、Authorizationヘッダーには入れない」よう案内しています。
 
 import base64
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import json
 import mimetypes
 import os
+import random
 import sys
 import time
 import io
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from threading import BoundedSemaphore
 
 import requests
 from dotenv import load_dotenv
@@ -42,7 +46,50 @@ if not SAKURA_AI_TOKEN:
 client = OpenAI(
     api_key=SAKURA_AI_TOKEN,
     base_url="https://api.ai.sakura.ad.jp/v1",
+    max_retries=0,
 )
+
+AI_REQUEST_SEMAPHORE = BoundedSemaphore(2)
+MATCH_COMPARISON_SEMAPHORE = BoundedSemaphore(2)
+
+
+def _call_ai_with_rate_limit_retry(request):
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            with AI_REQUEST_SEMAPHORE:
+                return request()
+        except RateLimitError as e:
+            if attempt == max_attempts - 1:
+                raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+
+            response = getattr(e, "response", None)
+            headers = response.headers if response is not None else {}
+            retry_after = headers.get("retry-after")
+            try:
+                wait = max(0.0, float(headers.get("retry-after-ms")) / 1000.0)
+            except (TypeError, ValueError):
+                try:
+                    wait = max(0.0, float(retry_after))
+                except (TypeError, ValueError):
+                    try:
+                        retry_at = parsedate_to_datetime(retry_after)
+                        wait = max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+                    except (TypeError, ValueError, OverflowError):
+                        wait = None
+
+            if wait is None:
+                wait = min(60.0, 5.0 * (2**attempt)) + random.uniform(0.0, 1.0)
+
+            print(
+                f"[AI] レート制限(429)。{wait:.1f}秒後にリトライ "
+                f"({attempt + 1}/{max_attempts})",
+                flush=True,
+            )
+            time.sleep(wait)
+        except OpenAIError as e:
+            raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+
 
 SYSTEM_PROMPT = """あなたはペットの写真を分析して特徴をJSON形式で出力するアシスタントです。
 写真が複数枚渡された場合は、それらすべてが同じ1匹のペットを別の角度から撮影したものとして扱い、
@@ -85,8 +132,8 @@ def extract_tags_from_encoded(encoded_images: list) -> tuple:
     for encoded in encoded_images:
         content.append({"type": "image_url", "image_url": {"url": encoded}})
 
-    try:
-        response = client.chat.completions.create(
+    response = _call_ai_with_rate_limit_retry(
+        lambda: client.chat.completions.create(
             model="preview/Kimi-K2.6",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -95,8 +142,7 @@ def extract_tags_from_encoded(encoded_images: list) -> tuple:
             temperature=0,
             max_tokens=4096,
         )
-    except OpenAIError as e:
-        raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+    )
 
     message = response.choices[0].message
     finish_reason = response.choices[0].finish_reason
@@ -190,6 +236,11 @@ def download_image_as_data_url(url: str) -> str:
 
 
 def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
+    with MATCH_COMPARISON_SEMAPHORE:
+        return _compare_photo_urls(photo_urls, candidate_photo_urls)
+
+
+def _compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
     """迷子側の写真URL群(photo_urls)と、候補側の写真URL群(candidate_photo_urls)を
     1回のAI呼び出しで直接見比べ、{"similarity_score": 0.0〜1.0, "reason": str} を返す。
     候補が複数いる場合は、この関数を候補ごとに1回ずつ呼ぶ想定（複数候補をまとめて渡さない）。
@@ -214,29 +265,17 @@ def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
 
     content.append({"type": "text", "text": "これらは同じ1匹の動物だと思いますか？JSON形式で回答してください。"})
 
-    # 429 レート制限時は最大3回リトライ（5秒待機）
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model="preview/Kimi-K2.6",
-                messages=[
-                    {"role": "system", "content": COMPARE_SYSTEM_PROMPT},
-                    {"role": "user", "content": content},
-                ],
-                temperature=0,
-                max_tokens=4096,
-            )
-            break  # 成功したらループを抜ける
-        except RateLimitError as e:
-            if attempt < max_retries - 1:
-                wait = 5 * (attempt + 1)  # 5秒、10秒、15秒と増やす
-                print(f"[AI] レート制限(429)。{wait}秒後にリトライ ({attempt+1}/{max_retries})", flush=True)
-                time.sleep(wait)
-            else:
-                raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
-        except OpenAIError as e:
-            raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+    response = _call_ai_with_rate_limit_retry(
+        lambda: client.chat.completions.create(
+            model="preview/Kimi-K2.6",
+            messages=[
+                {"role": "system", "content": COMPARE_SYSTEM_PROMPT},
+                {"role": "user", "content": content},
+            ],
+            temperature=0,
+            max_tokens=4096,
+        )
+    )
 
     message = response.choices[0].message
     finish_reason = response.choices[0].finish_reason

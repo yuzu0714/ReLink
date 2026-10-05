@@ -12,6 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.exceptions.ExposedSQLException // ★新規追加：重複INSERT検知のため
 import org.jetbrains.exposed.sql.* // ★修正：where{}内でand/eqを使うため、個別importからワイルドカードに変更
@@ -21,12 +23,20 @@ import java.math.BigDecimal
 // SQL絞り込み(MatchingRepository)→AI類似度判定(AiSimilarityService)
 // →matchesテーブルへの保存、をひとつなぎにするサービス。
 object MatchingService {
+    private val matchingDatabaseSemaphore = Semaphore(2)
+
+    private suspend fun <T> withMatchingDatabaseAccess(block: () -> T): T =
+        matchingDatabaseSemaphore.withPermit {
+            withContext(Dispatchers.IO) { block() }
+        }
 
     suspend fun runMatching(lostPetId: Long): List<MatchResultItem> {
-        val lostPet = LostPetRepository.findById(lostPetId)
+        val lostPet = withMatchingDatabaseAccess { LostPetRepository.findById(lostPetId) }
             ?: throw NoSuchElementException("指定されたlostPetIdが見つかりません: $lostPetId")
 
-        val lostPhotoUrls = PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+        val lostPhotoUrls = withMatchingDatabaseAccess {
+            PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+        }
         if (lostPhotoUrls.isEmpty()) {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
@@ -34,11 +44,13 @@ object MatchingService {
         println("🔍 [Matching] lostPetId=$lostPetId specie=${lostPet.specie} color=${lostPet.color} lostPlace=${lostPet.lostPlace}")
         println("🔍 [Matching] 迷子写真枚数: ${lostPhotoUrls.size}")
 
-        val candidates = MatchingRepository.findCandidates(
-            specie = lostPet.specie,
-            color = lostPet.color,
-            lostPlace = lostPet.lostPlace
-        )
+        val candidates = withMatchingDatabaseAccess {
+            MatchingRepository.findCandidates(
+                specie = lostPet.specie,
+                color = lostPet.color,
+                lostPlace = lostPet.lostPlace
+            )
+        }
 
         println("🔍 [Matching] SQL絞り込み結果: ${candidates.size}件")
         candidates.forEach { c -> println("  → source=${c.source} id=${c.id} specie=${c.specie} color=${c.color} place=${c.foundPlace}") }
@@ -47,7 +59,7 @@ object MatchingService {
             candidates
                 .map { candidate ->
                     async {
-                        val photoUrls = withContext(Dispatchers.IO) {
+                        val photoUrls = withMatchingDatabaseAccess {
                             PetPhotoRepository.findByPet(candidate.source, candidate.id)
                                 .map { it.photoUrl }
                         }
@@ -124,7 +136,7 @@ object MatchingService {
         //   「新規登録」ではなく「既存のレコードを取得して使う」形に切り替える。
         //   それ以外の予期しないDBエラーはそのまま上位に投げて、通常通り500として扱う。
         val (insertedId, resolvedReason) = try {
-            val newId = withContext(Dispatchers.IO) {
+            val newId = withMatchingDatabaseAccess {
                 // ★修正：repetitionAttemptsという名前付き引数は、このプロジェクトで使っている
                 // Exposed 0.55.0には存在しなかった(ビルドエラーになったため)。
                 // リトライ無効化はあくまで速度面のおまけ最適化であり、重複エラー自体の
@@ -150,7 +162,7 @@ object MatchingService {
             // Exposedの自動採番列(id)は、値を読み出す際に内部でDB方言の確認が必要で、
             // それにはトランザクションが有効な状態でなければならない。
             // → transaction{}ブロックの中でid(Long)まで取り出し切ってから返すように変更した。
-            val existingId = withContext(Dispatchers.IO) {
+            val existingId = withMatchingDatabaseAccess {
                 transaction {
                     MatchesTable.selectAll().where {
                         (MatchesTable.lostPetId eq lostPetId) and
