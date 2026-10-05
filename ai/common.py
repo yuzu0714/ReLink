@@ -27,6 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from dotenv import load_dotenv
+from io import BytesIO as _BytesIO  # SigLIP2で使用（既存のioインポートと区別）
 from PIL import Image
 from openai import OpenAI, OpenAIError
 
@@ -143,122 +144,97 @@ def extract_tags_from_uploads(files: list) -> tuple:
 
 # --- 写真同士の類似度判定（POST /compare-photos で使用） ---
 #
-# 迷子側の写真群と、候補（保護側）の写真群を1回のAI呼び出しでまとめて見比べ、
-# 「同じ1匹の可能性が高いか」を判定してもらう方式（match_visual.py方式）。
-# 候補1件につきAI呼び出しは1回だけ（枚数が違っても、内側で全部まとめて渡すので
-# 写真ごとにスコアを出して平均する、という処理は不要）。
+# SigLIP2-Base（AvitoTech/SigLIP2-Base-for-animal-identification）を使い、
+# 2組の写真群から画像埋め込みベクトルを取得してコサイン類似度を計算する。
+# LLMによる比較から置き換えたため、判定理由（reason）は返さない。
 #
-# スコアは 0.0〜1.0 の小数（1.0に近いほど同一個体である可能性が高い）。
-COMPARE_SYSTEM_PROMPT = """あなたは2つの写真グループが同じ1匹の動物かどうかを判定する専門家です。
-1つ目のグループは「行方不明のペット」の写真、2つ目のグループは「保護されたペット」の写真です。
-毛色・模様・体格・顔立ち・耳や尻尾の形・首輪の特徴などを総合的に見て、
-同一個体である可能性を判定してください。撮影角度や明るさの違いは考慮に入れて、
-言葉の言い回しではなく見た目の特徴そのものを比較してください。
-それぞれのグループに複数枚の写真がある場合は、同じ1匹を別角度から撮影したものとして
-まとめて扱い、判定は1つだけ出してください（写真ごとに別々の判定は不要です）。
+# 追加で必要なパッケージ:
+#   pip install transformers torch
 
-説明文やコードブロックの記号は一切付けず、以下のキーのみを持つJSONオブジェクトを出力してください。
+import importlib as _importlib
 
-{
-  "similarity_score": 0.0から1.0の小数（同一個体である可能性が高いほど1.0に近い値）,
-  "reason": "判断理由を日本語で一言（30文字程度）"
-}
-"""
+_siglip_processor = None
+_siglip_model = None
 
 
-def to_grayscale_jpeg(data: bytes) -> bytes:
-    """画像をグレースケール（明度のみ）に変換し、JPEG バイト列で返す。
-    照明・色かぶり・撮影環境の違いを除去して、形状・模様・体型の比較精度を上げるために使用。
-    compare_photo_urls（写真同士の一致判定）にのみ適用し、
-    extract_tags（特徴抽出）はカラーのまま維持する（coat_color の正確な判定が必要なため）。"""
-    img = Image.open(io.BytesIO(data)).convert("L")  # "L" = 8-bit グレースケール
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=90)
-    return buf.getvalue()
+def _get_siglip():
+    """SigLIP2モデルを遅延ロードして返す。初回呼び出し時のみHuggingFaceからダウンロードされる。"""
+    global _siglip_processor, _siglip_model
+    if _siglip_model is not None:
+        return _siglip_processor, _siglip_model
+
+    try:
+        torch = _importlib.import_module("torch")
+        transformers = _importlib.import_module("transformers")
+    except ImportError as e:
+        raise RuntimeError(
+            f"SigLIP2の実行に必要なパッケージが見つかりません: {e}\n"
+            "pip install transformers torch を実行してください。"
+        ) from e
+
+    model_name = "AvitoTech/SigLIP2-Base-for-animal-identification"
+    print(f"[SigLIP2] モデルをロード中: {model_name}", flush=True)
+    _siglip_processor = transformers.AutoProcessor.from_pretrained(model_name)
+    _siglip_model = transformers.AutoModel.from_pretrained(model_name)
+    _siglip_model.eval()
+    print("[SigLIP2] モデルのロード完了", flush=True)
+    return _siglip_processor, _siglip_model
 
 
-def download_image_as_data_url(url: str) -> str:
-    """写真URL（Supabase Storageなどの公開URL）をダウンロードして、
-    グレースケールに変換したうえで data URL（base64）に変換する。
-    グレースケール化により照明・色かぶりの影響を除去し、形状・模様の比較精度を向上させる。"""
-    response = requests.get(url, timeout=60)
-    if response.status_code >= 300:
-        raise RuntimeError(f"写真のダウンロードに失敗しました (status={response.status_code}): {url}")
-    gray_data = to_grayscale_jpeg(response.content)  # グレースケール変換
-    return encode_image_bytes(gray_data, "photo.jpg")  # JPEG固定（グレースケール済み）
+def _get_image_embedding(image_bytes: bytes):
+    """画像バイト列から正規化済みの埋め込みベクトル（768次元）を返す。"""
+    import torch
+    import torch.nn.functional as F
+
+    processor, model = _get_siglip()
+    image = Image.open(_BytesIO(image_bytes)).convert("RGB")
+    inputs = processor(images=image, return_tensors="pt")
+    with torch.no_grad():
+        outputs = model.get_image_features(**inputs)
+    return F.normalize(outputs, dim=-1)  # shape: (1, 768)
+
+
+def _average_embeddings(embeddings: list):
+    """複数の埋め込みベクトルを平均して再正規化する（同一個体の複数枚写真に対応）。"""
+    import torch
+    import torch.nn.functional as F
+
+    stacked = torch.stack(embeddings)          # (N, 1, 768)
+    avg = stacked.mean(dim=0)                  # (1, 768)
+    return F.normalize(avg, dim=-1)
 
 
 def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
-    """迷子側の写真URL群(photo_urls)と、候補側の写真URL群(candidate_photo_urls)を
-    1回のAI呼び出しで直接見比べ、{"similarity_score": 0.0〜1.0, "reason": str} を返す。
-    候補が複数いる場合は、この関数を候補ごとに1回ずつ呼ぶ想定（複数候補をまとめて渡さない）。
-    迷子側・候補側の写真を ThreadPoolExecutor で並列ダウンロードしてから AI に渡す。"""
+    """迷子側の写真URL群と候補側の写真URL群からSigLIP2で埋め込みを取得し、
+    コサイン類似度を similarity_score（0.0〜1.0）として返す。
+    reason は使用しない（空文字を返す）。"""
+    import torch
+
+    def _download(url: str) -> bytes:
+        resp = requests.get(url, timeout=60)
+        if resp.status_code >= 300:
+            raise RuntimeError(f"写真のダウンロードに失敗しました (status={resp.status_code}): {url}")
+        return resp.content
+
     all_urls = list(photo_urls) + list(candidate_photo_urls)
     n_lost = len(photo_urls)
 
     # 全写真を並列ダウンロード（順序を保ったまま）
     with ThreadPoolExecutor(max_workers=min(len(all_urls), 8)) as executor:
-        encoded_all = list(executor.map(download_image_as_data_url, all_urls))
+        all_bytes = list(executor.map(_download, all_urls))
 
-    lost_encoded = encoded_all[:n_lost]
-    candidate_encoded = encoded_all[n_lost:]
+    lost_bytes = all_bytes[:n_lost]
+    cand_bytes = all_bytes[n_lost:]
 
-    content = [{"type": "text", "text": "【行方不明のペットの写真】"}]
-    for enc in lost_encoded:
-        content.append({"type": "image_url", "image_url": {"url": enc}})
+    # 埋め込みを取得して複数枚分を平均化
+    lost_emb = _average_embeddings([_get_image_embedding(b) for b in lost_bytes])
+    cand_emb = _average_embeddings([_get_image_embedding(b) for b in cand_bytes])
 
-    content.append({"type": "text", "text": "【保護されたペットの写真】"})
-    for enc in candidate_encoded:
-        content.append({"type": "image_url", "image_url": {"url": enc}})
+    # コサイン類似度（[-1, 1] → [0, 1] にスケーリング）
+    cos_sim = float(torch.dot(lost_emb.squeeze(), cand_emb.squeeze()).item())
+    score = max(0.0, min(1.0, (cos_sim + 1.0) / 2.0))
 
-    content.append({"type": "text", "text": "これらは同じ1匹の動物だと思いますか？JSON形式で回答してください。"})
-
-    try:
-        response = client.chat.completions.create(
-            model="preview/Kimi-K2.6",
-            messages=[
-                {"role": "system", "content": COMPARE_SYSTEM_PROMPT},
-                {"role": "user", "content": content},
-            ],
-            temperature=0,
-            max_tokens=4096,
-        )
-    except OpenAIError as e:
-        raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
-
-    message = response.choices[0].message
-    finish_reason = response.choices[0].finish_reason
-
-    if message.content is None:
-        reasoning = getattr(message, "reasoning_content", None)
-        detail = f"finish_reason={finish_reason}"
-        if reasoning:
-            detail += f"\n--- reasoning_content (参考) ---\n{reasoning[:1000]}"
-        raise RuntimeError(
-            f"AIからの回答本文(content)が空でした。max_tokensが不足している可能性があります。\n{detail}"
-        )
-
-    raw_text = message.content.strip()
-    cleaned = raw_text
-    if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-        if cleaned.lower().startswith("json"):
-            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else ""
-    cleaned = cleaned.strip()
-
-    try:
-        data = json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        raise RuntimeError(
-            f"AIの応答をJSONとして解析できませんでした。\n--- 応答内容 ---\n{raw_text}"
-        ) from e
-
-    # AIが万が一 0〜100 のスケールで返してしまった場合の保険（0.0〜1.0に補正する）
-    score = data.get("similarity_score")
-    if isinstance(score, (int, float)) and score > 1.0:
-        data["similarity_score"] = score / 100.0
-
-    return data
+    return {"similarity_score": score, "reason": ""}
 
 
 # --- Supabase (REST API経由) ---
