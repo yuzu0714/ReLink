@@ -44,7 +44,7 @@ function initOwnerPage() {
 
         <div class="spacer"></div>
 
-        <span class="role-chip">Owner</span>
+        <span class="role-chip">飼い主</span>
       </div>
     `;
   }
@@ -110,7 +110,7 @@ function initOwnerPage() {
               type="button"
               data-owner-action="ai-fill"
             >
-              🤖 写真からAIで自動入力（未入力の項目のみ）
+              写真からAIで自動入力（未入力の項目のみ）
             </button>
 
             <div
@@ -133,7 +133,7 @@ function initOwnerPage() {
                 class="input"
                 id="ownerPhone"
                 type="tel"
-                placeholder="090-0000-0000"
+                placeholder=""
               >
             </div>
 
@@ -294,7 +294,7 @@ function initOwnerPage() {
               id="ownerSubmitBtn"
               data-owner-action="submit-lost"
             >
-              🐾 登録
+              登録
             </button>
 
             <div class="footnote">
@@ -518,9 +518,27 @@ function initOwnerPage() {
           background-size:cover;
           background-position:center;
         "
-      ></div>
+      >
+        <button
+          class="x"
+          type="button"
+          aria-label="写真を削除"
+          data-owner-action="remove-photo"
+          data-owner-photo-index="${index}"
+        >×</button>
+      </div>
     `).join('');
 
+  }
+
+  function removeOwnerPhoto(index) {
+    const photo = ownerState.photos[index];
+
+    if (!photo) return;
+
+    URL.revokeObjectURL(photo.src);
+    ownerState.photos.splice(index, 1);
+    renderOwnerThumbs();
   }
 
 
@@ -1137,6 +1155,10 @@ function initOwnerPage() {
 
           ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
 
+          <div style="text-align:center;margin-top:24px">
+            <button class="btn btn-ghost" onclick="location.href='http://localhost:5500/owner.html'">TOPへ戻る</button>
+          </div>
+
         </div>
       </div>
     `;
@@ -1501,6 +1523,13 @@ function initOwnerPage() {
         const name =
           action.dataset.ownerAction;
 
+        if (name === 'remove-photo') {
+          removeOwnerPhoto(
+            Number(action.dataset.ownerPhotoIndex)
+          );
+          return;
+        }
+
 
         // マッチング中の処理を停止
         if (ownerMatchTimer) {
@@ -1604,95 +1633,158 @@ function initOwnerPage() {
   );
 }
 
-/* ---------------- 登録ペット情報---------------- */
+/* ---------------- 登録ペット情報（無限スクロール＋段階的表示）---------------- */
 
 async function initOwnerPetsPage() {
   const list = document.getElementById('owner-pet-list');
-
   if (!list) return;
 
   const token = sessionStorage.getItem('authToken');
-
   if (!token) {
-    list.innerHTML = `
-      <div class="card">
-        <div class="lede">
-          ログイン情報がありません。
-        </div>
-      </div>
-    `;
+    list.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="lede">ログイン情報がありません。</div></div>`;
     return;
   }
 
-  try {
-    const response = await fetch(`${API_BASE}/pets/lost`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+  const PAGE_SIZE = 12;   // 1回あたりの取得件数
+  let cursor   = null;    // 次ページのcursor（APIから受け取る）
+  let loading  = false;   // 二重リクエスト防止フラグ
+  let hasMore  = true;    // まだ取得できるデータがあるか
+  let sentinel = null;    // IntersectionObserver の監視対象要素
+  let observer = null;    // IntersectionObserver インスタンス
 
-    if (!response.ok) {
-      throw new Error('ペット情報の取得に失敗しました');
-    }
+  /* ── 初期プレースホルダーをクリア ── */
+  list.innerHTML = '';
 
-    const data = await response.json();
-
-    if (!data.pets || data.pets.length === 0) {
-      list.innerHTML = `
-        <div class="card">
-          <div class="lede">
-            登録したペットはいません。
-          </div>
+  /* ── スケルトンカード（読み込み中表示）── */
+  function showSkeletons(count) {
+    removeSentinel();
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'card owner-pet-card owner-pet-skeleton';
+      el.innerHTML = `
+        <div class="owner-pet-photo skel-box"></div>
+        <div class="owner-pet-info">
+          <div class="skel-line skel-line-lg"></div>
+          <div class="skel-line skel-line-sm"></div>
+          <div class="skel-line skel-line-sm"></div>
         </div>
       `;
-      return;
+      list.appendChild(el);
     }
-
-    list.innerHTML = data.pets.map(pet => `
-      <div class="card owner-pet-card">
-
-        <div class="owner-pet-photo">
-          ${pet.photoUrl ? `
-            <img
-              src="${pet.photoUrl}"
-              alt="${pet.specie || '登録したペット'}"
-            >
-          ` : `
-            <div class="owner-pet-no-photo">
-              写真なし
-            </div>
-          `}
-        </div>
-
-        <div class="owner-pet-info">
-          <div class="t">
-            ${pet.specie || '種類未登録'}
-          </div>
-
-          <div class="d">
-            毛色：${pet.color || '未登録'}
-          </div>
-
-          <div class="d">
-            いなくなった場所：${pet.lostPlace || '未登録'}
-          </div>
-        </div>
-
-      </div>
-    `).join('');
-
-  } catch (error) {
-    console.error(error);
-
-    list.innerHTML = `
-      <div class="card">
-        <div class="lede">
-          ペット情報を取得できませんでした。
-        </div>
-      </div>
-    `;
   }
+
+  function removeSkeletons() {
+    list.querySelectorAll('.owner-pet-skeleton').forEach(el => el.remove());
+  }
+
+  /* ── センチネル要素（無限スクロールのトリガー）── */
+  function removeSentinel() {
+    if (observer) { observer.disconnect(); observer = null; }
+    if (sentinel) { sentinel.remove(); sentinel = null; }
+  }
+
+  function addSentinel() {
+    removeSentinel();
+    sentinel = document.createElement('div');
+    sentinel.className = 'pet-sentinel';
+    list.appendChild(sentinel);
+
+    observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '300px' });
+    observer.observe(sentinel);
+  }
+
+  /* ── ペットカードを追加 ── */
+  function renderPets(pets) {
+    pets.forEach(pet => {
+      const card = document.createElement('div');
+      card.className = 'card owner-pet-card';
+      card.innerHTML = `
+        <div class="owner-pet-photo">
+          ${pet.photoUrl
+            ? `<img src="${pet.photoUrl}" alt="${pet.specie || 'ペット'}" loading="lazy">`
+            : `<div class="owner-pet-no-photo">写真なし</div>`
+          }
+        </div>
+        <div class="owner-pet-info">
+          <div class="t">${pet.specie || '種類未登録'}</div>
+          <div class="d">毛色：${pet.color || '未登録'}</div>
+          <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  /* ── エラー表示（既存カードは消さない）── */
+  function showError() {
+    list.querySelectorAll('.owner-pet-error').forEach(el => el.remove());
+    const errEl = document.createElement('div');
+    errEl.className = 'card owner-pet-error';
+    errEl.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;';
+    errEl.innerHTML = `
+      <div class="lede">ペット情報の読み込みに失敗しました。</div>
+      <button class="btn btn-ghost" style="margin-top:12px;max-width:200px" id="petRetryBtn">再読み込み</button>
+    `;
+    list.appendChild(errEl);
+    document.getElementById('petRetryBtn')?.addEventListener('click', () => {
+      errEl.remove();
+      loadMore();
+    });
+  }
+
+  /* ── 次のページを取得して表示 ── */
+  async function loadMore() {
+    if (loading || !hasMore) return;
+    loading = true;
+
+    list.querySelectorAll('.owner-pet-error').forEach(el => el.remove());
+    showSkeletons(3);
+
+    try {
+      let url = `${API_BASE}/pets/lost?limit=${PAGE_SIZE}`;
+      if (cursor) url += `&cursor=${cursor}`;
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+
+      const data = await res.json();
+      removeSkeletons();
+
+      const pets = data.pets || [];
+
+      /* 初回取得でペットが0件 */
+      if (pets.length === 0 && cursor === null) {
+        list.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="lede">登録したペットはいません。</div></div>`;
+        hasMore = false;
+        return;
+      }
+
+      /* 取得できたカードをすぐに追加表示 */
+      renderPets(pets);
+
+      /* 次ページの準備 */
+      cursor  = data.nextCursor ?? null;
+      hasMore = cursor !== null;
+
+      if (hasMore) {
+        addSentinel();   // 次のスクロールをIntersectionObserverで監視
+      }
+
+    } catch (err) {
+      console.error(err);
+      removeSkeletons();
+      showError();
+    } finally {
+      loading = false;
+    }
+  }
+
+  /* ── 初回読み込み開始 ── */
+  loadMore();
 }
 
 

@@ -56,6 +56,7 @@ import com.models.ChatAudioUploadResponse
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import com.models.ShelterLostPetListResponse // ★追加：迷子一覧のレスポンスDTO
 
 fun Application.configureRouting() {
     routing {
@@ -275,8 +276,48 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
-                val pets = ShelterPetListRepository.getAll()
-                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = ShelterPetListRepository.getAllPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets, nextCursor = nextCursor))
+            }
+            
+            // ★新規追加：保護団体向け「迷子ペット一覧」API
+            // /shelter/pets と同じく shelter 権限のみ。authenticate{} の直下に置くこと
+            // (他のルートの中にネストするとビルドは通るのに404になるよ！)
+            get("/shelter/lost-pets") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = LostPetRepository.findAllForShelterPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets, nextCursor = nextCursor))
+            }
+            
+            // ★新規追加：保護団体向け「迷子ペット詳細」API(1件)
+            // /shelter/lost-pets と同じく shelter 権限のみ。電話番号・音声URLはここで返す
+            get("/shelter/lost-pets/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val id = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください") // → 400
+
+                val detail = LostPetRepository.findDetailForShelter(id)
+                    ?: throw NoSuchElementException("指定された迷子ペットが見つかりません: $id") // → 404
+
+                call.respond(HttpStatusCode.OK, detail)
             }
             
             /*★新規追加
@@ -291,16 +332,23 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはowner権限が必要です")
                 }
 
-                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()//ログイン中のユーザーIDを取得
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                     ?: throw IllegalArgumentException("ユーザーIDを取得できません")
 
-                val pets = LostPetRepository.findByUserId(userId)
+                // ★改善：カーソルページネーション対応
+                // limit: 1回あたりの取得件数（1〜50件、デフォルト12件）
+                // cursor: 前ページの最後のペットID（省略時は先頭から取得）
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 12
+                val cursor = call.request.queryParameters["cursor"]?.toLongOrNull()
+
+                val (pets, nextCursor) = LostPetRepository.findByUserIdPaged(userId, limit, cursor)
+
+                // ★改善：N+1クエリ解消 → 全ペット分の代表写真を1回のクエリで一括取得
+                val photoMap = PetPhotoRepository.findFirstPhotoByPets("lost", pets.map { it.id })
 
                 val petItems = pets.map { pet ->
-                    val photos = PetPhotoRepository.findByPet("lost", pet.id)//ペットの写真を取得
-                    val firstPhoto = photos.firstOrNull()?.photoUrl
                     OwnerPetListItem(
-                        photoUrl = firstPhoto,
+                        photoUrl = photoMap[pet.id],
                         id = pet.id,
                         specie = pet.specie,
                         color = pet.color,
@@ -311,7 +359,7 @@ fun Application.configureRouting() {
 
                 call.respond(
                     HttpStatusCode.OK,
-                    OwnerPetListResponse(pets = petItems)
+                    OwnerPetListResponse(pets = petItems, nextCursor = nextCursor)
                 )
             }
 

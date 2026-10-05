@@ -1,14 +1,31 @@
 /* =====================================================
-   環境設定ファイル — 自動でAPIのURLを切り替えます
+   環境設定ファイル — ここだけ書き換えれば切り替わります
    ===================================================== */
 
-// アクセス元のホスト名に応じて自動でAPIのURLを決定する
-// 手動で書き換える必要はありません
+// ========== 使い方 ==========
+//
+// 【ブラウザだけで確認する場合（PC）】
+//   → API_BASE = 'http://localhost:8080' のままでOK
+//
+// 【スマホから同じWi-Fiで確認する場合】
+//   1. PCのIPアドレスを調べる
+//      Mac: ターミナルで ipconfig getifaddr en0
+//      Win: コマンドプロンプトで ipconfig → IPv4アドレス
+//   2. 下の LAN_IP をそのIPアドレスに書き換える
+//   3. USE_LAN を true にする
+//   4. スマホのブラウザで http://<そのIP>:5500/finder.html などを開く
+//
+// 【本番サーバーへ接続する場合】
+//   USE_LAN を false にして、下の PROD_IP 行のコメントを外す
+//
+// ============================
 
-const _host = window.location.hostname;
-const API_BASE = (_host === 'localhost' || _host === '127.0.0.1')
-  ? 'http://localhost:8080'          // PCのブラウザからのアクセス
-  : `http://${_host}:8080`;          // スマホ・別PC・サーバーからのアクセス
+const USE_LAN = false;               // ← スマホ確認時は true にする
+const LAN_IP  = '192.168.3.85';     // ← PCのIPアドレスに書き換える
 
-// 接続先の確認（開発時のみ）
-// console.log('API_BASE:', API_BASE);
+const API_BASE = USE_LAN
+  ? `http://${LAN_IP}:8080`
+  : 'http://localhost:8080';
+
+// 本番サーバーへ接続する場合は、上の API_BASE を以下に差し替える
+// const API_BASE = 'http://157.17.49.232:8080';
