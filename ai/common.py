@@ -21,6 +21,7 @@ import json
 import mimetypes
 import os
 import sys
+import time
 import io
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -28,7 +29,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from dotenv import load_dotenv
 from PIL import Image
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, RateLimitError
 
 load_dotenv()
 
@@ -213,18 +214,29 @@ def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
 
     content.append({"type": "text", "text": "これらは同じ1匹の動物だと思いますか？JSON形式で回答してください。"})
 
-    try:
-        response = client.chat.completions.create(
-            model="preview/Kimi-K2.6",
-            messages=[
-                {"role": "system", "content": COMPARE_SYSTEM_PROMPT},
-                {"role": "user", "content": content},
-            ],
-            temperature=0,
-            max_tokens=4096,
-        )
-    except OpenAIError as e:
-        raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+    # 429 レート制限時は最大3回リトライ（5秒待機）
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model="preview/Kimi-K2.6",
+                messages=[
+                    {"role": "system", "content": COMPARE_SYSTEM_PROMPT},
+                    {"role": "user", "content": content},
+                ],
+                temperature=0,
+                max_tokens=4096,
+            )
+            break  # 成功したらループを抜ける
+        except RateLimitError as e:
+            if attempt < max_retries - 1:
+                wait = 5 * (attempt + 1)  # 5秒、10秒、15秒と増やす
+                print(f"[AI] レート制限(429)。{wait}秒後にリトライ ({attempt+1}/{max_retries})", flush=True)
+                time.sleep(wait)
+            else:
+                raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
+        except OpenAIError as e:
+            raise RuntimeError(f"AI APIリクエストに失敗しました: {e}") from e
 
     message = response.choices[0].message
     finish_reason = response.choices[0].finish_reason

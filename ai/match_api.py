@@ -195,7 +195,7 @@ async def batch_compare_photos(request: BatchCompareRequest):
             candidate = future_to_candidate[future]
             try:
                 results.append(future.result())
-            except RuntimeError as e:
+            except Exception as e:
                 # 1件失敗しても他の結果は返す（スコア0扱いにする）
                 print(f"[batch-compare] candidate={candidate.id} 比較エラー: {e}", flush=True)
                 errors.append(candidate.id)

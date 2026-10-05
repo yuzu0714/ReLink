@@ -31,11 +31,17 @@ object MatchingService {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
 
+        println("🔍 [Matching] lostPetId=$lostPetId specie=${lostPet.specie} color=${lostPet.color} lostPlace=${lostPet.lostPlace}")
+        println("🔍 [Matching] 迷子写真枚数: ${lostPhotoUrls.size}")
+
         val candidates = MatchingRepository.findCandidates(
             specie = lostPet.specie,
             color = lostPet.color,
             lostPlace = lostPet.lostPlace
         )
+
+        println("🔍 [Matching] SQL絞り込み結果: ${candidates.size}件")
+        candidates.forEach { c -> println("  → source=${c.source} id=${c.id} specie=${c.specie} color=${c.color} place=${c.foundPlace}") }
 
         val candidatesWithPhotos = coroutineScope {
             candidates
@@ -50,6 +56,8 @@ object MatchingService {
                 }
                 .awaitAll()
         }.filter { (_, photoUrls) -> photoUrls.isNotEmpty() }
+
+        println("🔍 [Matching] 写真あり候補: ${candidatesWithPhotos.size}件")
 
         if (candidatesWithPhotos.isEmpty()) return emptyList()
 
