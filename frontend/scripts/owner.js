@@ -116,7 +116,7 @@ function initOwnerPage() {
               type="button"
               data-owner-action="ai-fill"
             >
-              🤖 写真からAIで自動入力（未入力の項目のみ）
+              写真からAIで自動入力（未入力の項目のみ）
             </button>
 
             <div
@@ -139,7 +139,7 @@ function initOwnerPage() {
                 class="input"
                 id="ownerPhone"
                 type="tel"
-                placeholder="090-0000-0000"
+                placeholder=""
               >
             </div>
 
@@ -300,7 +300,7 @@ function initOwnerPage() {
               id="ownerSubmitBtn"
               data-owner-action="submit-lost"
             >
-              🐾 登録
+              登録
             </button>
 
             <div class="footnote">
@@ -495,7 +495,14 @@ function initOwnerPage() {
 
             audioChunks = [];
 
-            mediaRecorder = new MediaRecorder(stream);
+            // クロスブラウザ対応：サポートされているMIMEタイプを自動選択
+            const preferredMime = [
+              'audio/mp4',
+              'audio/webm;codecs=opus',
+              'audio/webm',
+              'audio/ogg;codecs=opus',
+            ].find(t => MediaRecorder.isTypeSupported(t)) || '';
+            mediaRecorder = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : {});
 
             mediaRecorder.addEventListener('dataavailable', (event) => {
               if (event.data.size > 0) {
@@ -504,9 +511,10 @@ function initOwnerPage() {
             });
 
             mediaRecorder.addEventListener('stop', () => {
-              ownerState.voiceBlob = new Blob(audioChunks, {
-                type: 'audio/webm'
-              });
+              // 実際のMIMEタイプを使う（WebM/MP4どちらでも正しく保存）
+              const actualMime = mediaRecorder.mimeType || 'audio/webm';
+              ownerState.voiceBlob = new Blob(audioChunks, { type: actualMime });
+              ownerState.voiceMime = actualMime;
 
               stream.getTracks().forEach(track => track.stop());
 
@@ -583,14 +591,25 @@ function initOwnerPage() {
         "
       >
         <button
-          type="button"
           class="x"
-          data-owner-photo-remove="${index}"
+          type="button"
           aria-label="写真を削除"
+          data-owner-action="remove-photo"
+          data-owner-photo-index="${index}"
         >×</button>
       </div>
     `).join('');
 
+  }
+
+  function removeOwnerPhoto(index) {
+    const photo = ownerState.photos[index];
+
+    if (!photo) return;
+
+    URL.revokeObjectURL(photo.src);
+    ownerState.photos.splice(index, 1);
+    renderOwnerThumbs();
   }
 
 
@@ -794,10 +813,12 @@ function initOwnerPage() {
       if (ownerState.voiceBlob) {
         const voiceFormData = new FormData();
 
+        // MIMEタイプに応じたファイル拡張子を選択（WebM/MP4に対応）
+        const voiceExt = (ownerState.voiceMime || '').includes('mp4') ? '.m4a' : '.webm';
         voiceFormData.append(
           'file',
           ownerState.voiceBlob,
-          'pet-voice.webm'
+          `pet-voice${voiceExt}`
         );
 
         const voiceRes = await fetch(
@@ -982,49 +1003,23 @@ function initOwnerPage() {
 
     let progress = 0;
 
-
     ownerMatchTimer = setInterval(() => {
+      progress = Math.min(95, progress + 5);
 
-      progress =
-        Math.min(
-          95,
-          progress + 5
-        );
+      const bar = document.getElementById('ownerBar');
+      const pct = document.getElementById('ownerPct');
 
-      const bar =
-        document.getElementById('ownerBar');
-
-      const pct =
-        document.getElementById('ownerPct');
-
-
-      if (bar) {
-        bar.style.width =
-          `${progress}%`;
-      }
-
-      if (pct) {
-        pct.textContent =
-          `${progress}%`;
-      }
-
+      if (bar) bar.style.width = `${progress}%`;
+      if (pct) pct.textContent = `${progress}%`;
     }, 200);
-
 
     fetch(
       `${API_BASE}/matching/run?lostPetId=${lostPetId}`,
-      {
-        method: 'POST'
-      }
+      { method: 'POST' }
     )
-
       .then(async (res) => {
-
         if (!res.ok) {
-
-          const body =
-            await res.json().catch(() => null);
-
+          const body = await res.json().catch(() => null);
           throw new Error(
             (body && body.message) ||
             `マッチングに失敗しました。(status ${res.status})`
@@ -1032,85 +1027,40 @@ function initOwnerPage() {
         }
 
         return res.json();
-
       })
-
       .then((data) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
 
+        ownerMatchResults = (data && data.results) || [];
 
-        ownerMatchResults =
-          (data && data.results) || [];
+        const bar = document.getElementById('ownerBar');
+        const pct = document.getElementById('ownerPct');
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
 
-
-        const bar =
-          document.getElementById('ownerBar');
-
-        const pct =
-          document.getElementById('ownerPct');
-
-
-        if (bar) {
-          bar.style.width = '100%';
-        }
-
-        if (pct) {
-          pct.textContent = '100%';
-        }
-
-
-        setTimeout(() => {
-
-          if (
-            myToken === ownerMatchRequestToken
-          ) {
+        ownerMatchTimer = setTimeout(() => {
+          ownerMatchTimer = null;
+          if (myToken === ownerMatchRequestToken) {
             showResults(ownerMatchResults);
           }
-
         }, 350);
-
       })
-
       .catch((error) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
 
-
         console.error(error);
-
-        alert(
-          error.message ||
-          'マッチング処理中にエラーが発生しました。'
-        );
-
-        ownerScreen.innerHTML =
-          homeMarkup;
-
+        alert(error.message || 'マッチング処理中にエラーが発生しました。');
+        ownerScreen.innerHTML = homeMarkup;
       });
 
   }
@@ -1122,119 +1072,94 @@ function initOwnerPage() {
 
     const list = results || [];
 
+    /* ── 写真スタイル・コンテンツ ヘルパー ── */
+    function photoStyle(item, index) {
+      const url = item.photoUrls && item.photoUrls.length > 0
+        ? item.photoUrls[0] : null;
+      return url
+        ? `background-image:url('${url}');background-size:cover;background-position:center`
+        : `background:${petSwatch(index)}`;
+    }
+    function photoContent(item) {
+      return (item.photoUrls && item.photoUrls.length > 0) ? '' : '🐕';
+    }
 
-    const body =
-      list.length === 0
-
-        ? `
-          <div
-            class="card"
-            style="background:#f2f4ff;border-color:#d8ddfb"
-          >
-            <b style="color:var(--navy)">
-              候補が見つかりませんでした
-            </b>
-
+    /* ── 0件 ── */
+    if (list.length === 0) {
+      ownerScreen.innerHTML = `
+        ${ownerAppbar('マッチング結果')}
+        <div class="pad fade">
+          <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
+            <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
-              現在登録されている保護ペットの中には、
-              条件に近い子がいませんでした。
-              新しく保護情報が登録された際に
-              改めてお知らせします。
+              現在登録されている保護ペットの中には、<br>
+              条件に近い子がいませんでした。<br>
+              新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
-        `
+        </div>
+      `;
+      return;
+    }
 
-        : `
-          <div
-            class="card"
-            style="background:#f2f4ff;border-color:#d8ddfb"
-          >
-            <b style="color:var(--navy)">
-              ${list.length}件ヒットしました
-            </b>
-
-            <div class="lede">
-              マッチ率が高い順に表示しています。
-            </div>
+    /* ── 1位 ── */
+    const first = list[0];
+    const topCard = `
+      <div class="mr-top-card"
+           data-owner-action="pet-detail"
+           data-match-index="0">
+        <div class="mr-top-photo" style="${photoStyle(first, 0)}">
+          ${photoContent(first)}
+        </div>
+        <div class="mr-top-info">
+          <div class="mr-top-score">マッチ率：${Math.round(first.matchScore)}%</div>
+          <div class="mr-top-label">
+            ${first.protectedSource === 'rescued' ? '保護団体で保護中の個体' : '発見された個体'}
           </div>
+          ${first.specie   ? `<div class="mr-top-meta">犬種：${first.specie}</div>`          : ''}
+          ${first.color    ? `<div class="mr-top-meta">毛色：${first.color}</div>`           : ''}
+          ${first.foundPlace ? `<div class="mr-top-meta">地域：${first.foundPlace}</div>`   : ''}
+          ${first.reason ? `<div class="mr-top-reason">${first.reason}</div>` : ''}
+        </div>
+      </div>
+    `;
 
-          ${list.map((item, index) => {
-
-            const sourceLabel =
-              item.protectedSource === 'rescued'
-                ? '保護団体で保護中の個体'
-                : '発見された個体';
-
-            const firstPhoto =
-              item.photoUrls &&
-              item.photoUrls.length > 0
-                ? item.photoUrls[0]
-                : null;
-
-            const thumbStyle =
-              firstPhoto
-                ? `
-                  background-image:url('${firstPhoto}');
-                  background-size:cover;
-                  background-position:center
-                `
-                : `
-                  background:${petSwatch(index)}
-                `;
-
-            const thumbContent =
-              firstPhoto
-                ? ''
-                : '🐕';
-
-
-            return `
-              <div
-                class="match-card"
-                data-owner-action="pet-detail"
-                data-match-index="${index}"
-              >
-
-                <div
-                  class="ph"
-                  style="${thumbStyle}"
-                >
-                  ${thumbContent}
-                </div>
-
-                <div>
-                  <div class="name">
-                    ${sourceLabel}
-                    #${item.protectedPetId}
-                  </div>
-
-                  <div class="meta">
-                    ${item.reason || ''}
-                  </div>
-                </div>
-
-                <div class="score">
-                  <b>
-                    ${Math.round(item.matchScore)}%
-                  </b>
-
-                  <span>
-                    マッチ率
-                  </span>
-                </div>
-
-              </div>
-            `;
-
-          }).join('')}
-        `;
-
+    /* ── 2位以下 グリッド ── */
+    const rest = list.slice(1);
+    const gridCards = rest.map((item, i) => {
+      const index = i + 1;
+      return `
+        <div class="mr-grid-card"
+             data-owner-action="pet-detail"
+             data-match-index="${index}">
+          <div class="mr-grid-photo" style="${photoStyle(item, index)}">
+            ${photoContent(item)}
+          </div>
+          <div class="mr-grid-score">マッチ率：${Math.round(item.matchScore)}%</div>
+        </div>
+      `;
+    }).join('');
 
     ownerScreen.innerHTML = `
       ${ownerAppbar('マッチング結果')}
 
-      <div class="pad stack fade">
-        ${body}
+      <div class="mr-page-bg fade">
+        <div class="mr-main-card">
+
+          <div class="mr-summary">
+            <div class="mr-count">${list.length}件ヒットしました。</div>
+            <div class="mr-desc">マッチ率が高い順に表示します。</div>
+          </div>
+
+          ${topCard}
+
+          ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
+
+          <div style="text-align:center;margin-top:24px">
+            <button class="btn btn-ghost" onclick="location.href='http://localhost:5500/owner.html'">TOPへ戻る</button>
+          </div>
+
+        </div>
       </div>
     `;
   }
@@ -1349,53 +1274,57 @@ function initOwnerPage() {
         </div>
 
 
-        <div class="card">
-
-          <div class="field">
-
-            <label>
-              連絡先電話番号
-            </label>
-
-            <input
-              class="input"
-              id="contactPhone"
-              type="tel"
-              placeholder="090-0000-0000"
-            >
-
-          </div>
-
-
-          <div class="field">
-
-            <label>
-              メモ（任意）
-            </label>
-
-            <textarea
-              class="input"
-              id="contactNote"
-              placeholder="伝えたいことがあれば入力してください"
-            ></textarea>
-
-          </div>
-
-
-          <button
-            class="btn btn-magenta"
-            type="button"
-            id="sendContactBtn"
-            data-owner-action="send-contact"
-            data-match-id="${item.matchId}"
-          >
-            この子について連絡する
-          </button>
-
-        </div>
+        <button
+          class="btn btn-magenta"
+          type="button"
+          id="openChatBtn"
+          data-owner-action="open-chat"
+          data-match-id="${item.matchId}"
+          data-protected-source="${item.protectedSource}"
+        >
+          💬 ${item.protectedSource === 'rescued' ? '保護団体' : '発見者'}にチャットで連絡する
+        </button>
 
       </div>
     `;
+  }
+
+
+  /* ---------------- チャットで保護元へ連絡 ---------------- */
+
+  async function openChatWithProtector(matchId, protectedSource) {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      alert('ログインが必要です。');
+      return;
+    }
+
+    const btn = document.getElementById('openChatBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '読み込み中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/matches/${matchId}/detail`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`詳細取得失敗 (status ${res.status})`);
+
+      const d = await res.json();
+      const isShelter = (d.protectedSource || protectedSource) === 'rescued';
+      const contactId = d.contact && d.contact.userId;
+
+      sessionStorage.setItem('chatTargetName', (d.contact && d.contact.displayName) || (isShelter ? '保護団体' : '発見者'));
+      sessionStorage.setItem('chatTargetRole', isShelter ? 'shelter' : 'finder');
+
+      if (contactId) {
+        window.location.href = 'notify.html?sec=chat&contactId=' + contactId;
+      } else {
+        window.location.href = 'notify.html?sec=chat';
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'チャットの開始に失敗しました。');
+      if (btn) { btn.disabled = false; btn.textContent = '💬 チャットで連絡する'; }
+    }
   }
 
 
@@ -1594,6 +1523,12 @@ function initOwnerPage() {
         const name =
           action.dataset.ownerAction;
 
+        if (name === 'remove-photo') {
+          removeOwnerPhoto(
+            Number(action.dataset.ownerPhotoIndex)
+          );
+          return;
+        }
 
         // マッチング中の処理を停止
         if (ownerMatchTimer) {
@@ -1656,12 +1591,11 @@ function initOwnerPage() {
         }
 
         if (
-          name === 'send-contact'
+          name === 'open-chat'
         ) {
-          sendContact(
-            Number(
-              action.dataset.matchId
-            )
+          openChatWithProtector(
+            Number(action.dataset.matchId),
+            action.dataset.protectedSource
           );
         }
 
@@ -1698,95 +1632,158 @@ function initOwnerPage() {
   );
 }
 
-/* ---------------- 登録ペット情報---------------- */
+/* ---------------- 登録ペット情報（無限スクロール＋段階的表示）---------------- */
 
 async function initOwnerPetsPage() {
   const list = document.getElementById('owner-pet-list');
-
   if (!list) return;
 
   const token = sessionStorage.getItem('authToken');
-
   if (!token) {
-    list.innerHTML = `
-      <div class="card">
-        <div class="lede">
-          ログイン情報がありません。
-        </div>
-      </div>
-    `;
+    list.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="lede">ログイン情報がありません。</div></div>`;
     return;
   }
 
-  try {
-    const response = await fetch(`${API_BASE}/pets/lost`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+  const PAGE_SIZE = 12;   // 1回あたりの取得件数
+  let cursor   = null;    // 次ページのcursor（APIから受け取る）
+  let loading  = false;   // 二重リクエスト防止フラグ
+  let hasMore  = true;    // まだ取得できるデータがあるか
+  let sentinel = null;    // IntersectionObserver の監視対象要素
+  let observer = null;    // IntersectionObserver インスタンス
 
-    if (!response.ok) {
-      throw new Error('ペット情報の取得に失敗しました');
-    }
+  /* ── 初期プレースホルダーをクリア ── */
+  list.innerHTML = '';
 
-    const data = await response.json();
-
-    if (!data.pets || data.pets.length === 0) {
-      list.innerHTML = `
-        <div class="card">
-          <div class="lede">
-            登録したペットはいません。
-          </div>
+  /* ── スケルトンカード（読み込み中表示）── */
+  function showSkeletons(count) {
+    removeSentinel();
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'card owner-pet-card owner-pet-skeleton';
+      el.innerHTML = `
+        <div class="owner-pet-photo skel-box"></div>
+        <div class="owner-pet-info">
+          <div class="skel-line skel-line-lg"></div>
+          <div class="skel-line skel-line-sm"></div>
+          <div class="skel-line skel-line-sm"></div>
         </div>
       `;
-      return;
+      list.appendChild(el);
     }
-
-    list.innerHTML = data.pets.map(pet => `
-      <div class="card owner-pet-card">
-
-        <div class="owner-pet-photo">
-          ${pet.photoUrl ? `
-            <img
-              src="${pet.photoUrl}"
-              alt="${pet.specie || '登録したペット'}"
-            >
-          ` : `
-            <div class="owner-pet-no-photo">
-              写真なし
-            </div>
-          `}
-        </div>
-
-        <div class="owner-pet-info">
-          <div class="t">
-            ${pet.specie || '種類未登録'}
-          </div>
-
-          <div class="d">
-            毛色：${pet.color || '未登録'}
-          </div>
-
-          <div class="d">
-            いなくなった場所：${pet.lostPlace || '未登録'}
-          </div>
-        </div>
-
-      </div>
-    `).join('');
-
-  } catch (error) {
-    console.error(error);
-
-    list.innerHTML = `
-      <div class="card">
-        <div class="lede">
-          ペット情報を取得できませんでした。
-        </div>
-      </div>
-    `;
   }
+
+  function removeSkeletons() {
+    list.querySelectorAll('.owner-pet-skeleton').forEach(el => el.remove());
+  }
+
+  /* ── センチネル要素（無限スクロールのトリガー）── */
+  function removeSentinel() {
+    if (observer) { observer.disconnect(); observer = null; }
+    if (sentinel) { sentinel.remove(); sentinel = null; }
+  }
+
+  function addSentinel() {
+    removeSentinel();
+    sentinel = document.createElement('div');
+    sentinel.className = 'pet-sentinel';
+    list.appendChild(sentinel);
+
+    observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '300px' });
+    observer.observe(sentinel);
+  }
+
+  /* ── ペットカードを追加 ── */
+  function renderPets(pets) {
+    pets.forEach(pet => {
+      const card = document.createElement('div');
+      card.className = 'card owner-pet-card';
+      card.innerHTML = `
+        <div class="owner-pet-photo">
+          ${pet.photoUrl
+            ? `<img src="${pet.photoUrl}" alt="${pet.specie || 'ペット'}" loading="lazy">`
+            : `<div class="owner-pet-no-photo">写真なし</div>`
+          }
+        </div>
+        <div class="owner-pet-info">
+          <div class="t">${pet.specie || '種類未登録'}</div>
+          <div class="d">毛色：${pet.color || '未登録'}</div>
+          <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  /* ── エラー表示（既存カードは消さない）── */
+  function showError() {
+    list.querySelectorAll('.owner-pet-error').forEach(el => el.remove());
+    const errEl = document.createElement('div');
+    errEl.className = 'card owner-pet-error';
+    errEl.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;';
+    errEl.innerHTML = `
+      <div class="lede">ペット情報の読み込みに失敗しました。</div>
+      <button class="btn btn-ghost" style="margin-top:12px;max-width:200px" id="petRetryBtn">再読み込み</button>
+    `;
+    list.appendChild(errEl);
+    document.getElementById('petRetryBtn')?.addEventListener('click', () => {
+      errEl.remove();
+      loadMore();
+    });
+  }
+
+  /* ── 次のページを取得して表示 ── */
+  async function loadMore() {
+    if (loading || !hasMore) return;
+    loading = true;
+
+    list.querySelectorAll('.owner-pet-error').forEach(el => el.remove());
+    showSkeletons(3);
+
+    try {
+      let url = `${API_BASE}/pets/lost?limit=${PAGE_SIZE}`;
+      if (cursor) url += `&cursor=${cursor}`;
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+
+      const data = await res.json();
+      removeSkeletons();
+
+      const pets = data.pets || [];
+
+      /* 初回取得でペットが0件 */
+      if (pets.length === 0 && cursor === null) {
+        list.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="lede">登録したペットはいません。</div></div>`;
+        hasMore = false;
+        return;
+      }
+
+      /* 取得できたカードをすぐに追加表示 */
+      renderPets(pets);
+
+      /* 次ページの準備 */
+      cursor  = data.nextCursor ?? null;
+      hasMore = cursor !== null;
+
+      if (hasMore) {
+        addSentinel();   // 次のスクロールをIntersectionObserverで監視
+      }
+
+    } catch (err) {
+      console.error(err);
+      removeSkeletons();
+      showError();
+    } finally {
+      loading = false;
+    }
+  }
+
+  /* ── 初回読み込み開始 ── */
+  loadMore();
 }
 
 

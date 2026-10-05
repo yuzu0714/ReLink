@@ -43,6 +43,8 @@ object UserRepository {
             .firstOrNull()
     }
 
+    // ログイン：メール＋パスワードが一致すれば、ログイン画面で選択したロールでトークンを発行する。
+    // 登録時のロールと異なるロールでのログインも許可（同一ユーザーが飼い主・発見者を兼ねるケースに対応）。
     fun login(email: String, password: String, role: String): Pair<String, String>? = transaction {
         if (role !in allowedRoles) return@transaction null
 
@@ -50,13 +52,10 @@ object UserRepository {
             .where { UserTable.email eq email }
             .singleOrNull() ?: return@transaction null
 
-        val registeredRole = row[UserTable.role]
-        if (registeredRole != role) return@transaction null
-
         val hash = row[UserTable.passwordHash]
         if (!BCrypt.checkpw(password, hash)) return@transaction null
 
         val userId = row[UserTable.id].toString()
-        Pair(userId, registeredRole)
+        Pair(userId, role)
     }
 }

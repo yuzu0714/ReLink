@@ -1340,9 +1340,66 @@ html body .login-appbar .brand h1 {
 }
 .nnav-label { font-size:15px; font-weight:700; }
 
+.notif-sidenav { transition: width .2s ease, padding .2s ease; }
+
+.nnav-toggle {
+  align-self: flex-end;
+  display: grid; place-items: center;
+  width: 36px; height: 36px; margin-bottom: 4px;
+  border: none; border-radius: 8px;
+  background: none; color: #64748b; cursor: pointer;
+}
+.nnav-toggle:hover { background: #eff6ff; color: #2563eb; }
+.nnav-toggle svg { transition: transform .2s ease; }
+
+/* 閉じた状態：アイコンのみ */
+.notif-body.nav-collapsed .notif-sidenav { width: 56px; padding: 12px 6px; }
+.notif-body.nav-collapsed .nnav-label    { display: none; }
+.notif-body.nav-collapsed .nnav-btn      { justify-content: center; padding: 10px 0; }
+.notif-body.nav-collapsed .nnav-toggle   { align-self: center; }
+.notif-body.nav-collapsed .nnav-toggle svg { transform: rotate(180deg); }
+
 /* --- 右コンテンツエリア --- */
 .notif-content {
   flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:0;
+}
+
+/* --- スマホ：サイドバーを下部タブバーにする --- */
+@media (max-width: 767px) {
+  .notif-body { flex-direction: column; }
+  .notif-content { order: 1; }
+
+  .notif-sidenav,
+  .notif-body.nav-collapsed .notif-sidenav {
+    order: 2;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    gap: 0;
+    border-right: none;
+    border-top: 1px solid #dbeafe;
+    overflow: visible;
+  }
+
+  /* 開け閉めボタンはスマホでは不要 */
+  .nnav-toggle { display: none; }
+
+  /* アイコンの下に小さくラベル */
+  .nnav-btn,
+  .notif-body.nav-collapsed .nnav-btn {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    text-align: center;
+  }
+  .nnav-label,
+  .notif-body.nav-collapsed .nnav-label {
+    display: block;
+    font-size: 10.5px;
+  }
 }
 
 /* --- メール作成 --- */
@@ -1384,4 +1441,322 @@ html body .login-appbar .brand h1 {
   margin-top:8px; padding:10px 24px; border-radius:10px;
   border:1px solid #3b82f6; background:#fff; color:#3b82f6;
   font-size:13px; font-weight:700; cursor:pointer;
+}
+
+/* ===== owner-pets.html: カード型グリッドレイアウト ===== */
+
+/* ── グリッドコンテナ（PCで3列） ── */
+body[data-page="owner-pets"] .pad > .stack:last-child {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* .stack の > * + * マージンを打ち消す */
+body[data-page="owner-pets"] .pad > .stack:last-child > * + * {
+  margin-top: 0;
+}
+
+/* ローディング・エラーカードはフル幅 */
+body[data-page="owner-pets"] .pad > .stack:last-child > .card:not(.owner-pet-card) {
+  grid-column: 1 / -1;
+}
+
+/* ── 各ペットカード ── */
+body[data-page="owner-pets"] .owner-pet-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  align-items: stretch;
+  cursor: default;
+}
+
+/* ── 画像エリア（上部・固定高） ── */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
+  width: 100%;
+  height: 180px;
+  border-radius: 0;
+  overflow: hidden;
+  display: block;
+  flex-shrink: 0;
+}
+
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 写真なしプレースホルダー */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-no-photo {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  color: #777;
+  font-size: 14px;
+}
+
+/* ── 情報エリア（下部） ── */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-info {
+  padding: 14px 16px 16px;
+  flex: 1;
+  gap: 8px;
+}
+
+/* 種類・犬種：太文字＋やや大きめ */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .t {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* 毛色・いなくなった場所：薄いグレー */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .d {
+  color: #777;
+  font-size: 13px;
+}
+
+/* タブレット：2列 */
+@media (max-width: 760px) {
+  body[data-page="owner-pets"] .pad > .stack:last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/* スマートフォン：1列 */
+@media (max-width: 480px) {
+  body[data-page="owner-pets"] .pad > .stack:last-child {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  body[data-page="owner-pets"] .owner-pet-card .owner-pet-photo {
+    height: 200px;
+  }
+}
+
+/* ===================================================================
+   マッチング結果 リニューアルレイアウト (.mr-*)
+   =================================================================== */
+
+/* ページ背景 */
+.mr-page-bg {
+  background: var(--paper);
+  min-height: calc(100vh - 64px);
+  padding: 28px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* メインカード（白い大きなコンテナ） */
+.mr-main-card {
+  width: 90%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 32px 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* サマリーテキスト */
+.mr-summary {
+  text-align: center;
+}
+.mr-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.6;
+}
+.mr-desc {
+  font-size: 15px;
+  font-weight: 700;
+  color: #444;
+  line-height: 1.6;
+}
+
+/* 1位カード（横並び：画像左 + 情報右） */
+.mr-top-card {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.mr-top-card:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+}
+.mr-top-photo {
+  width: 160px;
+  aspect-ratio: 1 / 1;
+  flex: none;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-color: #e0d8c8;
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  color: #fff;
+  overflow: hidden;
+}
+.mr-top-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mr-top-score {
+  font-size: 20px;
+  font-weight: 800;
+  color: #333;
+}
+.mr-top-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  line-height: 1.5;
+}
+.mr-top-meta {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+.mr-top-reason {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.6;
+  margin-top: 2px;
+}
+
+/* 2位以下グリッド */
+.mr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.mr-grid-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mr-grid-card:hover {
+  opacity: 0.85;
+}
+.mr-grid-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-color: #e0d8c8;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  color: #fff;
+  overflow: hidden;
+}
+.mr-grid-score {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  text-align: center;
+}
+.mr-grid-meta {
+  font-size: 11.5px;
+  color: #666;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* レスポンシブ */
+@media (max-width: 600px) {
+  .mr-top-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mr-top-photo {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+  .mr-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .mr-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===================================================================
+   owner-pets.html: スケルトンローディング & 無限スクロール sentinel
+   =================================================================== */
+
+/* シマーアニメーション */
+@keyframes pet-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* スケルトン：画像エリア */
+body[data-page="owner-pets"] .owner-pet-skeleton .skel-box {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: pet-shimmer 1.4s ease-in-out infinite;
+  height: 180px;
+}
+
+/* スケルトン：テキスト行 */
+.skel-line {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: pet-shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+
+.skel-line-lg {
+  width: 65%;
+  height: 17px;
+  margin-bottom: 12px;
+}
+
+.skel-line-sm {
+  width: 80%;
+}
+
+/* スケルトンカードの情報エリア余白 */
+body[data-page="owner-pets"] .owner-pet-skeleton .owner-pet-info {
+  padding: 14px 16px 16px;
+}
+
+/* IntersectionObserver 監視要素（非表示・フル幅） */
+.pet-sentinel {
+  height: 1px;
+  grid-column: 1 / -1;
 }

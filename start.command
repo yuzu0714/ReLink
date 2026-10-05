@@ -11,7 +11,7 @@ osascript -e 'tell app "Terminal" to do script "cd '"$(pwd)"'/relink-api && ./gr
 
 # ② AI判定サーバー（Python）をバックグラウンドで起動
 echo "🤖 AI判定サーバー（Python）を起動中..."
-osascript -e 'tell app "Terminal" to do script "cd '"$(pwd)"' && uvicorn match_api:app --host 0.0.0.0 --port 8000"'
+osascript -e 'tell app "Terminal" to do script "cd '"$(pwd)"'/ai && uvicorn match_api:app --host 0.0.0.0 --port 8001"'
 
 # ③ フロントエンド用HTTPサーバーをバックグラウンドで起動
 echo "🌐 フロントエンドサーバーを起動中..."

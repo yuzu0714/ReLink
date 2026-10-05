@@ -2,6 +2,7 @@ package com.services
 
 import com.aiSimilarityService
 import com.db.MatchesTable
+import com.models.AiBatchCandidateItem
 import com.repositories.MatchCandidateRow
 import com.models.MatchResultItem
 import com.repositories.LostPetRepository
@@ -11,8 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.exceptions.ExposedSQLException // ★新規追加：重複INSERT検知のため
 import org.jetbrains.exposed.sql.* // ★修正：where{}内でand/eqを使うため、個別importからワイルドカードに変更
@@ -22,13 +21,6 @@ import java.math.BigDecimal
 // SQL絞り込み(MatchingRepository)→AI類似度判定(AiSimilarityService)
 // →matchesテーブルへの保存、をひとつなぎにするサービス。
 object MatchingService {
-
-    // ★新規追加：AIサーバー(match_api.py)への同時リクエスト数の上限。
-    // 候補が何十件あっても、この数を超えて同時に投げることはしない。
-    // 値が大きいほど全体は速く終わるが、AIサーバー側の負荷(match_api.pyは1プロセスで動作)や
-    // 外部AI APIのレート制限も考慮し、まずは控えめな3から始める。
-    // (実測してみて余裕がありそうなら増やす、遅延やエラーが増えるなら減らす、という調整をする値)
-    private const val MAX_CONCURRENT_AI_CALLS = 3
 
     suspend fun runMatching(lostPetId: Long): List<MatchResultItem> {
         val lostPet = LostPetRepository.findById(lostPetId)
@@ -45,59 +37,77 @@ object MatchingService {
             lostPlace = lostPet.lostPlace
         )
 
-        // ★修正：for文で1件ずつ順番に処理していたのを、async/awaitAllによる並行処理に変更。
-        // 候補ごとの処理(AI比較→matches保存)を独立したコルーチンとして起動し、
-        // 全部の完了を待ってから結果をまとめる。
-        // Semaphoreで同時実行数をMAX_CONCURRENT_AI_CALLS件までに制限することで、
-        // AIサーバーに一度に大量のリクエストが殺到しないようにしている。
-        val semaphore = Semaphore(MAX_CONCURRENT_AI_CALLS)
-
-        val results = coroutineScope {
+        val candidatesWithPhotos = coroutineScope {
             candidates
                 .map { candidate ->
                     async {
-                        semaphore.withPermit {
-                            processCandidate(lostPetId, lostPhotoUrls, candidate)
+                        val photoUrls = withContext(Dispatchers.IO) {
+                            PetPhotoRepository.findByPet(candidate.source, candidate.id)
+                                .map { it.photoUrl }
                         }
+                        candidate to photoUrls
                     }
                 }
                 .awaitAll()
-        }.filterNotNull() // AI比較に失敗した候補・写真が無い候補はnullで返ってくるので除外する
+        }.filter { (_, photoUrls) -> photoUrls.isNotEmpty() }
+
+        if (candidatesWithPhotos.isEmpty()) return emptyList()
+
+        val candidateItems = candidatesWithPhotos.map { (candidate, photoUrls) ->
+            AiBatchCandidateItem(
+                id = candidateKey(candidate),
+                photoUrls = photoUrls,
+            )
+        }
+        val aiResults =
+            try {
+                aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
+            } catch (e: AiServiceException) {
+                println("⚠️ 迷子ペット(id=$lostPetId)のAI一括比較に失敗しました: ${e.message}")
+                return emptyList()
+            }
+        val aiResultsByCandidate = aiResults.associateBy { it.id }
+
+        val candidatesWithResults = candidatesWithPhotos.mapNotNull { (candidate, photoUrls) ->
+            val aiResult = aiResultsByCandidate[candidateKey(candidate)]
+            if (aiResult == null) {
+                call_log_skip(candidate.source, candidate.id, "AI一括比較の応答に候補がありません")
+                return@mapNotNull null
+            }
+            if (aiResult.reason?.startsWith("比較エラー:") == true) {
+                call_log_skip(candidate.source, candidate.id, aiResult.reason)
+                return@mapNotNull null
+            }
+            Triple(candidate, photoUrls, aiResult)
+        }
+
+        val results = coroutineScope {
+            candidatesWithResults.map { (candidate, photoUrls, aiResult) ->
+                async {
+                    saveCandidateResult(
+                        lostPetId = lostPetId,
+                        candidate = candidate,
+                        candidatePhotoUrls = photoUrls,
+                        scorePercent = aiResult.similarityScore * 100,
+                        reason = aiResult.reason,
+                    )
+                }
+            }.awaitAll()
+        }
 
         return results.sortedByDescending { it.matchScore }
     }
 
-    // ★新規追加：候補1件分の「写真取得→AI比較→matches保存」をまとめた関数。
-    // 元々for文の中に直接書かれていた処理を、async{}から呼び出しやすいように関数として切り出した。
-    // 失敗時(写真が無い/AI比較エラー)はnullを返し、呼び出し元でスキップ扱いにする。
-    private suspend fun processCandidate(
+    private fun candidateKey(candidate: MatchCandidateRow): String =
+        "${candidate.source}:${candidate.id}"
+
+    private suspend fun saveCandidateResult(
         lostPetId: Long,
-        lostPhotoUrls: List<String>,
         candidate: MatchCandidateRow,
-    ): MatchResultItem? {
-        // ★修正：DBアクセス(transaction{})はブロッキング処理のため、コルーチンの
-        // デフォルトのスレッドを占有しないよう、Dispatchers.IO上で実行するようにwithContextで囲んだ。
-        // (並列実行するコルーチンが増えるほど、ブロッキング処理を専用スレッドに逃がす重要性が増す)
-        val candidatePhotoUrls = withContext(Dispatchers.IO) {
-            PetPhotoRepository.findByPet(candidate.source, candidate.id).map { it.photoUrl }
-        }
-        if (candidatePhotoUrls.isEmpty()) return null
-
-        // AIサーバーへのHTTPリクエストは元々suspend関数(非ブロッキング)なので、そのままでOK
-        val aiResponse =
-            try {
-                aiSimilarityService.comparePhotos(
-                    photoUrls = lostPhotoUrls,
-                    candidatePhotoUrls = candidatePhotoUrls,
-                )
-            } catch (e: AiServiceException) {
-                // この候補だけスキップして、他の候補の処理には影響させない
-                call_log_skip(candidate.source, candidate.id, e.message)
-                return null
-            }
-
-        val scorePercent = aiResponse.similarityScore * 100
-
+        candidatePhotoUrls: List<String>,
+        scorePercent: Double,
+        reason: String?,
+    ): MatchResultItem {
         // ★修正：以前このlostPetId×この候補の組み合わせで既にマッチング済みだった場合、
         // matchesテーブルのDB制約(uq_match: lost_pet_id + protected_source + protected_pet_id の一意制約)
         // に引っかかってINSERTが失敗し、リクエスト全体が500エラーで落ちてしまっていた。
@@ -122,7 +132,7 @@ object MatchingService {
                     } get MatchesTable.id
                 }
             }
-            newId to aiResponse.reason
+            newId to reason
         } catch (e: ExposedSQLException) {
             if (e.sqlState != "23505") throw e // uq_match以外のDBエラーはそのまま投げる
 
@@ -154,6 +164,10 @@ object MatchingService {
             protectedPetId = candidate.id,
             matchScore = scorePercent,
             reason = resolvedReason,
+            photoUrls = candidatePhotoUrls,
+            specie = candidate.specie,
+            color = candidate.color,
+            foundPlace = candidate.foundPlace,
         )
     }
 

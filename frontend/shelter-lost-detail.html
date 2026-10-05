@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReLINK — 迷子ペットの詳細</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/pages.css">
+  <link rel="stylesheet" href="styles/pc.css" media="screen and (min-width: 768px)">
+  <!-- ★状態ピルの色違い(オレンジ=候補あり / 緑=完了)。一覧ページと同じもの -->
+  <style>
+    .pill.warn { background:#fff4e5; color:#b45309; border-color:#fed7aa; }
+    .pill.ok   { background:#eafaf3; color:#0f7a4b; border-color:#a7f3d0; }
+  </style>
+    <style>
+    .pill.warn { background:#fff4e5; color:#b45309; border-color:#fed7aa; }
+    .pill.ok   { background:#eafaf3; color:#0f7a4b; border-color:#a7f3d0; }
+
+    /* ★新規追加：写真ギャラリー(上に大きい1枚＋下に3枚ずつ) */
+    .lost-gallery { display:flex; flex-direction:column; gap:12px; }
+
+    /* 大きい写真の枠。画像が無い時は🐕を中央に出す */
+    .lost-gallery-main {
+      width:100%; min-height:200px; border-radius:20px; overflow:hidden;
+      background:#eef1fa; display:grid; place-items:center; font-size:80px;
+    }
+    /* object-fit:contain で、写真を切り取らずに全体を見せる(特徴の確認がしやすいように) */
+    .lost-gallery-main img { width:100%; max-height:460px; object-fit:contain; display:block; }
+
+    /* 他の写真：3列のグリッド(3枚ずつ並んで、4枚目から次の行) */
+    .lost-gallery-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+    .lost-gallery-grid:empty { display:none; } /* 写真が1枚だけの時は枠ごと消す */
+
+    /* 正方形に揃えて、cover で枠いっぱいに表示する */
+    .lost-thumb {
+      width:100%; aspect-ratio:1 / 1; object-fit:cover; border-radius:12px;
+      cursor:pointer; display:block; transition:transform .12s, opacity .12s;
+    }
+    .lost-thumb:hover { transform:scale(1.03); opacity:.9; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="appbar">
+          <!-- ★戻る先は迷子ペット一覧 -->
+          <a class="back" href="shelter-lost-list.html">‹</a>
+          <h1>迷子ペットの詳細</h1>
+          <div class="spacer"></div>
+          <span class="role-chip">保護団体</span>
+        </div>
+
+                <div class="pad stack fade">
+
+          <!-- ★修正：横並び(pet-main)をやめて、写真→情報 の縦並びに変更 -->
+          <!-- 写真ギャラリー：上=大きい写真、下=他の写真(3枚ずつ)。JSが中身を入れる -->
+          <div class="lost-gallery">
+            <div class="lost-gallery-main" id="lostPetPhoto">🐕</div>
+            <div class="lost-gallery-grid" id="lostPetThumbs"></div>
+          </div>
+
+          <!-- 名前＋状態ピル -->
+          <div class="pet-title">
+            <h2 class="title" id="lostPetName">読み込み中…</h2>
+            <span class="pill mag" id="lostPetStatus">迷子</span>
+          </div>
+
+          <!-- 詳細情報 -->
+          <div class="card stack pet-info">
+            <div class="info-row"><span class="lede">呼び名</span><b id="lostPetNickname"></b></div>
+            <div class="info-row"><span class="lede">種類</span><b id="lostPetSpecie"></b></div>
+            <div class="info-row"><span class="lede">毛色</span><b id="lostPetColor"></b></div>
+            <div class="info-row"><span class="lede">いなくなった場所</span><b id="lostPetPlace"></b></div>
+            <div class="info-row"><span class="lede">電話番号</span><b id="lostPetPhone"></b></div>
+            <div class="info-row"><span class="lede">その他</span><b id="lostPetOther"></b></div>
+          </div>
+
+          <!-- 飼い主がペットを呼ぶ声(変更なし) -->
+          <div class="card stack" id="lostVoiceSection">
+            <div class="section-title">🎙 飼い主がペットを呼ぶ声</div>
+            <audio id="lostVoicePlayer" controls style="width:100%;display:none"></audio>
+            <div class="lede" id="lostVoiceMessage">読み込み中…</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/config.js"></script>
+  <script src="scripts/common.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script src="scripts/shelter.js"></script>
+</body>
+</html>

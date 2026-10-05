@@ -64,15 +64,6 @@
     bindEvents(el, false);
   }
 
-  function renderSimilar() {
-    const trashIds = new Set(getTrash().map(x => x.id));
-    const items = allNotifs.filter(n => !trashIds.has(n.id) && (n.message || '').match(/\d+%/));
-    const el = document.getElementById('similar-list');
-    if (!el) return;
-    el.innerHTML = items.length ? items.map(n => buildCard(n, false)).join('') : emptyMsg('似たペットの通知はまだありません。');
-    bindEvents(el, false);
-  }
-
   function renderTrash() {
     const trash = getTrash();
     const el = document.getElementById('trash-list');
@@ -91,7 +82,6 @@
 
   function renderCurrent() {
     if (currentSec === 'inbox') renderInbox();
-    else if (currentSec === 'similar') renderSimilar();
     else if (currentSec === 'trash') renderTrash();
     /* 'chat' セクションは notif-chat.js が担当するためここでは何もしない */
   }
@@ -195,6 +185,27 @@
         if (box) box.innerHTML = '<div style="padding:32px;text-align:center;color:#888">詳細の取得に失敗しました</div>';
       });
   }
+
+  /* ---- sidenav collapse ---- */
+  const notifBody = document.querySelector('.notif-body');
+  const navToggle = document.querySelector('.nnav-toggle');
+  const NAV_KEY = 'relink_notif_nav_collapsed';
+
+  function setNavCollapsed(on) {
+    notifBody?.classList.toggle('nav-collapsed', on);
+    navToggle?.setAttribute('aria-expanded', String(!on));
+    navToggle?.setAttribute('aria-label', on ? 'メニューを開く' : 'メニューを閉じる');
+  }
+
+  let savedNav = null;
+  try { savedNav = localStorage.getItem(NAV_KEY); } catch {}
+  setNavCollapsed(savedNav !== null ? savedNav === '1' : window.innerWidth < 768);
+
+  navToggle?.addEventListener('click', () => {
+    const on = !notifBody.classList.contains('nav-collapsed');
+    setNavCollapsed(on);
+    try { localStorage.setItem(NAV_KEY, on ? '1' : '0'); } catch {}
+  });
 
   /* ---- nav switching ---- */
   document.querySelectorAll('.nnav-btn').forEach(btn => {

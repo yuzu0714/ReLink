@@ -8,6 +8,7 @@
   const contactList = document.getElementById('chat-contact-list');
   const roomPanel   = document.getElementById('chat-split-room');
   if (!contactList || !roomPanel) return;
+  const chatSplit   = contactList.closest('.chat-split');
 
   /* --- 状態 --- */
   let allContacts      = [];   // APIから取得した全アカウント { id, displayName, role }
@@ -190,6 +191,7 @@
   function openRoom(contact) {
     clearInterval(pollTimer);
     activeContact = contact;
+    chatSplit?.classList.add('room-open');
 
     /* 検索欄をクリアして全件表示に戻す */
     const srch = contactList.querySelector('.chat-contacts-search');
@@ -199,6 +201,7 @@
     /* ルームの骨格を描画 */
     roomPanel.innerHTML = `
       <div class="split-room-head">
+        <button class="split-room-back" type="button" aria-label="チャット一覧に戻る">‹</button>
         <div class="split-room-avatar">${roleIcon(contact.role)}</div>
         <div class="split-room-name">${escHtml(contact.displayName)}</div>
       </div>
@@ -213,8 +216,22 @@
     `;
 
     roomPanel.querySelector('#split-form').addEventListener('submit', handleSend);
+    roomPanel.querySelector('.split-room-back').addEventListener('click', closeRoom);
     renderMessages();
     pollTimer = setInterval(renderMessages, 10000);
+  }
+
+  function closeRoom() {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    activeContact = null;
+    chatSplit?.classList.remove('room-open');
+    roomPanel.innerHTML = `
+      <div class="chat-placeholder">
+        <div class="chat-placeholder-icon">💬</div>
+        <div>チャット相手を選択してください</div>
+      </div>`;
+    renderContactsList();   // 選択中のハイライトを外す
   }
 
   async function renderMessages() {
@@ -283,17 +300,7 @@
       if (btn.dataset.sec === 'chat') {
         loadAndRenderContacts();
       } else {
-        clearInterval(pollTimer);
-        pollTimer = null;
-        activeContact = null;
-        const room = document.getElementById('chat-split-room');
-        if (room) {
-          room.innerHTML = `
-            <div class="chat-placeholder">
-              <div class="chat-placeholder-icon">💬</div>
-              <div>チャット相手を選択してください</div>
-            </div>`;
-        }
+        closeRoom();
       }
     });
   });
