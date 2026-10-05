@@ -49,8 +49,13 @@ client = OpenAI(
     max_retries=0,
 )
 
-AI_REQUEST_SEMAPHORE = BoundedSemaphore(2)
-MATCH_COMPARISON_SEMAPHORE = BoundedSemaphore(2)
+# AI呼び出し・写真ダウンロード・候補処理に別々の上限を設け、処理を重ねつつ過負荷を防ぐ。
+MAX_CONCURRENT_AI_REQUESTS = 2
+MAX_CONCURRENT_PHOTO_DOWNLOADS = 4
+MAX_CONCURRENT_MATCH_COMPARISONS = 4
+AI_REQUEST_SEMAPHORE = BoundedSemaphore(MAX_CONCURRENT_AI_REQUESTS)
+PHOTO_DOWNLOAD_SEMAPHORE = BoundedSemaphore(MAX_CONCURRENT_PHOTO_DOWNLOADS)
+MATCH_COMPARISON_SEMAPHORE = BoundedSemaphore(MAX_CONCURRENT_MATCH_COMPARISONS)
 
 
 def _call_ai_with_rate_limit_retry(request):
@@ -228,7 +233,8 @@ def download_image_as_data_url(url: str) -> str:
     """写真URL（Supabase Storageなどの公開URL）をダウンロードして、
     グレースケールに変換したうえで data URL（base64）に変換する。
     グレースケール化により照明・色かぶりの影響を除去し、形状・模様の比較精度を向上させる。"""
-    response = requests.get(url, timeout=60)
+    with PHOTO_DOWNLOAD_SEMAPHORE:
+        response = requests.get(url, timeout=60)
     if response.status_code >= 300:
         raise RuntimeError(f"写真のダウンロードに失敗しました (status={response.status_code}): {url}")
     gray_data = to_grayscale_jpeg(response.content)  # グレースケール変換
@@ -236,6 +242,7 @@ def download_image_as_data_url(url: str) -> str:
 
 
 def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
+    # 候補処理全体にも上限を設け、外部リソースごとの上限と組み合わせる。
     with MATCH_COMPARISON_SEMAPHORE:
         return _compare_photo_urls(photo_urls, candidate_photo_urls)
 

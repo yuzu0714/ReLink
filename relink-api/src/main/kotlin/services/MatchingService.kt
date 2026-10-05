@@ -3,6 +3,7 @@ package com.services
 import com.aiSimilarityService
 import com.db.MatchesTable
 import com.models.AiBatchCandidateItem
+import com.models.MatchingRunResponse
 import com.repositories.MatchCandidateRow
 import com.models.MatchResultItem
 import com.repositories.LostPetRepository
@@ -30,7 +31,7 @@ object MatchingService {
             withContext(Dispatchers.IO) { block() }
         }
 
-    suspend fun runMatching(lostPetId: Long): List<MatchResultItem> {
+    suspend fun runMatching(lostPetId: Long): MatchingRunResponse {
         val lostPet = withMatchingDatabaseAccess { LostPetRepository.findById(lostPetId) }
             ?: throw NoSuchElementException("指定されたlostPetIdが見つかりません: $lostPetId")
 
@@ -55,23 +56,43 @@ object MatchingService {
         println("🔍 [Matching] SQL絞り込み結果: ${candidates.size}件")
         candidates.forEach { c -> println("  → source=${c.source} id=${c.id} specie=${c.specie} color=${c.color} place=${c.foundPlace}") }
 
-        val candidatesWithPhotos = coroutineScope {
-            candidates
-                .map { candidate ->
-                    async {
-                        val photoUrls = withMatchingDatabaseAccess {
-                            PetPhotoRepository.findByPet(candidate.source, candidate.id)
-                                .map { it.photoUrl }
-                        }
-                        candidate to photoUrls
-                    }
+        // 候補ごとの個別SELECTを避け、petSourceごとにまとめて写真を取得する。
+        // found/rescuedは別々の値なので、区分単位でクエリを1回ずつ実行する。
+        val photosByCandidate = candidates
+            .groupBy { it.source }
+            .flatMap { (source, sourceCandidates) ->
+                val photosByPet = withMatchingDatabaseAccess {
+                    PetPhotoRepository.findByPets(
+                        petSource = source,
+                        petIds = sourceCandidates.map { it.id },
+                    )
                 }
-                .awaitAll()
-        }.filter { (_, photoUrls) -> photoUrls.isNotEmpty() }
+
+                sourceCandidates.mapNotNull { candidate ->
+                    photosByPet[candidate.id]
+                        ?.map { it.photoUrl }
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { candidateKey(candidate) to it }
+                }
+            }
+            .toMap()
+
+        // 一括取得時のDB返却順に依存せず、元の候補順を保ったままAI比較用データを作る。
+        // 写真がない候補は従来どおり比較対象から除外する。
+        val candidatesWithPhotos = candidates.mapNotNull { candidate ->
+            photosByCandidate[candidateKey(candidate)]?.let { candidate to it }
+        }
 
         println("🔍 [Matching] 写真あり候補: ${candidatesWithPhotos.size}件")
 
-        if (candidatesWithPhotos.isEmpty()) return emptyList()
+        if (candidatesWithPhotos.isEmpty()) {
+            return MatchingRunResponse(
+                lostPetId = lostPetId,
+                candidateCount = candidates.size,
+                uncomparedCandidateCount = candidates.size,
+                results = emptyList(),
+            )
+        }
 
         val candidateItems = candidatesWithPhotos.map { (candidate, photoUrls) ->
             AiBatchCandidateItem(
@@ -79,13 +100,7 @@ object MatchingService {
                 photoUrls = photoUrls,
             )
         }
-        val aiResults =
-            try {
-                aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
-            } catch (e: AiServiceException) {
-                println("⚠️ 迷子ペット(id=$lostPetId)のAI一括比較に失敗しました: ${e.message}")
-                return emptyList()
-            }
+        val aiResults = aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
         val aiResultsByCandidate = aiResults.associateBy { it.id }
 
         val candidatesWithResults = candidatesWithPhotos.mapNotNull { (candidate, photoUrls) ->
@@ -94,7 +109,7 @@ object MatchingService {
                 call_log_skip(candidate.source, candidate.id, "AI一括比較の応答に候補がありません")
                 return@mapNotNull null
             }
-            if (aiResult.reason?.startsWith("比較エラー:") == true) {
+            if (aiResult.failed || aiResult.reason?.startsWith("比較エラー:") == true) {
                 call_log_skip(candidate.source, candidate.id, aiResult.reason)
                 return@mapNotNull null
             }
@@ -115,7 +130,12 @@ object MatchingService {
             }.awaitAll()
         }
 
-        return results.sortedByDescending { it.matchScore }
+        return MatchingRunResponse(
+            lostPetId = lostPetId,
+            candidateCount = candidates.size,
+            uncomparedCandidateCount = candidates.size - candidatesWithResults.size,
+            results = results.sortedByDescending { it.matchScore },
+        )
     }
 
     private fun candidateKey(candidate: MatchCandidateRow): String =
