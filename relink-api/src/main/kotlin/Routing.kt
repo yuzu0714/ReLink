@@ -225,12 +225,8 @@ fun Application.configureRouting() {
                 val request = call.receive<LostPetRegisterRequest>()
                 val insertedId = LostPetRepository.insert(request, userId)
 
-                val matchResults: List<MatchResultItem> = try {
-                    MatchingService.runMatching(insertedId)
-                } catch (e: Exception) {
-                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
-                    emptyList()
-                }
+                // マッチングは /matching/run エンドポイントで実行するため、ここでは呼び出さない
+                val matchResults: List<MatchResultItem> = emptyList()
 
                 call.respond(
                     HttpStatusCode.Created,
