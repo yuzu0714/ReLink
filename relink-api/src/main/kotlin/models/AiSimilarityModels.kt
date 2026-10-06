@@ -41,7 +41,8 @@ data class AiBatchCompareRequest(
 data class AiBatchCandidateResult(
     val id: String,
     @SerialName("similarity_score") val similarityScore: Double,
-    val reason: String? = null
+    val reason: String? = null,
+    val failed: Boolean = false
 )
 
 @Serializable

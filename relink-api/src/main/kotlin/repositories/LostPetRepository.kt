@@ -9,6 +9,7 @@ import com.db.MatchesTable   // ★追加：候補(マッチ)の有無とスコ�
 import com.db.ContactTable   // ★追加：飼い主からの連絡の有無と進捗を見るため
 import com.db.HandoverTable  // ★追加：引き渡し完了かどうかを見るため
 import com.models.ShelterLostPetDetail // ★追加：詳細用DTOを使うため
+import com.models.OwnerPetDetail // ★追加：飼い主向けペット詳細DTO
 
 // lostpet_register への書き込みだけを担当するクラス
 object LostPetRepository {
@@ -79,7 +80,8 @@ object LostPetRepository {
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
                     lostPlace = it[LostPetRegisterTable.lostPlace],
-                    userId = it[LostPetRegisterTable.userId]
+                    userId = it[LostPetRegisterTable.userId],
+                    receivedFrom = it[LostPetRegisterTable.receivedFrom]
                 )
             }
     }
@@ -227,7 +229,8 @@ object LostPetRepository {
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
                     lostPlace = it[LostPetRegisterTable.lostPlace],
-                    userId = it[LostPetRegisterTable.userId]
+                    userId = it[LostPetRegisterTable.userId],
+                    receivedFrom = it[LostPetRegisterTable.receivedFrom]
                 )
             }
 
@@ -236,6 +239,40 @@ object LostPetRepository {
         val nextCursor = if (hasMore) items.lastOrNull()?.id else null
         Pair(items, nextCursor)
     }
+    // ★新規追加：飼い主向けのペット詳細（自分のペットのみ、全写真・全フィールド）
+    fun findDetailForOwner(id: Long, userId: Long): OwnerPetDetail? = transaction {
+        val row = LostPetRegisterTable.selectAll()
+            .where {
+                (LostPetRegisterTable.id eq id) and
+                (LostPetRegisterTable.userId eq userId)
+            }
+            .firstOrNull() ?: return@transaction null
+
+        val photos = PetPhotoRepository.findByPet("lost", id).map { it.photoUrl }
+
+        OwnerPetDetail(
+            id = id,
+            photoUrls = photos,
+            specie = row[LostPetRegisterTable.specie],
+            color = row[LostPetRegisterTable.color],
+            lostPlace = row[LostPetRegisterTable.lostPlace],
+            other = row[LostPetRegisterTable.other],
+            nickname = row[LostPetRegisterTable.nickname],
+            petName = row[LostPetRegisterTable.petName],
+            receivedFrom = row[LostPetRegisterTable.receivedFrom]
+        )
+    }
+
+    // ★新規追加：「ペットを受け取りました」で received_from を保存する
+    fun markAsReceived(id: Long, userId: Long, receivedFrom: String?): Boolean = transaction {
+        val updated = LostPetRegisterTable.update({
+            (LostPetRegisterTable.id eq id) and (LostPetRegisterTable.userId eq userId)
+        }) {
+            it[LostPetRegisterTable.receivedFrom] = receivedFrom
+        }
+        updated > 0
+    }
+
 }
 
 // ★新規追加：findById()の戻り値専用の内部DTO
@@ -244,7 +281,8 @@ data class LostPetRegisterRow(
     val specie: String?,
     val color: String?,
     val lostPlace: String?,
-    val userId: Long?    // ★追加：通知送信時に飼い主を特定するために必要
+    val userId: Long?,   // ★追加：通知送信時に飼い主を特定するために必要
+    val receivedFrom: String? = null  // ★追加：受け取り済み情報
 )
 
 // ★新規追加：「候補あり」と判定するマッチ率(%)のしきい値。ここを変えれば判定が変わる

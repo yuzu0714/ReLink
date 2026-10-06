@@ -36,7 +36,8 @@ data class OwnerPetListItem(
     val specie: String? = null,
     val color: String? = null,
     val lostPlace: String? = null,
-    val other: String? = null
+    val other: String? = null,
+    val receivedFrom: String? = null  // ★追加：受け取り済みなら受け取り元の名前
 )
 
 @Serializable
@@ -84,4 +85,23 @@ data class ShelterLostPetDetail(
     val photoUrls: List<String> = emptyList(), // 登録された全写真(sort_order順。0番目が代表)
     val voiceUrl: String? = null,     // 飼い主が録音した「呼び声」(無ければnull)
     val status: String = "lost"
+)
+// ★新規追加：飼い主向けペット詳細（全写真・全フィールド）
+@Serializable
+data class OwnerPetDetail(
+    val id: Long,
+    val photoUrls: List<String> = emptyList(),
+    val specie: String? = null,
+    val color: String? = null,
+    val lostPlace: String? = null,
+    val other: String? = null,
+    val nickname: String? = null,
+    val petName: String? = null,
+    val receivedFrom: String? = null  // null = まだ受け取っていない
+)
+
+// ★新規追加：PATCH /pets/lost/{id}/received のリクエストボディ
+@Serializable
+data class PetReceiptRequest(
+    val receivedFrom: String? = null
 )
