@@ -22,5 +22,6 @@ data class MatchResultItem(
 data class MatchingRunResponse(
     val lostPetId: Long,
     val candidateCount: Int,   // SQL絞り込みでヒットした候補の総数
-    val results: List<MatchResultItem>
+    val results: List<MatchResultItem>,
+    val uncomparedCandidateCount: Int = 0
 )
