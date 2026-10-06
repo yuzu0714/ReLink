@@ -40,9 +40,9 @@ data class AiBatchCompareRequest(
 @Serializable
 data class AiBatchCandidateResult(
     val id: String,
-    @SerialName("similarity_score") val similarityScore: Double = 0.0,
+    @SerialName("similarity_score") val similarityScore: Double,
     val reason: String? = null,
-    val failed: Boolean = false   // AIがこの候補の比較に失敗した場合 true
+    val failed: Boolean = false
 )
 
 @Serializable
