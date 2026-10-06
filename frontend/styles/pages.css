@@ -530,6 +530,17 @@
   margin-top: 12px;
 }
 
+/* AIマッチング中：.screen を縦flexにして、loader-wrap を残りの高さいっぱいに広げる
+   （.screen は通常 flex ではないため、loader-wrap の flex:1 が効かなかった） */
+.screen:has(> .loader-wrap) {
+  display: flex;
+  flex-direction: column;
+}
+
+.screen:has(> .loader-wrap) > .appbar {
+  flex: none;
+}
+
 .owner-page .loader-wrap {
   flex: 1;
   display: flex;
