@@ -41,6 +41,7 @@ import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
+import com.models.HandoverByPetRequest
 import com.models.HandoverRequest
 import com.models.OwnerPetListItem
 import com.models.OwnerPetListResponse
@@ -441,6 +442,35 @@ fun Application.configureRouting() {
                 }
 
                 val response = HandoverRepository.insert(request)
+                call.respond(HttpStatusCode.Created, response)
+            }
+
+            // 保護ペットID + 飼い主メールアドレスで受け渡しを登録(shelter/finder限定)
+            // contact_id を知らなくても直感的に登録できる
+            post("/handovers/by-pet") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverByPetRequest>()
+
+                val contactId = HandoverRepository.resolveContactByPet(request.foundPetId, request.ownerEmail)
+                    ?: throw NoSuchElementException(
+                        "保護ペットID=${request.foundPetId} と メール=${request.ownerEmail} に一致する連絡記録が見つかりません。" +
+                        "先にマッチング・連絡記録が登録されている必要があります。"
+                    )
+
+                val handoverRequest = HandoverRequest(
+                    contactId = contactId,
+                    handoverPlace = request.handoverPlace,
+                    handoverDatetime = request.handoverDatetime,
+                    handedOverTo = request.handedOverTo,
+                    note = request.note
+                )
+                val response = HandoverRepository.insert(handoverRequest)
                 call.respond(HttpStatusCode.Created, response)
             }
         }

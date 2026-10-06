@@ -380,11 +380,16 @@ const screens = {
     const formHtml = canRegister ? `
       <div class="card" style="border-color:#dfe9ff">
         <div class="eyebrow" style="color:var(--navy)">NEW RECORD</div>
-        <h3 style="font-size:15px;font-weight:800;margin:6px 0 14px;color:var(--navy)">新しい受け渡しを記録する</h3>
+        <h3 style="font-size:15px;font-weight:800;margin:6px 0 4px;color:var(--navy)">新しい受け渡しを記録する</h3>
+        <div class="lede" style="margin-top:0;margin-bottom:14px;font-size:12px">保護ペットIDと飼い主のメールアドレスを入力すると自動で紐付けます。</div>
         <div id="handoverFormMsg"></div>
         <div class="field">
-          <label>連絡ID（contact_id）</label>
-          <input id="hfContactId" class="input" type="number" min="1" placeholder="例: 12" style="width:100%">
+          <label>保護ペットID</label>
+          <input id="hfFoundPetId" class="input" type="number" min="1" placeholder="例: 5" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>飼い主のメールアドレス</label>
+          <input id="hfOwnerEmail" class="input" type="email" placeholder="例: owner@example.com" style="width:100%">
         </div>
         <div class="field" style="margin-top:10px">
           <label>引き渡し場所</label>
@@ -607,23 +612,25 @@ function showInlineMsg(el, text, type) {
 async function submitHandover() {
   const msg = document.getElementById('handoverFormMsg');
   const btn = document.getElementById('hfSubmitBtn');
-  const contactId = parseInt(document.getElementById('hfContactId')?.value, 10);
-  const handoverPlace = document.getElementById('hfPlace')?.value.trim() || null;
+  const foundPetId = parseInt(document.getElementById('hfFoundPetId')?.value, 10);
+  const ownerEmail  = document.getElementById('hfOwnerEmail')?.value.trim() || '';
+  const handoverPlace    = document.getElementById('hfPlace')?.value.trim() || null;
   const handoverDatetime = document.getElementById('hfDatetime')?.value || null;
-  const handedOverTo = document.getElementById('hfTo')?.value.trim() || null;
-  const note = document.getElementById('hfNote')?.value.trim() || null;
-  if (!contactId) { showInlineMsg(msg, '連絡IDは必須です。', 'error'); return; }
+  const handedOverTo     = document.getElementById('hfTo')?.value.trim() || null;
+  const note             = document.getElementById('hfNote')?.value.trim() || null;
+  if (!foundPetId)  { showInlineMsg(msg, '保護ペットIDは必須です。', 'error'); return; }
+  if (!ownerEmail)  { showInlineMsg(msg, '飼い主のメールアドレスは必須です。', 'error'); return; }
   if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
   try {
     const token = sessionStorage.getItem('authToken');
-    const res = await fetch(`${API_BASE}/handovers`, {
+    const res = await fetch(`${API_BASE}/handovers/by-pet`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ contactId, handoverPlace, handoverDatetime, handedOverTo, note })
+      body: JSON.stringify({ foundPetId, ownerEmail, handoverPlace, handoverDatetime, handedOverTo, note })
     });
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `HTTP ${res.status}`); }
     showInlineMsg(msg, '✅ 記録しました！', 'success');
-    ['hfContactId','hfPlace','hfDatetime','hfTo','hfNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['hfFoundPetId','hfOwnerEmail','hfPlace','hfDatetime','hfTo','hfNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     loadHandoverList();
   } catch (err) {
     showInlineMsg(msg, `エラー: ${err.message}`, 'error');
