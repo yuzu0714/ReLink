@@ -13,6 +13,7 @@ function initOwnerPage() {
 
   // 直近のマッチング結果
   let ownerMatchResults = [];
+  let ownerMatchUncomparedCandidateCount = 0;
 
   // 飼い主の登録フォームの状態
   let ownerState = {
@@ -1037,6 +1038,10 @@ function initOwnerPage() {
         }
 
         ownerMatchResults = (data && data.results) || [];
+        ownerMatchUncomparedCandidateCount =
+          Number.isInteger(data && data.uncomparedCandidateCount)
+            ? data.uncomparedCandidateCount
+            : 0;
 
         const bar = document.getElementById('ownerBar');
         const pct = document.getElementById('ownerPct');
@@ -1046,7 +1051,7 @@ function initOwnerPage() {
         ownerMatchTimer = setTimeout(() => {
           ownerMatchTimer = null;
           if (myToken === ownerMatchRequestToken) {
-            showResults(ownerMatchResults);
+            showResults(ownerMatchResults, ownerMatchUncomparedCandidateCount);
           }
         }, 350);
       })
@@ -1068,7 +1073,7 @@ function initOwnerPage() {
 
   /* ---------------- マッチング結果 ---------------- */
 
-  function showResults(results) {
+  function showResults(results, uncomparedCandidateCount = 0) {
 
     const list = results || [];
 
@@ -1086,9 +1091,22 @@ function initOwnerPage() {
 
     /* ── 0件 ── */
     if (list.length === 0) {
+      const partialFailureNotice = uncomparedCandidateCount > 0
+        ? `
+          <div class="card" style="background:#fff4e5;border-color:#f0c36d">
+            <b style="color:#7a4b00">マッチングを完了できませんでした</b>
+            <div class="lede">
+              ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+              結果に含まれていません。時間をおいて再度お試しください。
+            </div>
+          </div>
+        `
+        : '';
       ownerScreen.innerHTML = `
         ${ownerAppbar('マッチング結果')}
         <div class="pad fade">
+          ${partialFailureNotice}
+          ${uncomparedCandidateCount > 0 ? '' : `
           <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
             <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
@@ -1097,6 +1115,7 @@ function initOwnerPage() {
               新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
+          `}
         </div>
       `;
       return;
@@ -1145,6 +1164,16 @@ function initOwnerPage() {
 
       <div class="mr-page-bg fade">
         <div class="mr-main-card">
+
+          ${uncomparedCandidateCount > 0 ? `
+            <div class="card" style="background:#fff4e5;border-color:#f0c36d;margin-bottom:16px">
+              <b style="color:#7a4b00">一部の候補を比較できませんでした</b>
+              <div class="lede">
+                ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+                以下の結果には含まれていません。
+              </div>
+            </div>
+          ` : ''}
 
           <div class="mr-summary">
             <div class="mr-count">${list.length}件ヒットしました。</div>
@@ -1578,7 +1607,8 @@ function initOwnerPage() {
           name === 'results'
         ) {
           showResults(
-            ownerMatchResults
+            ownerMatchResults,
+            ownerMatchUncomparedCandidateCount
           );
         }
 

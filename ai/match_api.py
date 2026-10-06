@@ -158,6 +158,7 @@ class CandidateResult(BaseModel):
     id: str
     similarity_score: float
     reason: str
+    failed: bool = False
 
 
 class BatchCompareResponse(BaseModel):
@@ -185,8 +186,8 @@ async def batch_compare_photos(request: BatchCompareRequest):
     results: List[CandidateResult] = []
     errors = []
 
-    # 候補の数だけ並列でAIに投げる（最大8並列）
-    max_workers = min(len(request.candidates), 8)
+    # 候補・写真ダウンロード・AI呼び出しの上限はcommon.pyの共有セマフォで個別に管理する。
+    max_workers = min(len(request.candidates), common.MAX_CONCURRENT_MATCH_COMPARISONS)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_candidate = {
             executor.submit(compare_one, c): c for c in request.candidates
@@ -195,7 +196,7 @@ async def batch_compare_photos(request: BatchCompareRequest):
             candidate = future_to_candidate[future]
             try:
                 results.append(future.result())
-            except RuntimeError as e:
+            except Exception as e:
                 # 1件失敗しても他の結果は返す（スコア0扱いにする）
                 print(f"[batch-compare] candidate={candidate.id} 比較エラー: {e}", flush=True)
                 errors.append(candidate.id)
@@ -203,6 +204,7 @@ async def batch_compare_photos(request: BatchCompareRequest):
                     id=candidate.id,
                     similarity_score=0.0,
                     reason=f"比較エラー: {str(e)[:50]}",
+                    failed=True,
                 ))
 
     if errors:

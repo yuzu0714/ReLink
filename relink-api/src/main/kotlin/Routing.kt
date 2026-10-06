@@ -35,7 +35,6 @@ import com.models.ShelterPetListResponse
 import com.repositories.ShelterPetListRepository
 import com.repositories.MatchingRepository
 import com.services.MatchingService
-import com.models.MatchingRunResponse
 import com.models.ContactStatusUpdateRequest
 import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
@@ -496,16 +495,7 @@ fun Application.configureRouting() {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
 
-            val results = MatchingService.runMatching(lostPetId)
-
-            call.respond(
-                HttpStatusCode.OK,
-                MatchingRunResponse(
-                    lostPetId = lostPetId,
-                    candidateCount = results.size,
-                    results = results
-                )
-            )
+            call.respond(HttpStatusCode.OK, MatchingService.runMatching(lostPetId))
         }
     }
 }

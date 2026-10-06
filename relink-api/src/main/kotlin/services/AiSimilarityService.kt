@@ -30,9 +30,9 @@ class AiSimilarityService(
         // 「Request timeout has expired」で候補がAI比較スキップ扱いになっていた。
         // 写真が複数枚・AIの応答が遅いケースを考慮して長めに設定する。
         install(HttpTimeout) {
-            requestTimeoutMillis = 120_000
+            requestTimeoutMillis = 300_000
             connectTimeoutMillis = 30_000
-            socketTimeoutMillis = 120_000
+            socketTimeoutMillis = 300_000
         }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })

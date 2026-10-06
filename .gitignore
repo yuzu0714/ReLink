@@ -28,3 +28,4 @@ Claude outputs/
 # 追加の仮想環境
 .venv_yuzu/
 __pycache__/
+.env
