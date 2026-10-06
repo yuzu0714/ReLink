@@ -13,7 +13,6 @@ function initOwnerPage() {
 
   // 直近のマッチング結果
   let ownerMatchResults = [];
-  let ownerMatchUncomparedCandidateCount = 0;
 
   // 飼い主の登録フォームの状態
   let ownerState = {
@@ -53,7 +52,7 @@ function initOwnerPage() {
 
   /* ---------------- ペット登録画面 ---------------- */
 
-    function showRegister() {
+  function showRegister() {
 
     ownerState = {
       photos: [],
@@ -70,16 +69,10 @@ function initOwnerPage() {
 
       <div class="pad stack fade">
 
-        <div>
-          <div class="eyebrow">STEP 1 / 撮影</div>
-
-          <h2 class="title">
-            手持ちの写真をアップ
-          </h2>
-
-          <div class="lede">
-            全体像と、首輪がはっきり写った写真があるほど精度が上がります。
-          </div>
+        <div class="hero-banner login-welcome">
+          <div class="hi">STEP 1 / 撮影</div>
+          <div class="hn">手持ちの写真をアップ</div>
+          <div class="hs" style="color:#e91e8c;font-weight:600">角度を変えた写真（正面、横、斜めなど）を複数枚登録すると精度が上がります。</div>
         </div>
 
         <div class="register-grid">
@@ -319,49 +312,6 @@ function initOwnerPage() {
   }
 
 
-  /* ---------------- HEIC → JPEG 変換 ---------------- */
-
-  async function toDisplayableFile(file) {
-
-    const isHeic =
-      /heic|heif/i.test(file.type) ||
-      /\.(heic|heif)$/i.test(file.name);
-
-    if (!isHeic) return file;
-
-    // ライブラリの読み込み確認（グローバル名は環境で異なる可能性があるため両方見る）
-    const convert =
-      typeof HeicTo === 'function' ? HeicTo : null;
-
-    console.log('[HEIC] converter', typeof convert);
-
-    if (!convert) {
-      alert('HEIC変換ライブラリを読み込めませんでした。JPEGまたはPNGの写真を選んでください。');
-      return null;
-    }
-
-    try {
-      const jpeg = await convert({
-        blob: file,
-        type: 'image/jpeg',
-        quality: 0.9
-      });
-
-      console.log('[HEIC] 変換成功', jpeg);
-
-      return new File(
-        [jpeg],
-        file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-        { type: 'image/jpeg' }
-      );
-
-    } catch (error) {
-      console.error('[HEIC] 変換失敗', error);
-      alert('この写真（HEIC形式）は変換できませんでした。JPEGまたはPNGの写真を選んでください。');
-      return null;
-    }
-  }
-
   /* ---------------- 登録フォームのイベント ---------------- */
 
   function setupOwnerRegisterEvents() {
@@ -376,47 +326,24 @@ function initOwnerPage() {
     }
 
     if (fileInput) {
-      fileInput.addEventListener('change', async (event) => {
+      fileInput.addEventListener('change', (event) => {
 
         const files = Array.from(event.target.files || []);
 
-        fileInput.value = '';
+        files.forEach((file) => {
 
-        for (const original of files) {
-
-          const file = await toDisplayableFile(original);
-
-          if (!file) continue;
+          const src = URL.createObjectURL(file);
 
           ownerState.photos.push({
             file,
-            src: URL.createObjectURL(file)
+            src
           });
 
-        }
+        });
 
         renderOwnerThumbs();
-      });
-    }
 
-
-    /* ×ボタンで写真を削除 */
-
-    const thumbsBox = document.getElementById('ownerThumbs');
-
-    if (thumbsBox) {
-      thumbsBox.addEventListener('click', (event) => {
-
-        const removeBtn = event.target.closest('[data-owner-photo-remove]');
-
-        if (!removeBtn) return;
-
-        const index = Number(removeBtn.dataset.ownerPhotoRemove);
-        const [removed] = ownerState.photos.splice(index, 1);
-
-        if (removed) URL.revokeObjectURL(removed.src);
-
-        renderOwnerThumbs();
+        fileInput.value = '';
       });
     }
 
@@ -585,6 +512,7 @@ function initOwnerPage() {
     thumbs.innerHTML = ownerState.photos.map((photo, index) => `
       <div
         class="thumb"
+        data-owner-photo="${index}"
         style="
           background-image:url('${photo.src}');
           background-size:cover;
@@ -942,19 +870,53 @@ function initOwnerPage() {
         </div>
 
         <div class="paw-container">
-          <svg
-            class="paw-svg"
-            viewBox="0 0 100 100"
-          >
-            <text
-              x="50"
-              y="60"
-              text-anchor="middle"
-              font-size="45"
-            >
-              🐾
-            </text>
-          </svg>
+          <svg class="paw-svg" viewBox="0 0 100 100">
+        <defs>
+          <!-- 肉球全体のシルエットマスク -->
+          <mask id="paw-mask">
+            <g transform="translate(3.8, 90) scale(0.018, -0.018)">
+              <path d="M1799 4626 c-124 -45 -260 -153 -360 -284 -199 -263 -298 -687 -230
+              -987 29 -128 67 -247 96 -305 56 -110 206 -235 330 -272 54 -17 95 -22 175
+              -21 93 0 116 4 195 33 118 42 168 72 237 143 126 128 169 279 172 602 1 234
+              -14 369 -64 555 -49 186 -87 278 -150 368 -57 81 -103 122 -179 158 -79 37
+              -141 40 -222 10z" fill="white"/>
+              <path d="M3085 4626 c-183 -58 -269 -174 -373 -501 -71 -224 -71 -225 -86
+              -370 -22 -204 0 -521 43 -635 68 -178 192 -281 411 -341 110 -30 256 -32 348
+              -5 120 36 273 159 326 263 58 115 108 353 107 507 -2 235 -79 512 -206 736
+              -100 177 -230 291 -389 339 -77 24 -123 25 -181 7z" fill="white"/>
+              <path d="M598 3326 c-95 -34 -187 -115 -261 -231 -59 -92 -92 -173 -122 -298
+              -71 -292 -73 -593 -4 -800 61 -183 158 -302 305 -373 145 -71 296 -89 439 -52
+              66 17 205 99 272 162 140 130 212 392 169 618 -44 235 -199 552 -381 782 -98
+              124 -166 172 -273 195 -67 14 -98 13 -144 -3z" fill="white"/>
+              <path d="M4290 3327 c-106 -25 -164 -66 -260 -187 -191 -240 -356 -583 -390
+              -815 -30 -200 31 -437 145 -563 56 -62 101 -94 210 -151 106 -55 217 -70 349
+              -48 112 20 236 78 307 144 218 202 285 590 183 1053 -47 211 -127 367 -244
+              473 -104 93 -188 120 -300 94z" fill="white"/>
+              <path d="M2379 2616 c-120 -36 -168 -64 -262 -155 -108 -104 -132 -137 -242
+              -326 -130 -224 -228 -366 -298 -432 -64 -60 -219 -181 -342 -268 -114 -81
+              -221 -189 -255 -259 -49 -100 -65 -177 -64 -311 0 -229 70 -368 242 -479 246
+              -159 527 -170 888 -35 170 64 229 71 511 67 269 -5 268 -5 479 -81 334 -122
+              624 -103 856 54 84 57 133 109 166 176 58 115 67 157 66 303 0 119 -3 145 -27
+              215 -32 96 -68 156 -133 219 -48 46 -74 66 -308 242 -184 138 -244 199 -339
+              342 -46 70 -114 181 -152 247 -93 165 -139 227 -238 322 -96 92 -147 121 -273
+              158 -106 31 -175 31 -275 1z" fill="white"/>
+            </g>
+          </mask>
+        </defs>
+        <!-- 下地（グレーの肉球） -->
+        <g mask="url(#paw-mask)">
+          <rect x="0" y="0" width="100" height="100" fill="var(--line)" />
+          <!-- 下から上がってくるグラデーション（Fill） -->
+          <rect id="ownerPawFill" x="0" y="100" width="100" height="100" fill="url(#paw-grad)" />
+        </g>
+        <!-- グラデーション定義 -->
+        <defs>
+          <linearGradient id="paw-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="var(--magenta)" />
+            <stop offset="100%" stop-color="var(--cyan)" />
+          </linearGradient>
+        </defs>
+      </svg>
         </div>
 
         <div class="mm">
@@ -1004,15 +966,27 @@ function initOwnerPage() {
 
     let progress = 0;
 
+    // 肉球が下から塗られていく位置（script.js と同じ値）
+    const PAW_BOTTOM_Y = 85;
+    const PAW_TOP_Y = 7;
+    const setPawFill = (p) => {
+      const fillRect = document.getElementById('ownerPawFill');
+      if (!fillRect) return;
+      const y = PAW_BOTTOM_Y - (p / 100) * (PAW_BOTTOM_Y - PAW_TOP_Y);
+      fillRect.setAttribute('y', y);
+    };
+
     ownerMatchTimer = setInterval(() => {
-      progress = Math.min(95, progress + 5);
+      // APIのレスポンスが来るまで90%で待機させる
+      progress = Math.min(90, progress + Math.random() * 7 + 3);
 
       const bar = document.getElementById('ownerBar');
       const pct = document.getElementById('ownerPct');
 
       if (bar) bar.style.width = `${progress}%`;
-      if (pct) pct.textContent = `${progress}%`;
-    }, 200);
+      if (pct) pct.textContent = `${Math.round(progress)}%`;
+      setPawFill(progress);
+    }, 220);
 
     fetch(
       `${API_BASE}/matching/run?lostPetId=${lostPetId}`,
@@ -1038,20 +1012,17 @@ function initOwnerPage() {
         }
 
         ownerMatchResults = (data && data.results) || [];
-        ownerMatchUncomparedCandidateCount =
-          Number.isInteger(data && data.uncomparedCandidateCount)
-            ? data.uncomparedCandidateCount
-            : 0;
 
         const bar = document.getElementById('ownerBar');
         const pct = document.getElementById('ownerPct');
         if (bar) bar.style.width = '100%';
         if (pct) pct.textContent = '100%';
+        setPawFill(100);
 
         ownerMatchTimer = setTimeout(() => {
           ownerMatchTimer = null;
           if (myToken === ownerMatchRequestToken) {
-            showResults(ownerMatchResults, ownerMatchUncomparedCandidateCount);
+            showResults(ownerMatchResults);
           }
         }, 350);
       })
@@ -1073,7 +1044,7 @@ function initOwnerPage() {
 
   /* ---------------- マッチング結果 ---------------- */
 
-  function showResults(results, uncomparedCandidateCount = 0) {
+  function showResults(results) {
 
     const list = results || [];
 
@@ -1091,22 +1062,9 @@ function initOwnerPage() {
 
     /* ── 0件 ── */
     if (list.length === 0) {
-      const partialFailureNotice = uncomparedCandidateCount > 0
-        ? `
-          <div class="card" style="background:#fff4e5;border-color:#f0c36d">
-            <b style="color:#7a4b00">マッチングを完了できませんでした</b>
-            <div class="lede">
-              ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
-              結果に含まれていません。時間をおいて再度お試しください。
-            </div>
-          </div>
-        `
-        : '';
       ownerScreen.innerHTML = `
         ${ownerAppbar('マッチング結果')}
         <div class="pad fade">
-          ${partialFailureNotice}
-          ${uncomparedCandidateCount > 0 ? '' : `
           <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
             <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
@@ -1115,7 +1073,6 @@ function initOwnerPage() {
               新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
-          `}
         </div>
       `;
       return;
@@ -1164,16 +1121,6 @@ function initOwnerPage() {
 
       <div class="mr-page-bg fade">
         <div class="mr-main-card">
-
-          ${uncomparedCandidateCount > 0 ? `
-            <div class="card" style="background:#fff4e5;border-color:#f0c36d;margin-bottom:16px">
-              <b style="color:#7a4b00">一部の候補を比較できませんでした</b>
-              <div class="lede">
-                ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
-                以下の結果には含まれていません。
-              </div>
-            </div>
-          ` : ''}
 
           <div class="mr-summary">
             <div class="mr-count">${list.length}件ヒットしました。</div>
@@ -1607,8 +1554,7 @@ function initOwnerPage() {
           name === 'results'
         ) {
           showResults(
-            ownerMatchResults,
-            ownerMatchUncomparedCandidateCount
+            ownerMatchResults
           );
         }
 
