@@ -21,6 +21,7 @@ data class MatchResultItem(
 @Serializable
 data class MatchingRunResponse(
     val lostPetId: Long,
-    val candidateCount: Int,   // SQL絞り込みでヒットした候補の総数
+    val candidateCount: Int,           // SQL絞り込みでヒットした候補の総数
+    val uncomparedCandidateCount: Int, // 写真なし等でAI比較をスキップした候補数
     val results: List<MatchResultItem>
 )
