@@ -118,11 +118,11 @@ object LostPetRepository {
                 .filter { it.status != "rejected" }
 
             when {
-                myContacts.any { it.contactId in handedOverContactIds } -> "completed" // 引き渡し記録あり
-                myContacts.any { it.status == "confirmed" } -> "matched"              // 一致確認済み
-                myContacts.isNotEmpty() -> "matched"                                   // 連絡中
-                myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "matched"   // 有力な候補あり
-                else -> "new"                                                          // まだ照合されていない
+                myContacts.any { it.contactId in handedOverContactIds } -> "completed"  // 引き渡し記録あり
+                myContacts.any { it.status == "confirmed" } -> "confirmed"              // 一致確認済み・引き渡し待ち
+                myContacts.isNotEmpty() -> "contacting"                                  // 連絡済み
+                myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "candidate"   // 有力な候補あり
+                else -> "lost"                                                           // まだ見つかっていない
             }
         }
         resolver
