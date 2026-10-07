@@ -13,6 +13,7 @@ function initOwnerPage() {
 
   // 直近のマッチング結果
   let ownerMatchResults = [];
+  let ownerMatchUncomparedCandidateCount = 0;
 
   // 飼い主の登録フォームの状態
   let ownerState = {
@@ -966,6 +967,10 @@ function initOwnerPage() {
         }
 
         ownerMatchResults = (data && data.results) || [];
+        ownerMatchUncomparedCandidateCount =
+          Number.isInteger(data && data.uncomparedCandidateCount)
+            ? data.uncomparedCandidateCount
+            : 0;
 
         const bar = document.getElementById('ownerBar');
         const pct = document.getElementById('ownerPct');
@@ -975,7 +980,7 @@ function initOwnerPage() {
         ownerMatchTimer = setTimeout(() => {
           ownerMatchTimer = null;
           if (myToken === ownerMatchRequestToken) {
-            showResults(ownerMatchResults);
+            showResults(ownerMatchResults, ownerMatchUncomparedCandidateCount);
           }
         }, 350);
       })
@@ -997,7 +1002,7 @@ function initOwnerPage() {
 
   /* ---------------- マッチング結果 ---------------- */
 
-  function showResults(results) {
+  function showResults(results, uncomparedCandidateCount = 0) {
 
     const list = results || [];
 
@@ -1015,9 +1020,22 @@ function initOwnerPage() {
 
     /* ── 0件 ── */
     if (list.length === 0) {
+      const partialFailureNotice = uncomparedCandidateCount > 0
+        ? `
+          <div class="card" style="background:#fff4e5;border-color:#f0c36d">
+            <b style="color:#7a4b00">マッチングを完了できませんでした</b>
+            <div class="lede">
+              ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+              結果に含まれていません。時間をおいて再度お試しください。
+            </div>
+          </div>
+        `
+        : '';
       ownerScreen.innerHTML = `
         ${ownerAppbar('マッチング結果')}
         <div class="pad fade">
+          ${partialFailureNotice}
+          ${uncomparedCandidateCount > 0 ? '' : `
           <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
             <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
@@ -1026,6 +1044,7 @@ function initOwnerPage() {
               新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
+          `}
         </div>
       `;
       return;
@@ -1074,6 +1093,16 @@ function initOwnerPage() {
 
       <div class="mr-page-bg fade">
         <div class="mr-main-card">
+
+          ${uncomparedCandidateCount > 0 ? `
+            <div class="card" style="background:#fff4e5;border-color:#f0c36d;margin-bottom:16px">
+              <b style="color:#7a4b00">一部の候補を比較できませんでした</b>
+              <div class="lede">
+                ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+                以下の結果には含まれていません。
+              </div>
+            </div>
+          ` : ''}
 
           <div class="mr-summary">
             <div class="mr-count">${list.length}件ヒットしました。</div>
@@ -1507,7 +1536,8 @@ function initOwnerPage() {
           name === 'results'
         ) {
           showResults(
-            ownerMatchResults
+            ownerMatchResults,
+            ownerMatchUncomparedCandidateCount
           );
         }
 
@@ -1623,11 +1653,20 @@ async function initOwnerPetsPage() {
     observer.observe(sentinel);
   }
 
+  /* ── ペットデータキャッシュ（詳細表示用）── */
+  const petCache = {};
+
   /* ── ペットカードを追加 ── */
   function renderPets(pets) {
     pets.forEach(pet => {
+      petCache[pet.id] = pet; // 一覧データをキャッシュ
       const card = document.createElement('div');
       card.className = 'card owner-pet-card';
+      card.style.cssText = 'cursor:pointer;position:relative;';
+      card.setAttribute('data-pet-id', pet.id);
+      if (pet.receivedFrom) {
+        card.setAttribute('data-received', '1');
+      }
       card.innerHTML = `
         <div class="owner-pet-photo">
           ${pet.photoUrl
@@ -1639,11 +1678,226 @@ async function initOwnerPetsPage() {
           <div class="t">${pet.specie || '種類未登録'}</div>
           <div class="d">毛色：${pet.color || '未登録'}</div>
           <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
+          ${pet.receivedFrom ? `<div class="d" style="color:#2e7d32;font-weight:600">✅ 受け取り済み：${pet.receivedFrom}</div>` : ''}
         </div>
+        <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#bbb;font-size:18px;">›</div>
       `;
+      card.addEventListener('click', () => openOwnerPetDetail(pet.id));
       list.appendChild(card);
     });
   }
+
+  /* ── ペット詳細オーバーレイを開く ── */
+  async function openOwnerPetDetail(petId) {
+    const overlay = document.getElementById('ownerPetDetailOverlay');
+    const body    = document.getElementById('ownerPetDetailBody');
+    if (!overlay || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:32px;color:#888">読み込み中…</div>';
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const res = await fetch(`${API_BASE}/pets/lost/${petId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const pet = await res.json();
+
+      const photosHtml = pet.photoUrls && pet.photoUrls.length > 0
+        ? `<div style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">
+            ${pet.photoUrls.map(url => `
+              <img src="${url}" alt="ペット"
+                style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;
+                       background:#f5f5f5;scroll-snap-align:start;flex-shrink:0;">
+            `).join('')}
+           </div>`
+        : `<div style="height:160px;background:#f5f5f5;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;">🐾</div>`;
+
+      const alreadyReceived = !!pet.receivedFrom;
+
+      body.innerHTML = `
+        ${photosHtml}
+
+        <div class="card" style="margin:0">
+          ${pet.petName  ? `<div><span style="color:#888;font-size:12px">正式名称</span><br><b>${pet.petName}</b></div>` : ''}
+          ${pet.nickname ? `<div><span style="color:#888;font-size:12px">呼び名</span><br><b>${pet.nickname}</b></div>` : ''}
+          ${pet.specie   ? `<div><span style="color:#888;font-size:12px">種類</span><br>${pet.specie}</div>` : ''}
+          ${pet.color    ? `<div><span style="color:#888;font-size:12px">毛色</span><br>${pet.color}</div>` : ''}
+          ${pet.lostPlace? `<div><span style="color:#888;font-size:12px">いなくなった場所</span><br>${pet.lostPlace}</div>` : ''}
+          ${pet.other    ? `<div><span style="color:#888;font-size:12px">その他の特徴</span><br>${pet.other}</div>` : ''}
+        </div>
+
+        ${alreadyReceived
+          ? `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:14px;text-align:center">
+               <div style="font-size:22px;margin-bottom:4px">✅</div>
+               <b style="color:#2e7d32">受け取り済み</b>
+               <div style="color:#388e3c;font-size:13px;margin-top:4px">受け取り元：${pet.receivedFrom}</div>
+             </div>`
+          : `<div id="receiveSection">
+               <p style="font-size:13px;color:#555;margin:0 0 8px;">誰から受け取りましたか？<br>
+                 <span style="font-size:11px;color:#888;">チャットしたことのある相手を選んでください。</span>
+               </p>
+               <div id="contactSelectList" style="display:flex;flex-direction:column;gap:8px;">
+                 <div style="text-align:center;color:#aaa;font-size:13px;padding:12px;">読み込み中…</div>
+               </div>
+               <button
+                 id="receiveBtn"
+                 class="btn btn-magenta"
+                 style="margin-top:12px;width:100%;opacity:0.4;pointer-events:none;"
+                 onclick="handleReceivePet(${petId})"
+                 disabled
+               >
+                 🐾 ペットを受け取りました
+               </button>
+             </div>`
+        }
+      `;
+
+      // グローバルに関数を公開（onclickから呼べるように）
+      window.handleReceivePet = (id) => receivePet(id);
+
+      // まだ受け取っていない場合、チャット済みコンタクト一覧を読み込む
+      if (!alreadyReceived) {
+        loadChatContactsForSelect(petId);
+      }
+
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = `<div style="text-align:center;color:#c00;padding:16px">読み込みに失敗しました</div>`;
+    }
+  }
+
+  /* ── チャット済みコンタクトを選択リストに描画 ── */
+  async function loadChatContactsForSelect(petId) {
+    const listEl = document.getElementById('contactSelectList');
+    if (!listEl) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/chat/contacts`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      const contacts = data.contacts || [];
+
+      if (contacts.length === 0) {
+        listEl.innerHTML = `
+          <div style="background:#f5f5f5;border-radius:10px;padding:14px;text-align:center;color:#888;font-size:13px;">
+            まだチャットした相手がいません。<br>
+            先にチャットで連絡を取ってから記録してください。
+          </div>`;
+        return;
+      }
+
+      const roleLabel = r =>
+        r === 'shelter' ? '保護団体' :
+        r === 'finder'  ? '発見者'  : r;
+
+      listEl.innerHTML = contacts.map(c => `
+        <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+                       border:2px solid #eee;border-radius:12px;cursor:pointer;"
+               class="contact-select-label">
+          <input type="radio" name="receiveContact"
+                 value="${c.id}"
+                 data-name="${c.displayName}"
+                 data-role="${c.role}"
+                 style="accent-color:#e91e8c;width:18px;height:18px;flex-shrink:0;">
+          <div>
+            <div style="font-weight:600;font-size:14px;">${c.displayName}</div>
+            <div style="font-size:12px;color:#888;">${roleLabel(c.role)}</div>
+          </div>
+        </label>
+      `).join('');
+
+      // ラジオを選んだらボタンを有効化
+      listEl.querySelectorAll('input[type=radio]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          const btn = document.getElementById('receiveBtn');
+          if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+          }
+          // 選択中のラベルをハイライト
+          listEl.querySelectorAll('.contact-select-label').forEach(lbl => {
+            lbl.style.borderColor = lbl.querySelector('input').checked ? '#e91e8c' : '#eee';
+            lbl.style.background  = lbl.querySelector('input').checked ? '#fff0f6' : '';
+          });
+        });
+      });
+
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = `<div style="color:#c00;font-size:13px;">コンタクト一覧の読み込みに失敗しました。</div>`;
+    }
+  }
+
+  /* ── 「ペットを受け取りました」を記録 ── */
+  async function receivePet(petId) {
+    const btn = document.getElementById('receiveBtn');
+
+    // 選択されたコンタクトを取得
+    const selected = document.querySelector('input[name="receiveContact"]:checked');
+    if (!selected) {
+      alert('受け取り相手を選択してください。');
+      return;
+    }
+    const roleLabel = r =>
+      r === 'shelter' ? '保護団体' :
+      r === 'finder'  ? '発見者'  : r;
+    const contactName = selected.dataset.name;
+    const contactRole = roleLabel(selected.dataset.role);
+    const receivedFrom = `${contactName}（${contactRole}）`;
+
+    if (btn) { btn.disabled = true; btn.textContent = '記録中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/pets/lost/${petId}/received`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ receivedFrom })
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+
+      // 成功：オーバーレイを閉じてリストを更新
+      closeOwnerPetDetail();
+      // キャッシュを更新
+      if (petCache[petId]) petCache[petId].receivedFrom = receivedFrom;
+      // カードの表示を更新
+      const cards = list.querySelectorAll('.owner-pet-card');
+      cards.forEach(card => {
+        if (card.getAttribute('data-pet-id') === String(petId)) {
+          const info = card.querySelector('.owner-pet-info');
+          if (info && !info.querySelector('.received-label')) {
+            const lbl = document.createElement('div');
+            lbl.className = 'd received-label';
+            lbl.style.cssText = 'color:#2e7d32;font-weight:600';
+            lbl.textContent = `✅ 受け取り済み（${receivedFrom}）`;
+            info.appendChild(lbl);
+          }
+        }
+      });
+      alert(`受け取り情報を記録しました。`);
+    } catch (err) {
+      console.error(err);
+      alert('記録に失敗しました。もう一度お試しください。');
+      if (btn) { btn.disabled = false; btn.textContent = '🐾 ペットを受け取りました'; }
+    }
+  }
+
+  /* ── 詳細オーバーレイを閉じる ── */
+  function closeOwnerPetDetail() {
+    const overlay = document.getElementById('ownerPetDetailOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // グローバルに公開
+  window.closeOwnerPetDetail = closeOwnerPetDetail;
 
   /* ── エラー表示（既存カードは消さない）── */
   function showError() {

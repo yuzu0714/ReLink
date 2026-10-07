@@ -35,7 +35,6 @@ import com.models.ShelterPetListResponse
 import com.repositories.ShelterPetListRepository
 import com.repositories.MatchingRepository
 import com.services.MatchingService
-import com.models.MatchingRunResponse
 import com.models.ContactStatusUpdateRequest
 import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
@@ -45,6 +44,8 @@ import com.models.HandoverByPetRequest
 import com.models.HandoverRequest
 import com.models.OwnerPetListItem
 import com.models.OwnerPetListResponse
+import com.models.OwnerPetDetail
+import com.models.PetReceiptRequest
 import com.repositories.HandoverRepository
 import com.repositories.PetPhotoRepository
 import com.db.LostPetRegisterTable
@@ -345,7 +346,8 @@ fun Application.configureRouting() {
                         specie = pet.specie,
                         color = pet.color,
                         lostPlace = pet.lostPlace,
-                        other = null
+                        other = null,
+                        receivedFrom = pet.receivedFrom  // ★追加：受け取り済み情報
                     )
                 }
 
@@ -353,6 +355,40 @@ fun Application.configureRouting() {
                     HttpStatusCode.OK,
                     OwnerPetListResponse(pets = petItems, nextCursor = nextCursor)
                 )
+            }
+
+            // ★新規追加：飼い主向けペット詳細（自分の登録ペット1件の全情報）
+            get("/pets/lost/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "owner") throw ForbiddenException("この操作にはowner権限が必要です")
+
+                val petId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("id(数値)をパスパラメータで指定してください")
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val detail = LostPetRepository.findDetailForOwner(petId, userId)
+                    ?: throw NoSuchElementException("指定されたペットが見つかりません: $petId")
+
+                call.respond(HttpStatusCode.OK, detail)
+            }
+
+            // ★新規追加：「ペットを受け取りました」記録エンドポイント
+            patch("/pets/lost/{id}/received") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "owner") throw ForbiddenException("この操作にはowner権限が必要です")
+
+                val petId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("id(数値)をパスパラメータで指定してください")
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val request = call.receive<PetReceiptRequest>()
+                val ok = LostPetRepository.markAsReceived(petId, userId, request.receivedFrom)
+                if (!ok) throw NoSuchElementException("指定されたペットが見つかりません: $petId")
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
             }
 
             get("/notifications") {
@@ -526,16 +562,7 @@ fun Application.configureRouting() {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
 
-            val results = MatchingService.runMatching(lostPetId)
-
-            call.respond(
-                HttpStatusCode.OK,
-                MatchingRunResponse(
-                    lostPetId = lostPetId,
-                    candidateCount = results.size,
-                    results = results
-                )
-            )
+            call.respond(HttpStatusCode.OK, MatchingService.runMatching(lostPetId))
         }
     }
 }
