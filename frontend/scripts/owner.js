@@ -1667,20 +1667,23 @@ async function initOwnerPetsPage() {
       if (pet.receivedFrom) {
         card.setAttribute('data-received', '1');
       }
+      const isReceived = !!pet.receivedFrom;
       card.innerHTML = `
-        <div class="owner-pet-photo">
+        <div class="owner-pet-photo" style="position:relative;">
           ${pet.photoUrl
             ? `<img src="${pet.photoUrl}" alt="${pet.specie || 'ペット'}" loading="lazy">`
             : `<div class="owner-pet-no-photo">写真なし</div>`
           }
+          <span class="pet-status-badge ${isReceived ? 'pet-status-received' : 'pet-status-lost'}">
+            ${isReceived ? '✅ 受け取り完了' : '🔍 迷子中'}
+          </span>
         </div>
         <div class="owner-pet-info">
           <div class="t">${pet.specie || '種類未登録'}</div>
           <div class="d">毛色：${pet.color || '未登録'}</div>
           <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
-          ${pet.receivedFrom ? `<div class="d" style="color:#2e7d32;font-weight:600">✅ 受け取り済み：${pet.receivedFrom}</div>` : ''}
+          ${pet.receivedFrom ? `<div class="d received-from-label">受け取り元：${pet.receivedFrom}</div>` : ''}
         </div>
-        <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#bbb;font-size:18px;">›</div>
       `;
       card.addEventListener('click', () => openOwnerPetDetail(pet.id));
       list.appendChild(card);
@@ -1867,16 +1870,20 @@ async function initOwnerPetsPage() {
       closeOwnerPetDetail();
       // キャッシュを更新
       if (petCache[petId]) petCache[petId].receivedFrom = receivedFrom;
-      // カードの表示を更新
+      // カードの表示を更新（ステータスバッジ＋受け取り元ラベル）
       const cards = list.querySelectorAll('.owner-pet-card');
       cards.forEach(card => {
         if (card.getAttribute('data-pet-id') === String(petId)) {
+          const badge = card.querySelector('.pet-status-badge');
+          if (badge) {
+            badge.className = 'pet-status-badge pet-status-received';
+            badge.textContent = '✅ 受け取り完了';
+          }
           const info = card.querySelector('.owner-pet-info');
-          if (info && !info.querySelector('.received-label')) {
+          if (info && !info.querySelector('.received-from-label')) {
             const lbl = document.createElement('div');
-            lbl.className = 'd received-label';
-            lbl.style.cssText = 'color:#2e7d32;font-weight:600';
-            lbl.textContent = `✅ 受け取り済み（${receivedFrom}）`;
+            lbl.className = 'd received-from-label';
+            lbl.textContent = `受け取り元：${receivedFrom}`;
             info.appendChild(lbl);
           }
         }
