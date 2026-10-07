@@ -254,6 +254,10 @@
   color: var(--magenta);
   border-color: #fbcfe8;
 }
+
+/* ★追加：状態ピルの緑(完了)。保護ペット一覧・詳細で使う */
+.pill.ok { background:#eafaf3; color:#0f7a4b; border-color:#a7f3d0; }
+
 /* ---- フィルター ---- */
 
 /* 一番外側の背景エリア */

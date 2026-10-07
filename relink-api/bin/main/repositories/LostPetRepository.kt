@@ -9,6 +9,7 @@ import com.db.MatchesTable   // ★追加：候補(マッチ)の有無とスコ�
 import com.db.ContactTable   // ★追加：飼い主からの連絡の有無と進捗を見るため
 import com.db.HandoverTable  // ★追加：引き渡し完了かどうかを見るため
 import com.models.ShelterLostPetDetail // ★追加：詳細用DTOを使うため
+import com.models.OwnerPetDetail // ★追加：飼い主向けペット詳細DTO
 
 // lostpet_register への書き込みだけを担当するクラス
 object LostPetRepository {
@@ -30,6 +31,8 @@ object LostPetRepository {
                 it[LostPetRegisterTable.voiceUrl] = request.voiceUrl
                 // ★新規追加：登録したユーザーのIDを保存
                 it[LostPetRegisterTable.userId] = userId
+                // ★追加：登録時の状態(safe=事前登録 / lost=すでに迷子)を保存
+                it[LostPetRegisterTable.petStatus] = request.petStatus
             } get LostPetRegisterTable.id
 
             // ★新規追加：FoundPetRepositoryと同じく、本体INSERT成功後のidを使って
@@ -56,7 +59,8 @@ object LostPetRepository {
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
                     lostPlace = it[LostPetRegisterTable.lostPlace],
-                    userId = it[LostPetRegisterTable.userId]   // ★追加
+                    userId = it[LostPetRegisterTable.userId],   // ★追加
+                    petStatus = it[LostPetRegisterTable.petStatus]
                 )
             }
             .firstOrNull()
@@ -79,7 +83,9 @@ object LostPetRepository {
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
                     lostPlace = it[LostPetRegisterTable.lostPlace],
-                    userId = it[LostPetRegisterTable.userId]
+                    userId = it[LostPetRegisterTable.userId],
+                    receivedFrom = it[LostPetRegisterTable.receivedFrom],
+                    petStatus = it[LostPetRegisterTable.petStatus]
                 )
             }
     }
@@ -112,11 +118,11 @@ object LostPetRepository {
                 .filter { it.status != "rejected" }
 
             when {
-                myContacts.any { it.contactId in handedOverContactIds } -> "completed"  // 引き渡し記録あり
-                myContacts.any { it.status == "confirmed" } -> "confirmed"              // 一致確認済み・引き渡し待ち
-                myContacts.isNotEmpty() -> "contacting"                                  // 連絡済み
-                myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "candidate"   // 有力な候補あり
-                else -> "lost"                                                           // まだ見つかっていない
+                myContacts.any { it.contactId in handedOverContactIds } -> "completed" // 引き渡し記録あり
+                myContacts.any { it.status == "confirmed" } -> "matched"              // 一致確認済み
+                myContacts.isNotEmpty() -> "matched"                                   // 連絡中
+                myMatches.any { it.third >= CANDIDATE_SCORE_THRESHOLD } -> "matched"   // 有力な候補あり
+                else -> "new"                                                          // まだ照合されていない
             }
         }
         resolver
@@ -128,6 +134,7 @@ object LostPetRepository {
         val resolveStatus = buildLostStatusResolver() // ★状態を調べる関数を1回だけ作る
 
         LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.petStatus eq "lost" } // ★追加：無事(safe)のペットは迷子一覧に出さない
             .orderBy(LostPetRegisterTable.id to SortOrder.DESC) // id降順＝新しい順
             .map { row ->
                 val id = row[LostPetRegisterTable.id]
@@ -142,6 +149,43 @@ object LostPetRepository {
                     status = resolveStatus(id)
                 )
             }
+    }
+
+    // ★追加：offset ページネーション対応の迷子ペット一覧(N+1解消)
+    fun findAllForShelterPaged(limit: Int, offset: Int): Pair<List<ShelterLostPetListItem>, Boolean> = transaction {
+        val resolveStatus = buildLostStatusResolver()
+
+        // ① 全件の基本情報だけを取得(写真なし)し、ソートしてからページ切り出し
+        val allRows = LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.petStatus eq "lost" } // ★追加：無事(safe)のペットは迷子一覧に出さない
+            .orderBy(LostPetRegisterTable.id to SortOrder.DESC)
+            .toList()
+
+        val page = allRows.drop(offset).take(limit + 1)
+        val hasMore = page.size > limit
+        val pageRows = if (hasMore) page.dropLast(1) else page
+
+        if (pageRows.isEmpty()) return@transaction Pair(emptyList<ShelterLostPetListItem>(), false)
+
+        // ② このページ分の写真を一括取得(N+1解消)
+        val pageIds = pageRows.map { it[LostPetRegisterTable.id] }
+        val photos = PetPhotoRepository.findFirstPhotoByPets("lost", pageIds)
+
+        // ③ 組み立て
+        val items = pageRows.map { row ->
+            val id = row[LostPetRegisterTable.id]
+            ShelterLostPetListItem(
+                id = id,
+                photoUrl = photos[id],
+                petName = row[LostPetRegisterTable.petName],
+                specie = row[LostPetRegisterTable.specie],
+                color = row[LostPetRegisterTable.color],
+                lostPlace = row[LostPetRegisterTable.lostPlace],
+                other = row[LostPetRegisterTable.other],
+                status = resolveStatus(id)
+            )
+        }
+        Pair(items, hasMore)
     }
 
     // ★新規追加：保護団体向けの迷子ペット詳細(1件)。存在しないidなら null を返す
@@ -191,7 +235,9 @@ object LostPetRepository {
                     specie = it[LostPetRegisterTable.specie],
                     color = it[LostPetRegisterTable.color],
                     lostPlace = it[LostPetRegisterTable.lostPlace],
-                    userId = it[LostPetRegisterTable.userId]
+                    userId = it[LostPetRegisterTable.userId],
+                    receivedFrom = it[LostPetRegisterTable.receivedFrom],
+                    petStatus = it[LostPetRegisterTable.petStatus]
                 )
             }
 
@@ -200,6 +246,56 @@ object LostPetRepository {
         val nextCursor = if (hasMore) items.lastOrNull()?.id else null
         Pair(items, nextCursor)
     }
+    // ★新規追加：飼い主向けのペット詳細（自分のペットのみ、全写真・全フィールド）
+    fun findDetailForOwner(id: Long, userId: Long): OwnerPetDetail? = transaction {
+        val row = LostPetRegisterTable.selectAll()
+            .where {
+                (LostPetRegisterTable.id eq id) and
+                (LostPetRegisterTable.userId eq userId)
+            }
+            .firstOrNull() ?: return@transaction null
+
+        val photos = PetPhotoRepository.findByPet("lost", id).map { it.photoUrl }
+
+        OwnerPetDetail(
+            id = id,
+            photoUrls = photos,
+            specie = row[LostPetRegisterTable.specie],
+            color = row[LostPetRegisterTable.color],
+            lostPlace = row[LostPetRegisterTable.lostPlace],
+            other = row[LostPetRegisterTable.other],
+            nickname = row[LostPetRegisterTable.nickname],
+            petName = row[LostPetRegisterTable.petName],
+            receivedFrom = row[LostPetRegisterTable.receivedFrom],
+            petStatus = row[LostPetRegisterTable.petStatus]
+        )
+    }
+
+    // ★新規追加：「ペットを受け取りました」で received_from を保存する
+    fun markAsReceived(id: Long, userId: Long, receivedFrom: String?): Boolean = transaction {
+        val updated = LostPetRegisterTable.update({
+            (LostPetRegisterTable.id eq id) and (LostPetRegisterTable.userId eq userId)
+        }) {
+            it[LostPetRegisterTable.receivedFrom] = receivedFrom
+            // ★追加：受け取ったら飼い主のもとに戻ったので「無事」にする
+            it[LostPetRegisterTable.petStatus] = "safe"
+        }
+        updated > 0
+    }
+
+    // ★新規追加：「迷子になりました」で状態を lost にし、いなくなった場所を保存する
+    // 前回の受け取り記録(received_from)は今回の迷子とは無関係なので消す
+    fun markAsLost(id: Long, userId: Long, lostPlace: String): Boolean = transaction {
+        val updated = LostPetRegisterTable.update({
+            (LostPetRegisterTable.id eq id) and (LostPetRegisterTable.userId eq userId)
+        }) {
+            it[LostPetRegisterTable.petStatus] = "lost"
+            it[LostPetRegisterTable.lostPlace] = lostPlace
+            it[LostPetRegisterTable.receivedFrom] = null
+        }
+        updated > 0
+    }
+
 }
 
 // ★新規追加：findById()の戻り値専用の内部DTO
@@ -208,7 +304,9 @@ data class LostPetRegisterRow(
     val specie: String?,
     val color: String?,
     val lostPlace: String?,
-    val userId: Long?    // ★追加：通知送信時に飼い主を特定するために必要
+    val userId: Long?,   // ★追加：通知送信時に飼い主を特定するために必要
+    val receivedFrom: String? = null,  // ★追加：受け取り済み情報
+    val petStatus: String = "lost"     // ★追加：ペットの状態。safe(無事) / lost(迷子)
 )
 
 // ★新規追加：「候補あり」と判定するマッチ率(%)のしきい値。ここを変えれば判定が変わる

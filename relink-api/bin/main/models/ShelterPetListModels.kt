@@ -19,7 +19,9 @@ data class ShelterPetListItem(
     val other: String? = null,
     // ★新規追加：地図表示用の緯度経度(変換に失敗している場合はnull)
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    // 画面用状態コード: new / matched / completed
+    val status: String = "new"
 )
 
 // GET /shelter/pets 全体のレスポンス
@@ -36,7 +38,9 @@ data class OwnerPetListItem(
     val specie: String? = null,
     val color: String? = null,
     val lostPlace: String? = null,
-    val other: String? = null
+    val other: String? = null,
+    val receivedFrom: String? = null,  // ★追加：受け取り済みなら受け取り元の名前
+    val petStatus: String              // ★追加：ペットの状態。safe(無事) / lost(迷子)
 )
 
 @Serializable
@@ -57,7 +61,7 @@ data class ShelterLostPetListItem(
     val lostPlace: String? = null,    // いなくなった場所
     val other: String? = null,        // そのほか(特徴メモ)
     // ★修正：phoneNumber を削除(電話番号は一覧では見せず、詳細ページだけで返す)
-    // ★新規追加：いまの状態コード。lost / candidate / contacting / confirmed / completed のどれか
+    // 画面用状態コード: new / matched / completed
     // (表示ラベルへの変換はフロント側で行う。バックエンドは「コード」だけ返す)
     val status: String = "lost"
 )
@@ -65,8 +69,8 @@ data class ShelterLostPetListItem(
 // ★新規追加：GET /shelter/lost-pets 全体のレスポンス
 @Serializable
 data class ShelterLostPetListResponse(
-    val pets: List<ShelterLostPetListItem>
-    
+    val pets: List<ShelterLostPetListItem>,
+    val nextCursor: Long? = null   // 次ページのoffset。nullなら最終ページ
 )
 
 // ★新規追加：保護団体向け「迷子ペット詳細」のDTO
@@ -84,4 +88,30 @@ data class ShelterLostPetDetail(
     val photoUrls: List<String> = emptyList(), // 登録された全写真(sort_order順。0番目が代表)
     val voiceUrl: String? = null,     // 飼い主が録音した「呼び声」(無ければnull)
     val status: String = "lost"
+)
+// ★新規追加：飼い主向けペット詳細（全写真・全フィールド）
+@Serializable
+data class OwnerPetDetail(
+    val id: Long,
+    val photoUrls: List<String> = emptyList(),
+    val specie: String? = null,
+    val color: String? = null,
+    val lostPlace: String? = null,
+    val other: String? = null,
+    val nickname: String? = null,
+    val petName: String? = null,
+    val receivedFrom: String? = null,  // null = まだ受け取っていない
+    val petStatus: String              // ★追加：ペットの状態。safe(無事) / lost(迷子)
+)
+
+// ★新規追加：PATCH /pets/lost/{id}/received のリクエストボディ
+@Serializable
+data class PetReceiptRequest(
+    val receivedFrom: String? = null
+)
+
+// ★新規追加：PATCH /pets/lost/{id}/lost (「迷子になりました」)のリクエストボディ
+@Serializable
+data class PetLostReportRequest(
+    val lostPlace: String? = null
 )

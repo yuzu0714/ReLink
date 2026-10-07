@@ -7,6 +7,8 @@ import com.models.ShelterPetListItem
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.OffsetDateTime
+import com.db.ContactTable   // ★追加：照合に対する連絡の有無を見るため
+import com.db.HandoverTable  // ★追加：引き渡し完了かどうかを見るため
 
 object ShelterPetListRepository {
 
@@ -85,7 +87,9 @@ object ShelterPetListRepository {
             PetPhotoRepository.findFirstPhotoByPets("rescued", rescuedIds) else emptyMap()
 
         // ── ⑤ 照合情報をバッチ取得（このページ分のみ・N+1解消） ──
-        val foundMatches = if (foundIds.isNotEmpty()) {
+        // ★修正：これまでは「最新の1件」だけ残していたが、状態判定には全件が必要なので
+        //        まず全件をグループ化して持ち、最新の1件は後でそこから取り出す
+        val foundMatchGroups: Map<Long, List<ResultRow>> = if (foundIds.isNotEmpty()) {
             MatchesTable.selectAll()
                 .where {
                     (MatchesTable.protectedSource eq "found") and
@@ -93,10 +97,9 @@ object ShelterPetListRepository {
                 }
                 .orderBy(MatchesTable.createdAt to SortOrder.DESC)
                 .groupBy { it[MatchesTable.protectedPetId] }
-                .mapValues { (_, rows) -> rows.first() }
         } else emptyMap()
 
-        val rescuedMatches = if (rescuedIds.isNotEmpty()) {
+        val rescuedMatchGroups: Map<Long, List<ResultRow>> = if (rescuedIds.isNotEmpty()) {
             MatchesTable.selectAll()
                 .where {
                     (MatchesTable.protectedSource eq "rescued") and
@@ -104,8 +107,39 @@ object ShelterPetListRepository {
                 }
                 .orderBy(MatchesTable.createdAt to SortOrder.DESC)
                 .groupBy { it[MatchesTable.protectedPetId] }
-                .mapValues { (_, rows) -> rows.first() }
         } else emptyMap()
+
+        // 画面遷移用の「最新の1件」(今までと同じ動き)
+        val foundMatches = foundMatchGroups.mapValues { (_, rows) -> rows.first() }
+        val rescuedMatches = rescuedMatchGroups.mapValues { (_, rows) -> rows.first() }
+
+        // ★追加：引き渡しが「完了」したマッチIDの集合を作る
+        // matches → contacts(match_id) → handovers(contact_id, status=completed) の順にたどる
+        val allMatchIds = (foundMatchGroups.values + rescuedMatchGroups.values)
+            .flatten()
+            .map { it[MatchesTable.id] }
+
+        val completedMatchIds: Set<Long> = if (allMatchIds.isEmpty()) {
+            emptySet()
+        } else {
+            // 連絡ID → マッチID の対応表(このページ分のマッチに紐づく連絡だけ)
+            val contactToMatch = ContactTable.selectAll()
+                .where { ContactTable.matchId inList allMatchIds }
+                .associate { it[ContactTable.id] to it[ContactTable.matchId] }
+
+            if (contactToMatch.isEmpty()) {
+                emptySet()
+            } else {
+                // 引き渡し完了の記録がある連絡 → そのマッチID を集める
+                HandoverTable.selectAll()
+                    .where {
+                        (HandoverTable.contactId inList contactToMatch.keys.toList()) and
+                        (HandoverTable.status eq "completed")
+                    }
+                    .mapNotNull { contactToMatch[it[HandoverTable.contactId]] }
+                    .toSet()
+            }
+        }
 
         // ── ⑥ 最終アイテムを組み立て ──
         val finalItems = pageItems.map { row ->
@@ -113,6 +147,16 @@ object ShelterPetListRepository {
                            else                       rescuedPhotos[row.id] ?: ""
             val matchRow = if (row.source == "found") foundMatches[row.id]
                            else                       rescuedMatches[row.id]
+
+            // ★追加：このペットの全マッチから状態を判定する(上から順に評価。進んだ状態を優先)
+            val myMatches = (if (row.source == "found") foundMatchGroups[row.id]
+                             else                       rescuedMatchGroups[row.id]).orEmpty()
+            val status = when {
+                myMatches.any { it[MatchesTable.id] in completedMatchIds } -> "completed" // 引き渡し完了
+                myMatches.isNotEmpty() -> "matched"                                        // 照合済み
+                else -> "new"                                                              // まだ照合されていない
+            }
+
             ShelterPetListItem(
                 id        = row.id,
                 matchId   = matchRow?.get(MatchesTable.id),
@@ -126,6 +170,7 @@ object ShelterPetListRepository {
                 other     = row.other,
                 latitude  = row.latitude,
                 longitude = row.longitude,
+                status    = status // ★追加：判定した状態コードを返す
             )
         }
 
