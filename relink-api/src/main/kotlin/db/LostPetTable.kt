@@ -20,6 +20,9 @@ object LostPetRegisterTable : Table("lostpet_register") {
     // ★追加：飼い主が「受け取りました」したときに記録する「誰から受け取ったか」
     // DB migration: ALTER TABLE lostpet_register ADD COLUMN received_from TEXT;
     val receivedFrom = text("received_from").nullable()
+    // ★追加：ペットの状態。"safe"(無事・飼い主のもとにいる) / "lost"(迷子)
+    // DB migration: ALTER TABLE lostpet_register ADD COLUMN pet_status TEXT NOT NULL DEFAULT 'lost';
+    val petStatus = text("pet_status").default("lost")
     // created_at は DBの DEFAULT now() に任せたいので、
     // ここでは列を定義せず(INSERT時に触らない)、Kotlin側からは扱わない
 

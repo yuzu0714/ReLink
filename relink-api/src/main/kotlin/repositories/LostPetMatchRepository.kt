@@ -10,6 +10,7 @@ object LostPetMatchRepository {
     // 追加: AI特徴と迷子報告の登録情報を比較し、一致度の高い候補を返す
     fun findMatches(features: AiRawFeatures): List<LostPetMatchCandidate> = transaction {
         LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.petStatus eq "lost" } // ★追加：無事(safe)のペットは照合対象にしない
             .mapNotNull { row ->
                 val id     = row[LostPetRegisterTable.id]
                 val specie = row[LostPetRegisterTable.specie]

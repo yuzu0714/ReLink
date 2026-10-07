@@ -37,7 +37,8 @@ data class OwnerPetListItem(
     val color: String? = null,
     val lostPlace: String? = null,
     val other: String? = null,
-    val receivedFrom: String? = null  // ★追加：受け取り済みなら受け取り元の名前
+    val receivedFrom: String? = null,  // ★追加：受け取り済みなら受け取り元の名前
+    val petStatus: String              // ★追加：ペットの状態。safe(無事) / lost(迷子)
 )
 
 @Serializable
@@ -97,11 +98,18 @@ data class OwnerPetDetail(
     val other: String? = null,
     val nickname: String? = null,
     val petName: String? = null,
-    val receivedFrom: String? = null  // null = まだ受け取っていない
+    val receivedFrom: String? = null,  // null = まだ受け取っていない
+    val petStatus: String              // ★追加：ペットの状態。safe(無事) / lost(迷子)
 )
 
 // ★新規追加：PATCH /pets/lost/{id}/received のリクエストボディ
 @Serializable
 data class PetReceiptRequest(
     val receivedFrom: String? = null
+)
+
+// ★新規追加：PATCH /pets/lost/{id}/lost (「迷子になりました」)のリクエストボディ
+@Serializable
+data class PetLostReportRequest(
+    val lostPlace: String? = null
 )
