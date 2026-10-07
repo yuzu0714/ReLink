@@ -167,14 +167,11 @@ function resetShelterFilters() {
 // ---- フィルター機能 ここまで ----
 
 
-// ★修正：バックエンドの状態コード → 画面に出すラベルと色の対応表
-// (前は順番に割り当てる仮表示だったが、本物の状態(item.status)を表示するように変更)
-// ラベルを変えたい時はここの label を書き換えるだけでOK
-const petStatusMap = {
-  new:       { label: '新規',     cls: 'pill mag' },   // ピンク
-  matched:   { label: '照合済み', cls: 'pill'     },   // 青系
-  completed: { label: '完了',     cls: 'pill ok'  },   // 緑
-};
+// 注意: バックエンドにはまだ「照合状況」を表す項目が無いため、実データの一覧でも
+// 元のデザイン通り4種類のタグを順番に割り当てて表示している(見た目優先の暫定対応)。
+// 実際の照合状況をAPIが返せるようになったら、ここをそのフィールドに置き換える。
+const statusCycle = ['照合中', '新規', '一致', '完了'];
+const statusPillClass = { '照合中': 'pill', '新規': 'pill mag', '一致': 'pill mag', '完了': 'pill' };
 
 function petSwatch(id){ return petColors[Number(id) % petColors.length]; }
 
@@ -185,8 +182,7 @@ function openShelterPetDetail(item, status) {
     } catch(e) { /* sessionStorage非対応環境は無視 */ }
     const matchId = item.matchId ?? '';
     const lostPetId = item.lostPetId ?? '';
-    // ★修正：status(状態コード)も詳細ページに渡す
-    location.href = `pet_detail.html?id=${item.id}&source=${item.source}&matchId=${matchId}&lostPetId=${lostPetId}&status=${encodeURIComponent(item.status || 'new')}`;
+    location.href = `pet_detail.html?id=${item.id}&source=${item.source}&matchId=${matchId}&lostPetId=${lostPetId}&status=${encodeURIComponent(status)}`;
 }
 
 function renderShelterCard(item, index){
@@ -194,16 +190,16 @@ function renderShelterCard(item, index){
         ? `background-image:url('${item.photoUrl}');background-size:cover;background-position:center`
         : `background:${petSwatch(item.id)}`;
     const metaParts = [item.specie, item.color, item.place, item.date].filter(Boolean);
-    const st = petStatusMap[item.status] || petStatusMap.new;
+    const status = statusCycle[index % statusCycle.length];
     //詳細画面と保護ペット一覧の照合状況を対応
     return `
-        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'))">
+        <div class="match-card" onclick="openShelterPetDetail(allPets.find(p=>p.id===${item.id}&&p.source==='${item.source}'), '${status}')">
             <div class="ph" style="${photoStyle}" loading="lazy">${item.photoUrl ? '' : '🐕'}</div>
             <div style="min-width:0">
                 <div class="name">${item.specie || '種類不明'}${item.color ? '・' + item.color : ''}</div>
                 <div class="meta">${metaParts.join(' / ')}</div>
             </div>
-             <span class="${st.cls}">${st.label}</span>
+            <span class="${statusPillClass[status]}">${status}</span>
         </div>`;
 }
 
@@ -220,8 +216,7 @@ let scrollObserver = null;
 function updateCountEl() {
   const countEl = document.getElementById('shelterCount');
   if (!countEl) return;
-    // ★修正：照合待ち＝まだ照合されていない「新規」の数(前は仮表示の照合中を数えていた)
-  const waitingCount = allPets.filter(p => p.status === 'new').length;
+  const waitingCount = allPets.filter((_, i) => statusCycle[i % statusCycle.length] === '照合中').length;
   countEl.innerHTML = `現在の保護： <b style="color:var(--navy)">${allPets.length}頭</b>／照合待ち： <b style="color:var(--magenta)">${waitingCount}頭</b>`;
 }
 
@@ -524,15 +519,17 @@ function applyLostFilters() {
 // ★新規追加：バックエンドの状態コード → 画面に出すラベルと色の対応表
 // ラベルを変えたい時はここの label を書き換えるだけでOK
 const lostStatusMap = {
-  new:       { label: '新規',     cls: 'pill mag' },
-  matched:   { label: '照合済み', cls: 'pill'     },
-  completed: { label: '完了',     cls: 'pill ok'  },
+  lost:       { label: '迷子',       cls: 'pill mag'  },   // ピンク
+  candidate:  { label: '候補あり',   cls: 'pill warn' },   // オレンジ
+  contacting: { label: '連絡中',     cls: 'pill'      },   // 青系
+  confirmed:  { label: '引渡し待ち', cls: 'pill'      },   // 青系
+  completed:  { label: '完了',       cls: 'pill ok'   },   // 緑
 };
 
 // ★迷子ペット1件分のカード(変更なし)。既存の .match-card を流用してデザインを揃えている
 function renderLostCard(item) {
   // ★追加：状態コードからラベルと色を取り出す(未知のコードが来ても「迷子」にフォールバック)
-  const st = lostStatusMap[item.status] || lostStatusMap.new;
+  const st = lostStatusMap[item.status] || lostStatusMap.lost;
   
   const photoStyle = item.photoUrl
     ? `background-image:url('${item.photoUrl}');background-size:cover;background-position:center`
@@ -717,8 +714,8 @@ if (document.getElementById('lostListBody')) {
   const source = params.get('source');
   const matchId = params.get('matchId');
   const lostPetId = params.get('lostPetId');
-  // 一覧から渡された状態コード(無ければ「新規」)
-  const statusCode = params.get('status') || 'new';
+  const requestedStatus = params.get('status');
+  const detailStatus = statusCycle.includes(requestedStatus) ? requestedStatus : null;
 
   //正しいかデータか確認
   console.log('保護ペットID:', petId);
@@ -755,8 +752,11 @@ if (document.getElementById('lostListBody')) {
     if (petDate) petDate.textContent = foundDate || '日付不明';
 
     const petStatus = document.getElementById('petStatus');
-    const st = petStatusMap[statusCode] || petStatusMap.new;
-    if (petStatus) { petStatus.className = st.cls; petStatus.textContent = st.label; }
+    const resolvedStatus = statusPillClass[statusText] ? statusText : '照合中';
+    if (petStatus) {
+      petStatus.textContent = resolvedStatus;
+      petStatus.className = statusPillClass[resolvedStatus];
+    }
 
     const petPhoto = document.getElementById('petPhoto');
     if (petPhoto && photoUrl) {
@@ -815,7 +815,7 @@ if (document.getElementById('lostListBody')) {
           other: pet.other,
           foundPlace: pet.foundPlace,
           foundDate: pet.foundDate,
-          statusText: '照合済み',
+          statusText: detailStatus || '一致',
           photoUrl: pet.photoUrls && pet.photoUrls.length > 0 ? pet.photoUrls[0] : null,
           voiceUrl: pet.voiceUrl,
         });
@@ -838,7 +838,7 @@ if (document.getElementById('lostListBody')) {
           other: fallback.other,
           foundPlace: fallback.place,   // ShelterPetListItemではplaceという名前
           foundDate: fallback.date,     // ShelterPetListItemではdateという名前
-          statusText: '新規',
+          statusText: detailStatus || '照合中',
           photoUrl: fallback.photoUrl,  // ShelterPetListItemではphotoUrl（単数）
           voiceUrl: null,
         });
@@ -848,8 +848,11 @@ if (document.getElementById('lostListBody')) {
         const petName = document.getElementById('petName');
         if (petName) petName.textContent = `保護 #${petId}`;
         const petStatus = document.getElementById('petStatus');
-        const st = petStatusMap[statusCode] || petStatusMap.new;
-        if (petStatus) { petStatus.className = st.cls; petStatus.textContent = st.label; }
+        const resolvedStatus = detailStatus || '照合中';
+        if (petStatus) {
+          petStatus.textContent = resolvedStatus;
+          petStatus.className = statusPillClass[resolvedStatus];
+        }
       }
     }
 
@@ -909,7 +912,7 @@ if (document.getElementById('lostListBody')) {
     setText('lostPetOther', d.other, '情報なし');
 
     // --- 状態ピル(一覧と同じ lostStatusMap を使うので表示が揃う) ---
-    const st = lostStatusMap[d.status] || lostStatusMap.new;
+    const st = lostStatusMap[d.status] || lostStatusMap.lost;
     const statusEl = document.getElementById('lostPetStatus');
     if (statusEl) { statusEl.className = st.cls; statusEl.textContent = st.label; }
 
