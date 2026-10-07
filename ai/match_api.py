@@ -44,6 +44,7 @@
 #     "reason": "毛色と体格が近く、首輪の柄も一致"
 #   }
 
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
@@ -175,8 +176,23 @@ async def batch_compare_photos(request: BatchCompareRequest):
     if not request.candidates:
         raise HTTPException(status_code=400, detail="candidates が空です。")
 
+    # 迷子側の写真は候補ごとに共通なので、ダウンロード・変換を一度だけ行う。
+    # 共有画像を用意できない場合は従来の候補単位の処理にフォールバックする。
+    try:
+        lost_encoded = await asyncio.get_running_loop().run_in_executor(
+            None, common.download_photo_urls, request.photo_urls
+        )
+    except Exception as e:
+        print(f"[batch-compare] 迷子側写真の共有に失敗、従来方式で続行します: {e}", flush=True)
+        lost_encoded = None
+
     def compare_one(candidate: CandidateItem):
-        result = common.compare_photo_urls(request.photo_urls, candidate.photo_urls)
+        if lost_encoded is None:
+            result = common.compare_photo_urls(request.photo_urls, candidate.photo_urls)
+        else:
+            result = common.compare_photo_urls_with_encoded_lost(
+                lost_encoded, candidate.photo_urls
+            )
         return CandidateResult(
             id=candidate.id,
             similarity_score=result["similarity_score"],

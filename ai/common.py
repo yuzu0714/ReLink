@@ -247,6 +247,27 @@ def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
         return _compare_photo_urls(photo_urls, candidate_photo_urls)
 
 
+def compare_photo_urls_with_encoded_lost(
+    lost_encoded: list, candidate_photo_urls: list
+) -> dict:
+    """迷子側の写真を再利用し、候補側の写真だけをダウンロードして比較する。"""
+    if not lost_encoded or not candidate_photo_urls:
+        raise ValueError("比較する写真URLが不足しています")
+
+    with MATCH_COMPARISON_SEMAPHORE:
+        candidate_encoded = download_photo_urls(candidate_photo_urls)
+        return _compare_encoded_photos(lost_encoded, candidate_encoded)
+
+
+def download_photo_urls(photo_urls: list) -> list:
+    """写真URLを並列ダウンロードしてdata URLへ変換する。"""
+    if not photo_urls:
+        return []
+
+    with ThreadPoolExecutor(max_workers=min(len(photo_urls), 8)) as executor:
+        return list(executor.map(download_image_as_data_url, photo_urls))
+
+
 def _compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
     """迷子側の写真URL群(photo_urls)と、候補側の写真URL群(candidate_photo_urls)を
     1回のAI呼び出しで直接見比べ、{"similarity_score": 0.0〜1.0, "reason": str} を返す。
@@ -256,12 +277,14 @@ def _compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
     n_lost = len(photo_urls)
 
     # 全写真を並列ダウンロード（順序を保ったまま）
-    with ThreadPoolExecutor(max_workers=min(len(all_urls), 8)) as executor:
-        encoded_all = list(executor.map(download_image_as_data_url, all_urls))
-
+    encoded_all = download_photo_urls(all_urls)
     lost_encoded = encoded_all[:n_lost]
     candidate_encoded = encoded_all[n_lost:]
 
+    return _compare_encoded_photos(lost_encoded, candidate_encoded)
+
+
+def _compare_encoded_photos(lost_encoded: list, candidate_encoded: list) -> dict:
     content = [{"type": "text", "text": "【行方不明のペットの写真】"}]
     for enc in lost_encoded:
         content.append({"type": "image_url", "image_url": {"url": enc}})

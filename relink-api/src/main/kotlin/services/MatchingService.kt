@@ -31,12 +31,36 @@ object MatchingService {
             withContext(Dispatchers.IO) { block() }
         }
 
-    suspend fun runMatching(lostPetId: Long): MatchingRunResponse {
-        val lostPet = withMatchingDatabaseAccess { LostPetRepository.findById(lostPetId) }
+    private suspend fun <T> measureMatchingStage(
+        lostPetId: Long,
+        stage: String,
+        block: suspend () -> T,
+    ): T {
+        val startedAt = System.nanoTime()
+        var outcome = "error"
+        try {
+            return block().also { outcome = "success" }
+        } finally {
+            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+            println("⏱️ [MatchingTiming] lostPetId=$lostPetId stage=$stage elapsedMs=$elapsedMs outcome=$outcome")
+        }
+    }
+
+    suspend fun runMatching(lostPetId: Long): MatchingRunResponse =
+        measureMatchingStage(lostPetId, "total") {
+            runMatchingInternal(lostPetId)
+        }
+
+    private suspend fun runMatchingInternal(lostPetId: Long): MatchingRunResponse {
+        val lostPet = measureMatchingStage(lostPetId, "load_lost_pet") {
+            withMatchingDatabaseAccess { LostPetRepository.findById(lostPetId) }
+        }
             ?: throw NoSuchElementException("指定されたlostPetIdが見つかりません: $lostPetId")
 
-        val lostPhotoUrls = withMatchingDatabaseAccess {
-            PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+        val lostPhotoUrls = measureMatchingStage(lostPetId, "load_lost_photos") {
+            withMatchingDatabaseAccess {
+                PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+            }
         }
         if (lostPhotoUrls.isEmpty()) {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
@@ -45,12 +69,14 @@ object MatchingService {
         println("🔍 [Matching] lostPetId=$lostPetId specie=${lostPet.specie} color=${lostPet.color} lostPlace=${lostPet.lostPlace}")
         println("🔍 [Matching] 迷子写真枚数: ${lostPhotoUrls.size}")
 
-        val candidates = withMatchingDatabaseAccess {
-            MatchingRepository.findCandidates(
-                specie = lostPet.specie,
-                color = lostPet.color,
-                lostPlace = lostPet.lostPlace
-            )
+        val candidates = measureMatchingStage(lostPetId, "find_candidates") {
+            withMatchingDatabaseAccess {
+                MatchingRepository.findCandidates(
+                    specie = lostPet.specie,
+                    color = lostPet.color,
+                    lostPlace = lostPet.lostPlace
+                )
+            }
         }
 
         println("🔍 [Matching] SQL絞り込み結果: ${candidates.size}件")
@@ -58,24 +84,26 @@ object MatchingService {
 
         // 候補ごとの個別SELECTを避け、petSourceごとにまとめて写真を取得する。
         // found/rescuedは別々の値なので、区分単位でクエリを1回ずつ実行する。
-        val photosByCandidate = candidates
-            .groupBy { it.source }
-            .flatMap { (source, sourceCandidates) ->
-                val photosByPet = withMatchingDatabaseAccess {
-                    PetPhotoRepository.findByPets(
-                        petSource = source,
-                        petIds = sourceCandidates.map { it.id },
-                    )
-                }
+        val photosByCandidate = measureMatchingStage(lostPetId, "load_candidate_photos") {
+            candidates
+                .groupBy { it.source }
+                .flatMap { (source, sourceCandidates) ->
+                    val photosByPet = withMatchingDatabaseAccess {
+                        PetPhotoRepository.findByPets(
+                            petSource = source,
+                            petIds = sourceCandidates.map { it.id },
+                        )
+                    }
 
-                sourceCandidates.mapNotNull { candidate ->
-                    photosByPet[candidate.id]
-                        ?.map { it.photoUrl }
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { candidateKey(candidate) to it }
+                    sourceCandidates.mapNotNull { candidate ->
+                        photosByPet[candidate.id]
+                            ?.map { it.photoUrl }
+                            ?.takeIf { it.isNotEmpty() }
+                            ?.let { candidateKey(candidate) to it }
+                    }
                 }
-            }
-            .toMap()
+                .toMap()
+        }
 
         // 一括取得時のDB返却順に依存せず、元の候補順を保ったままAI比較用データを作る。
         // 写真がない候補は従来どおり比較対象から除外する。
@@ -100,7 +128,9 @@ object MatchingService {
                 photoUrls = photoUrls,
             )
         }
-        val aiResults = aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
+        val aiResults = measureMatchingStage(lostPetId, "ai_batch") {
+            aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
+        }
         val aiResultsByCandidate = aiResults.associateBy { it.id }
 
         val candidatesWithResults = candidatesWithPhotos.mapNotNull { (candidate, photoUrls) ->
@@ -116,18 +146,20 @@ object MatchingService {
             Triple(candidate, photoUrls, aiResult)
         }
 
-        val results = coroutineScope {
-            candidatesWithResults.map { (candidate, photoUrls, aiResult) ->
-                async {
-                    saveCandidateResult(
-                        lostPetId = lostPetId,
-                        candidate = candidate,
-                        candidatePhotoUrls = photoUrls,
-                        scorePercent = aiResult.similarityScore * 100,
-                        reason = aiResult.reason,
-                    )
-                }
-            }.awaitAll()
+        val results = measureMatchingStage(lostPetId, "save_results") {
+            coroutineScope {
+                candidatesWithResults.map { (candidate, photoUrls, aiResult) ->
+                    async {
+                        saveCandidateResult(
+                            lostPetId = lostPetId,
+                            candidate = candidate,
+                            candidatePhotoUrls = photoUrls,
+                            scorePercent = aiResult.similarityScore * 100,
+                            reason = aiResult.reason,
+                        )
+                    }
+                }.awaitAll()
+            }
         }
 
         return MatchingRunResponse(
