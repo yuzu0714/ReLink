@@ -17,7 +17,9 @@ data class ChatContactsResponse(
 @Serializable
 data class ChatMessageRequest(
     val receiverId: Long,
-    val message: String
+    val message: String = "",
+    val messageType: String = "text",
+    val audioUrl: String? = null
 )
 
 @Serializable
@@ -26,10 +28,17 @@ data class ChatMessageResponse(
     val senderId: Long,
     val receiverId: Long,
     val message: String,
+    val messageType: String = "text",
+    val audioUrl: String? = null,
     val createdAt: String
 )
 
 @Serializable
 data class ChatMessagesResponse(
     val messages: List<ChatMessageResponse>
+)
+
+@Serializable
+data class ChatAudioUploadResponse(
+    val audioUrl: String
 )

@@ -53,6 +53,7 @@ import com.repositories.ChatRepository
 import com.models.ChatContactsResponse
 import com.models.ChatMessageRequest
 import com.models.ChatMessagesResponse
+import com.models.ChatAudioUploadResponse
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -437,22 +438,67 @@ fun Application.configureRouting() {
                 val role = requireChatRole(call)
                 val userId = authenticatedUserId(call)
                 val request = call.receive<ChatMessageRequest>()
-                val message = request.message.trim()
+                val messageType = request.messageType.ifBlank { "text" }
 
-                if (message.isBlank()) {
-                    throw IllegalArgumentException("メッセージを入力してください")
-                }
-                if (message.length > 500) {
-                    throw IllegalArgumentException("メッセージは500文字以内で入力してください")
-                }
                 if (userId == request.receiverId || !ChatRepository.canChat(role, request.receiverId)) {
                     throw NoSuchElementException("指定されたチャット相手が見つかりません")
                 }
 
-                call.respond(
-                    HttpStatusCode.Created,
-                    ChatRepository.insertMessage(userId, request.receiverId, message)
-                )
+                if (messageType == "audio") {
+                    // 音声メッセージ：audioUrlが必須
+                    val audioUrl = request.audioUrl
+                        ?: throw IllegalArgumentException("音声メッセージにはaudioUrlが必要です")
+                    call.respond(
+                        HttpStatusCode.Created,
+                        ChatRepository.insertMessage(
+                            senderId = userId,
+                            receiverId = request.receiverId,
+                            message = "",
+                            messageType = "audio",
+                            audioUrl = audioUrl
+                        )
+                    )
+                } else {
+                    // テキストメッセージ（従来と同じ）
+                    val message = request.message.trim()
+                    if (message.isBlank()) {
+                        throw IllegalArgumentException("メッセージを入力してください")
+                    }
+                    if (message.length > 500) {
+                        throw IllegalArgumentException("メッセージは500文字以内で入力してください")
+                    }
+                    call.respond(
+                        HttpStatusCode.Created,
+                        ChatRepository.insertMessage(userId, request.receiverId, message)
+                    )
+                }
+            }
+
+            // 音声ファイルアップロード（チャット用）
+            post("/chat/audio") {
+                requireChatRole(call)  // 認証チェック
+                val multipart = call.receiveMultipart()
+                var fileBytes: ByteArray? = null
+                var fileName = ""
+                var contentType = "audio/webm"
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "voice.webm")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        fileName = "chat-audio/${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        contentType = part.contentType?.toString() ?: contentType
+                        fileBytes = part.provider().readRemaining().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (fileBytes == null) {
+                    throw IllegalArgumentException("音声ファイルが見つかりません")
+                }
+
+                val audioUrl = storageService.uploadVoice(fileName, fileBytes!!, contentType)
+                call.respond(HttpStatusCode.Created, ChatAudioUploadResponse(audioUrl = audioUrl))
             }
 
             get("/matches/{matchId}/detail") {
