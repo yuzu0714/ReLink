@@ -538,7 +538,16 @@
   justify-content: center;
   padding: 30px;
   text-align: center;
-  background: linear-gradient(180deg, #fff, #f0f3ff);
+  /* ★修正：上が白くなるグラデーションをやめ、全体を薄いグレーで塗る */
+  background: #f0f3ff;
+}
+
+/* ★修正：AIマッチング中は .screen を縦並びにして、
+   .loader-wrap（flex:1）がアプリバーの下から画面の一番下まで広がるようにする */
+.owner-page .screen:has(> .loader-wrap) {
+  display: flex;
+  flex-direction: column;
+  background: #f0f3ff;
 }
 
 .owner-page .loader-wrap .eyebrow {
