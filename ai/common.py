@@ -28,7 +28,7 @@ import time
 import io
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from threading import BoundedSemaphore
+from threading import BoundedSemaphore, Lock
 
 import requests
 from dotenv import load_dotenv
@@ -207,6 +207,7 @@ import importlib as _importlib
 
 _siglip_processor = None
 _siglip_model = None
+_siglip_lock = Lock()
 
 
 def _get_siglip():
@@ -215,22 +216,28 @@ def _get_siglip():
     if _siglip_model is not None:
         return _siglip_processor, _siglip_model
 
-    try:
-        torch = _importlib.import_module("torch")
-        transformers = _importlib.import_module("transformers")
-    except ImportError as e:
-        raise RuntimeError(
-            f"SigLIP2の実行に必要なパッケージが見つかりません: {e}\n"
-            "pip install transformers torch を実行してください。"
-        ) from e
+    with _siglip_lock:
+        if _siglip_model is not None:
+            return _siglip_processor, _siglip_model
 
-    model_name = "AvitoTech/SigLIP2-Base-for-animal-identification"
-    print(f"[SigLIP2] モデルをロード中: {model_name}", flush=True)
-    _siglip_processor = transformers.AutoProcessor.from_pretrained(model_name)
-    _siglip_model = transformers.AutoModel.from_pretrained(model_name)
-    _siglip_model.eval()
-    print("[SigLIP2] モデルのロード完了", flush=True)
-    return _siglip_processor, _siglip_model
+        try:
+            _importlib.import_module("torch")
+            transformers = _importlib.import_module("transformers")
+        except ImportError as e:
+            raise RuntimeError(
+                f"SigLIP2の実行に必要なパッケージが見つかりません: {e}\n"
+                "pip install transformers torch を実行してください。"
+            ) from e
+
+        model_name = "AvitoTech/SigLIP2-Base-for-animal-identification"
+        print(f"[SigLIP2] モデルをロード中: {model_name}", flush=True)
+        processor = transformers.AutoImageProcessor.from_pretrained(model_name)
+        model = transformers.AutoModel.from_pretrained(model_name)
+        model.eval()
+        _siglip_processor = processor
+        _siglip_model = model
+        print("[SigLIP2] モデルのロード完了", flush=True)
+        return _siglip_processor, _siglip_model
 
 
 def _get_image_embedding(image_bytes: bytes):
@@ -243,7 +250,7 @@ def _get_image_embedding(image_bytes: bytes):
     inputs = processor(images=image, return_tensors="pt")
     with torch.no_grad():
         outputs = model.get_image_features(**inputs)
-    return F.normalize(outputs, dim=-1)  # shape: (1, 768)
+    return F.normalize(outputs.pooler_output, dim=-1)  # shape: (1, 768)
 
 
 def _average_embeddings(embeddings: list):
