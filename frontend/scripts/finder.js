@@ -195,66 +195,6 @@ const screens = {
     </div>`;
   },
 
-  handoverList(){
-    return `
-    ${appbar('受け渡し記録', 'finder', S.role)}
-    <div class="pad stack fade">
-      <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
-        <div class="eyebrow" style="color:var(--navy)">HISTORY</div>
-        <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡し記録</h2>
-        <div class="lede" style="margin-top:0">以下の記録一覧から詳細を確認できます。</div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="go('handoverDetail')" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/17 14:35 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:10px;font-weight:800">引渡し完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="alert('選択可能な情報がサンプルのみです');" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#fca5a5,#f87171);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐈</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">猫・オス（推定2歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/15 09:20 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#fef0e7;color:#b45309;font-size:10px;font-weight:800">調査中</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="padding:16px;border-radius:14px;border:1px solid var(--line);background:#f9fafb;opacity:0.6">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">トイプードル・メス</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/10 16:45 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:10px;font-weight:800">飼い主確認完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-    </div>`;
-  },
-
   notificationList(){
     return `
     ${appbar('お知らせ', 'finder', S.role)}
@@ -375,127 +315,6 @@ const screens = {
     </div>`;
   },
 
-  handoverList(){
-    return `
-    ${appbar('受け渡し記録', 'finder', S.role)}
-    <div class="pad stack fade">
-      <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
-        <div class="eyebrow" style="color:var(--navy)">HISTORY</div>
-        <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡し記録</h2>
-        <div class="lede" style="margin-top:0">以下の記録一覧から詳細を確認できます。</div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="go('handoverDetail')" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/17 14:35 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:10px;font-weight:800">保健所への引渡し完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="alert('選択可能な情報がサンプルのみです');" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#fca5a5,#f87171);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐈</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">猫・オス（推定2歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/15 09:20 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#fef0e7;color:#b45309;font-size:10px;font-weight:800">保護中</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="padding:16px;border-radius:14px;border:1px solid var(--line);background:#f9fafb;opacity:0.6">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">トイプードル・メス</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/10 16:45 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:10px;font-weight:800">飼い主確認完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-    </div>`;
-  },
-
-  handoverDetail(){
-    return `
-    ${appbar('受け渡し記録', 'handoverList', S.role)}
-    <div class="pad stack fade">
-      <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
-        <div class="eyebrow" style="color:var(--navy)">TRANSFER RECORD</div>
-        <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡しが完了しました</h2>
-        <div class="lede" style="margin-top:0">最終更新: 2026年8月17日 18:20</div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:12px;font-weight:800;letter-spacing:.3px">引渡し完了</span>
-          <span style="font-size:11px;color:var(--muted);font-weight:700">No. F-20260817-104</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
-          <div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:36px">🐕</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:18px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-            <div class="lede" style="margin-top:4px">首輪: オレンジ / 迷子札あり</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="eyebrow">基本情報</div>
-        <div class="field" style="margin-top:12px">
-          <label>保護場所</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">東京都品川区西五反田 2-16-4</div>
-        </div>
-        <div class="field" style="margin-top:12px">
-          <label>保護日時</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">2026/08/17 14:35</div>
-        </div>
-        <div class="field" style="margin-top:12px">
-          <label>引き渡し先</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">飼い主・山田様（連絡先: 090-1234-5678）</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="eyebrow">補足事項</div>
-        <div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid var(--line);line-height:1.7;color:var(--ink)">
-          左耳に傷があります。人懐っこく、散歩中はリードを長く持つと落ち着きます。<br>
-          体調については、当日夕方に少しだけぐったりしていたため、水分補給と休養を取らせてから引き渡しを行いました。
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="eyebrow">写真</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:grid;place-items:center;font-size:28px">🐕</div>
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#fef3c7,#fcd34d);display:grid;place-items:center;font-size:28px">🦴</div>
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#93c5fd);display:grid;place-items:center;font-size:28px">📸</div>
-        </div>
-      </div>
-
-      <button class="btn btn-primary" onclick="go('handoverList')">記録一覧へ戻る</button>
-    </div>`;
-  },
-
   finder(){
     return `
     ${appbar('発見者向け', null, S.role)}
@@ -507,7 +326,8 @@ const screens = {
       </div>
 
       <div class="role-list">
-        <div class="role-item" style="cursor:pointer" onclick="go('register')">
+        // ★修正：ダミーの go('handoverList') をやめて、本物の handover.html へ遷移するように変更
+        <div class="role-item" style="cursor:pointer" onclick="location.href='handover.html'">
           <div class="emo">📸</div>
           <div>
             <div class="title">迷子ペットを登録</div>

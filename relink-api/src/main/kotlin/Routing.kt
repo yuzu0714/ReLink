@@ -504,7 +504,7 @@ fun Application.configureRouting() {
                 val request = call.receive<HandoverRequest>()
 
                 if (!HandoverRepository.contactExists(request.contactId)) {
-                    throw NoSuchElementException("指定されたcontactIdが見つかりません: \${request.contactId}")
+                    throw NoSuchElementException("指定されたcontactIdが見つかりません: ${request.contactId}")
                 }
 
                 val response = HandoverRepository.insert(request)
