@@ -49,7 +49,7 @@
       <div>
         <div class="eyebrow">CHAT</div>
         <h2 class="title">チャットする相手を選択</h2>
-        <div class="lede">${roleLabels[currentRole] || '利用者'}として${currentRole === 'shelter' ? '発見者' : '保護団体'}に状況を確認できます。</div>
+        <div class="lede">${currentRole === 'finder' ? '飼い主や保護団体' : currentRole === 'owner' ? '発見者や保護団体' : '発見者'}とメッセージをやり取りできます。</div>
       </div>
       <div class="chat-contacts">
         ${contacts.map((contact) => `

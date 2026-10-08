@@ -26,3 +26,13 @@ data class HandoverResponse(
     val status: String,
     val createdAt: String
 )
+// POST /handovers/by-pet 用：保護ペットID + 飼い主メールから contact_id を自動解決して登録
+@Serializable
+data class HandoverByPetRequest(
+    val foundPetId: Long,           // 保護ペットID (foundpet_register.id)
+    val ownerEmail: String,         // 飼い主のメールアドレス (usersテーブルで照合)
+    val handoverPlace: String? = null,
+    val handoverDatetime: String? = null,
+    val handedOverTo: String? = null,
+    val note: String? = null
+)

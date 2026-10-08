@@ -8,6 +8,8 @@ object ChatMessageTable : Table("chat_messages") {
     val senderId = long("sender_id").references(UserTable.id)
     val receiverId = long("receiver_id").references(UserTable.id)
     val message = text("message")
+    val messageType = text("message_type").default("text")
+    val audioUrl = text("audio_url").nullable()
     val createdAt = timestampWithTimeZone("created_at")
         .clientDefault { java.time.OffsetDateTime.now() }
 

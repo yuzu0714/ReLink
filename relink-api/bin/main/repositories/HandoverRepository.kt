@@ -1,7 +1,11 @@
 package com.repositories
 
 import com.db.ContactTable
+import com.db.FoundPetRegisterTable
 import com.db.HandoverTable
+import com.db.LostPetRegisterTable
+import com.db.MatchesTable
+import com.db.UserTable
 import com.models.HandoverRequest
 import com.models.HandoverResponse
 import org.jetbrains.exposed.sql.*
@@ -53,6 +57,46 @@ object HandoverRepository {
             .where { HandoverTable.contactId eq contactId }
             .orderBy(HandoverTable.createdAt to SortOrder.DESC)
             .map { it.toHandoverResponse() }
+    }
+
+    // 保護ペットID + 飼い主メールアドレスから contact_id を解決する
+    // foundpet_register → matches → lostpet_register → users の順に SELECT を辿って照合する
+    // (プロジェクトの他リポジトリに合わせてJOINは使わず順次SELECTするスタイルで実装)
+    fun resolveContactByPet(foundPetId: Long, ownerEmail: String): Long? = transaction {
+        // ① 保護ペットが存在するか確認
+        FoundPetRegisterTable.selectAll()
+            .where { FoundPetRegisterTable.id eq foundPetId }
+            .firstOrNull() ?: return@transaction null
+
+        // ② matches で該当マッチングを取得
+        val matchRow = MatchesTable.selectAll()
+            .where {
+                (MatchesTable.protectedPetId eq foundPetId) and
+                (MatchesTable.protectedSource eq "found")
+            }
+            .firstOrNull() ?: return@transaction null
+
+        val matchId   = matchRow[MatchesTable.id]
+        val lostPetId = matchRow[MatchesTable.lostPetId]
+
+        // ③ lostpet_register から飼い主の userId を取得
+        val lostPetRow = LostPetRegisterTable.selectAll()
+            .where { LostPetRegisterTable.id eq lostPetId }
+            .firstOrNull() ?: return@transaction null
+
+        val userId = lostPetRow[LostPetRegisterTable.userId] ?: return@transaction null
+
+        // ④ users でメールアドレスを照合
+        UserTable.selectAll()
+            .where { (UserTable.id eq userId) and (UserTable.email eq ownerEmail) }
+            .firstOrNull() ?: return@transaction null
+
+        // ⑤ contacts から contact_id を取得
+        ContactTable.selectAll()
+            .where { ContactTable.matchId eq matchId }
+            .limit(1)
+            .map { it[ContactTable.id] }
+            .firstOrNull()
     }
 
     // 保護団体側の管理画面(frontend/finder.htmlの「受け渡し記録」一覧)用の全件取得

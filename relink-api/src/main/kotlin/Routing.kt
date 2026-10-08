@@ -59,6 +59,9 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.models.ShelterLostPetListResponse // ★追加：迷子一覧のレスポンスDTO
+// ★追加：保護団体の会話閲覧用レスポンスDTO
+import com.models.ChatMonitorListResponse
+import com.models.ChatMonitorMessagesResponse
 
 fun Application.configureRouting() {
     routing {
@@ -503,6 +506,40 @@ fun Application.configureRouting() {
                         ChatRepository.insertMessage(userId, request.receiverId, message)
                     )
                 }
+            }
+            
+            // ★追加：保護団体向け「発見者⇔飼い主の会話一覧」API(閲覧専用)
+            // shelter権限のみ。authenticate{}の直下に置くこと(ネストすると404になるよ！)
+            get("/shelter/chat-monitor") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です") // → 403
+                }
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatMonitorListResponse(conversations = ChatRepository.findMonitorConversations())
+                )
+            }
+
+            // ★追加：指定した2人(userA, userB)の会話メッセージ全件を返すAPI(閲覧専用)
+            get("/shelter/chat-monitor/{userA}/{userB}/messages") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です") // → 403
+                }
+
+                val userA = call.parameters["userA"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userAは数値で指定してください") // → 400
+                val userB = call.parameters["userB"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userBは数値で指定してください") // → 400
+
+                // 2人のどちらかが存在しない/保護団体アカウントなら null → 404
+                val result = ChatRepository.findMonitorMessages(userA, userB)
+                    ?: throw NoSuchElementException("指定された会話が見つかりません")
+
+                call.respond(HttpStatusCode.OK, result)
             }
 
             // 音声ファイルアップロード（チャット用）
