@@ -19,9 +19,7 @@ data class ShelterPetListItem(
     val other: String? = null,
     // ★新規追加：地図表示用の緯度経度(変換に失敗している場合はnull)
     val latitude: Double? = null,
-    val longitude: Double? = null,
-    // 画面用状態コード: new / matched / completed
-    val status: String = "new"
+    val longitude: Double? = null
 )
 
 // GET /shelter/pets 全体のレスポンス
@@ -61,7 +59,7 @@ data class ShelterLostPetListItem(
     val lostPlace: String? = null,    // いなくなった場所
     val other: String? = null,        // そのほか(特徴メモ)
     // ★修正：phoneNumber を削除(電話番号は一覧では見せず、詳細ページだけで返す)
-    // 画面用状態コード: new / matched / completed
+    // ★新規追加：いまの状態コード。lost / candidate / contacting / confirmed / completed のどれか
     // (表示ラベルへの変換はフロント側で行う。バックエンドは「コード」だけ返す)
     val status: String = "lost"
 )
