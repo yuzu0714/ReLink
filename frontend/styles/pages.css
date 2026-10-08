@@ -1524,6 +1524,32 @@ body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .d {
   color: #777;
   font-size: 13px;
 }
+/* ── ペットステータスバッジ（迷子中 / 受け取り完了） ── */
+.pet-status-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.pet-status-lost {
+  background: rgba(233, 30, 140, 0.88);
+  color: #fff;
+}
+.pet-status-received {
+  background: rgba(46, 125, 50, 0.90);
+  color: #fff;
+}
+/* 受け取り元ラベル */
+body[data-page="owner-pets"] .owner-pet-card .owner-pet-info .received-from-label {
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 600;
+}
 
 /* タブレット：2列 */
 @media (max-width: 760px) {
