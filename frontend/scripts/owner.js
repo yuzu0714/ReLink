@@ -1845,7 +1845,7 @@ async function initOwnerPetsPage() {
       body.innerHTML = `
         ${photosHtml}
 
-        <div>${petStatusBadge(pet.petStatus)}</div>
+        ${'' /* ★修正：詳細画面の「無事」「迷子」ステータス表示を削除（一覧カードの表示はそのまま） */}
 
         <div class="card" style="margin:0">
           ${pet.petName  ? `<div><span style="color:#888;font-size:12px">正式名称</span><br><b>${pet.petName}</b></div>` : ''}
