@@ -1209,7 +1209,11 @@ function initOwnerPage() {
           ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
 
           <div style="text-align:center;margin-top:24px">
-            <button class="btn btn-ghost" onclick="location.href='http://localhost:5500/owner.html'">TOPへ戻る</button>
+            // ★修正：localhost固定だとスマホから開けないので、相対パスに変更
+            // (今開いているホストのまま owner.html に移動する)
+            <button class="btn btn-ghost" onclick="location.href='owner.html'">TOPへ戻る</button>// ★修正：localhost固定だとスマホから開けないので、相対パスに変更
+            // (今開いているホストのまま owner.html に移動する)
+            <button class="btn btn-ghost" onclick="location.href='owner.html'">TOPへ戻る</button>
           </div>
 
         </div>
