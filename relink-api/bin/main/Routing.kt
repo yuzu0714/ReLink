@@ -12,6 +12,7 @@ import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import com.models.PhotoUploadResponse
+import com.models.VoiceUploadResponse
 import com.models.RegisterRequest
 import com.models.LoginRequest
 import com.models.AuthResponse
@@ -34,14 +35,33 @@ import com.models.ShelterPetListResponse
 import com.repositories.ShelterPetListRepository
 import com.repositories.MatchingRepository
 import com.services.MatchingService
-import com.models.MatchingRunResponse
 import com.models.ContactStatusUpdateRequest
-import com.models.MatchResultItem
 import com.repositories.NotificationRepository
 import com.repositories.MatchDetailRepository
 import com.models.LostPetMatchResponse
 import com.repositories.LostPetMatchRepository
+import com.models.HandoverByPetRequest
+import com.models.HandoverRequest
+import com.models.OwnerPetListItem
+import com.models.OwnerPetListResponse
+import com.models.OwnerPetDetail
+import com.models.PetReceiptRequest
+import com.models.PetLostReportRequest
+import com.repositories.HandoverRepository
+import com.repositories.PetPhotoRepository
+import com.db.LostPetRegisterTable
+import com.repositories.ChatRepository
+import com.models.ChatContactsResponse
+import com.models.ChatMessageRequest
+import com.models.ChatMessagesResponse
+import com.models.ChatAudioUploadResponse
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
+import com.models.ShelterLostPetListResponse // ★追加：迷子一覧のレスポンスDTO
+// ★追加：保護団体の会話閲覧用レスポンスDTO
+import com.models.ChatMonitorListResponse
+import com.models.ChatMonitorMessagesResponse
 
 fun Application.configureRouting() {
     routing {
@@ -95,6 +115,58 @@ fun Application.configureRouting() {
 
                 val photoUrl = storageService.uploadImage(fileName, fileBytes!!, contentType)
                 call.respond(HttpStatusCode.Created, PhotoUploadResponse(photoUrl))
+            }
+            
+            post("/pets/voice") {
+                val multipart = call.receiveMultipart()
+                var fileBytes: ByteArray? = null
+                var fileName = ""
+                var contentType = "audio/webm"
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "voice.webm")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+                        fileName = "${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        contentType = part.contentType?.toString() ?: contentType
+                        fileBytes = part.provider().readRemaining().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (fileBytes == null) {
+                    throw IllegalArgumentException("音声ファイルが見つかりません")
+                }
+
+                val voiceUrl = storageService.uploadVoice(
+                    fileName,
+                    fileBytes!!,
+                    contentType
+                )
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    VoiceUploadResponse(voiceUrl)
+                )
+            }
+            
+            get("/pets/{petId}/voice") {
+                val petId = call.parameters["petId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("petIdは数値で指定してください")
+
+                val voiceUrl = transaction {
+                    LostPetRegisterTable
+                        .selectAll()
+                        .where { LostPetRegisterTable.id eq petId }
+                        .firstOrNull()
+                        ?.get(LostPetRegisterTable.voiceUrl)
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf("voiceUrl" to voiceUrl)
+                )
             }
 
             post("/pets/extract-features") {
@@ -156,18 +228,20 @@ fun Application.configureRouting() {
 
                 val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
                 val request = call.receive<LostPetRegisterRequest>()
-                val insertedId = LostPetRepository.insert(request, userId)
 
-                val matchResults: List<MatchResultItem> = try {
-                    MatchingService.runMatching(insertedId)
-                } catch (e: Exception) {
-                    call.application.log.warn("マッチング処理に失敗しましたが、登録は継続します(lostPetId=$insertedId): ${e.message}")
-                    emptyList()
+                // ★追加：登録時の状態チェック。迷子として登録するときだけ紛失場所が必須
+                if (request.petStatus != "safe" && request.petStatus != "lost") {
+                    throw IllegalArgumentException("petStatusは safe か lost で指定してください")
                 }
+                if (request.petStatus == "lost" && request.lostPlace.isNullOrBlank()) {
+                    throw IllegalArgumentException("紛失場所を入力してください")
+                }
+
+                val insertedId = LostPetRepository.insert(request, userId)
 
                 call.respond(
                     HttpStatusCode.Created,
-                    LostPetRegisterResponse(id = insertedId, matchResults = matchResults)
+                    LostPetRegisterResponse(id = insertedId)
                 )
             }
 
@@ -209,8 +283,147 @@ fun Application.configureRouting() {
                     throw ForbiddenException("この操作にはshelter権限が必要です")
                 }
 
-                val pets = ShelterPetListRepository.getAll()
-                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets))
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = ShelterPetListRepository.getAllPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterPetListResponse(pets = pets, nextCursor = nextCursor))
+            }
+            
+            // ★新規追加：保護団体向け「迷子ペット一覧」API
+            // /shelter/pets と同じく shelter 権限のみ。authenticate{} の直下に置くこと
+            // (他のルートの中にネストするとビルドは通るのに404になるよ！)
+            get("/shelter/lost-pets") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 12
+                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val (pets, hasMore) = LostPetRepository.findAllForShelterPaged(limit, offset)
+                val nextCursor = if (hasMore) (offset + limit).toLong() else null
+                call.respond(HttpStatusCode.OK, ShelterLostPetListResponse(pets = pets, nextCursor = nextCursor))
+            }
+            
+            // ★新規追加：保護団体向け「迷子ペット詳細」API(1件)
+            // /shelter/lost-pets と同じく shelter 権限のみ。電話番号・音声URLはここで返す
+            get("/shelter/lost-pets/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です")
+                }
+
+                val id = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください") // → 400
+
+                val detail = LostPetRepository.findDetailForShelter(id)
+                    ?: throw NoSuchElementException("指定された迷子ペットが見つかりません: $id") // → 404
+
+                call.respond(HttpStatusCode.OK, detail)
+            }
+            
+            /*★新規追加
+             * JWTトークンからログイン情報を取得
+             * 飼い主のペットを取得
+             */
+            get("/pets/lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "owner") {
+                    throw ForbiddenException("この操作にはowner権限が必要です")
+                }
+
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                // ★改善：カーソルページネーション対応
+                // limit: 1回あたりの取得件数（1〜50件、デフォルト12件）
+                // cursor: 前ページの最後のペットID（省略時は先頭から取得）
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 12
+                val cursor = call.request.queryParameters["cursor"]?.toLongOrNull()
+
+                val (pets, nextCursor) = LostPetRepository.findByUserIdPaged(userId, limit, cursor)
+
+                // ★改善：N+1クエリ解消 → 全ペット分の代表写真を1回のクエリで一括取得
+                val photoMap = PetPhotoRepository.findFirstPhotoByPets("lost", pets.map { it.id })
+
+                val petItems = pets.map { pet ->
+                    OwnerPetListItem(
+                        photoUrl = photoMap[pet.id],
+                        id = pet.id,
+                        specie = pet.specie,
+                        color = pet.color,
+                        lostPlace = pet.lostPlace,
+                        other = null,
+                        receivedFrom = pet.receivedFrom,  // ★追加：受け取り済み情報
+                        petStatus = pet.petStatus         // ★追加：無事(safe) / 迷子(lost)
+                    )
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    OwnerPetListResponse(pets = petItems, nextCursor = nextCursor)
+                )
+            }
+
+            // ★新規追加：飼い主向けペット詳細（自分の登録ペット1件の全情報）
+            get("/pets/lost/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "owner") throw ForbiddenException("この操作にはowner権限が必要です")
+
+                val petId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("id(数値)をパスパラメータで指定してください")
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val detail = LostPetRepository.findDetailForOwner(petId, userId)
+                    ?: throw NoSuchElementException("指定されたペットが見つかりません: $petId")
+
+                call.respond(HttpStatusCode.OK, detail)
+            }
+
+            // ★新規追加：「ペットを受け取りました」記録エンドポイント
+            patch("/pets/lost/{id}/received") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "owner") throw ForbiddenException("この操作にはowner権限が必要です")
+
+                val petId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("id(数値)をパスパラメータで指定してください")
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val request = call.receive<PetReceiptRequest>()
+                val ok = LostPetRepository.markAsReceived(petId, userId, request.receivedFrom)
+                if (!ok) throw NoSuchElementException("指定されたペットが見つかりません: $petId")
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
+            // ★新規追加：「迷子になりました」届け出エンドポイント(無事 → 迷子)
+            patch("/pets/lost/{id}/lost") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "owner") throw ForbiddenException("この操作にはowner権限が必要です")
+
+                val petId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("id(数値)をパスパラメータで指定してください")
+                val userId = principal?.payload?.getClaim("userId")?.asString()?.toLongOrNull()
+                    ?: throw IllegalArgumentException("ユーザーIDを取得できません")
+
+                val request = call.receive<PetLostReportRequest>()
+                val lostPlace = request.lostPlace?.trim()
+                if (lostPlace.isNullOrEmpty()) throw IllegalArgumentException("いなくなった場所を入力してください")
+
+                val ok = LostPetRepository.markAsLost(petId, userId, lostPlace)
+                if (!ok) throw NoSuchElementException("指定されたペットが見つかりません: $petId")
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
             }
 
             get("/notifications") {
@@ -221,6 +434,141 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, NotificationsResponse(notifications = notifications))
             }
 
+            patch("/notifications/{id}/read") {
+                val notificationId = call.parameters["id"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("idは数値で指定してください")
+                NotificationRepository.markAsRead(notificationId)
+                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            }
+
+            get("/chat/contacts") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatContactsResponse(contacts = ChatRepository.findContacts(userId, role))
+                )
+            }
+
+            get("/chat/conversations/{userId}/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val otherUserId = call.parameters["userId"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userIdは数値で指定してください")
+
+                if (userId == otherUserId || !ChatRepository.canChat(role, otherUserId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatMessagesResponse(
+                        messages = ChatRepository.findConversation(userId, otherUserId)
+                    )
+                )
+            }
+
+            post("/chat/messages") {
+                val role = requireChatRole(call)
+                val userId = authenticatedUserId(call)
+                val request = call.receive<ChatMessageRequest>()
+                val messageType = request.messageType.ifBlank { "text" }
+
+                if (userId == request.receiverId || !ChatRepository.canChat(role, request.receiverId)) {
+                    throw NoSuchElementException("指定されたチャット相手が見つかりません")
+                }
+
+                if (messageType == "audio") {
+                    // 音声メッセージ：audioUrlが必須
+                    val audioUrl = request.audioUrl
+                        ?: throw IllegalArgumentException("音声メッセージにはaudioUrlが必要です")
+                    call.respond(
+                        HttpStatusCode.Created,
+                        ChatRepository.insertMessage(
+                            senderId = userId,
+                            receiverId = request.receiverId,
+                            message = "",
+                            messageType = "audio",
+                            audioUrl = audioUrl
+                        )
+                    )
+                } else {
+                    // テキストメッセージ（従来と同じ）
+                    val message = request.message.trim()
+                    if (message.isBlank()) {
+                        throw IllegalArgumentException("メッセージを入力してください")
+                    }
+                    if (message.length > 500) {
+                        throw IllegalArgumentException("メッセージは500文字以内で入力してください")
+                    }
+                    call.respond(
+                        HttpStatusCode.Created,
+                        ChatRepository.insertMessage(userId, request.receiverId, message)
+                    )
+                }
+            }
+            
+            // ★追加：保護団体向け「発見者⇔飼い主の会話一覧」API(閲覧専用)
+            // shelter権限のみ。authenticate{}の直下に置くこと(ネストすると404になるよ！)
+            get("/shelter/chat-monitor") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です") // → 403
+                }
+                call.respond(
+                    HttpStatusCode.OK,
+                    ChatMonitorListResponse(conversations = ChatRepository.findMonitorConversations())
+                )
+            }
+
+            // ★追加：指定した2人(userA, userB)の会話メッセージ全件を返すAPI(閲覧専用)
+            get("/shelter/chat-monitor/{userA}/{userB}/messages") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+                if (role != "shelter") {
+                    throw ForbiddenException("この操作にはshelter権限が必要です") // → 403
+                }
+
+                val userA = call.parameters["userA"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userAは数値で指定してください") // → 400
+                val userB = call.parameters["userB"]?.toLongOrNull()
+                    ?: throw IllegalArgumentException("userBは数値で指定してください") // → 400
+
+                // 2人のどちらかが存在しない/保護団体アカウントなら null → 404
+                val result = ChatRepository.findMonitorMessages(userA, userB)
+                    ?: throw NoSuchElementException("指定された会話が見つかりません")
+
+                call.respond(HttpStatusCode.OK, result)
+            }
+
+            // 音声ファイルアップロード（チャット用）
+            post("/chat/audio") {
+                requireChatRole(call)  // 認証チェック
+                val multipart = call.receiveMultipart()
+                var fileBytes: ByteArray? = null
+                var fileName = ""
+                var contentType = "audio/webm"
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val safeOriginalName = (part.originalFileName ?: "voice.webm")
+                            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        fileName = "chat-audio/${java.util.UUID.randomUUID()}_$safeOriginalName"
+                        contentType = part.contentType?.toString() ?: contentType
+                        fileBytes = part.provider().readRemaining().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (fileBytes == null) {
+                    throw IllegalArgumentException("音声ファイルが見つかりません")
+                }
+
+                val audioUrl = storageService.uploadVoice(fileName, fileBytes!!, contentType)
+                call.respond(HttpStatusCode.Created, ChatAudioUploadResponse(audioUrl = audioUrl))
+            }
+
             get("/matches/{matchId}/detail") {
                 val matchId = call.parameters["matchId"]?.toLongOrNull()
                     ?: throw IllegalArgumentException("matchIdは数値で指定してください")
@@ -228,7 +576,55 @@ fun Application.configureRouting() {
                     ?: throw NoSuchElementException("指定されたmatchIdが見つかりません: $matchId")
                 call.respond(HttpStatusCode.OK, detail)
             }
+            // 受け渡し記録の登録(shelter/finder限定)
+            post("/handovers") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverRequest>()
+
+                if (!HandoverRepository.contactExists(request.contactId)) {
+                    throw NoSuchElementException("指定されたcontactIdが見つかりません: ${request.contactId}")
+                }
+
+                val response = HandoverRepository.insert(request)
+                call.respond(HttpStatusCode.Created, response)
+            }
+
+            // 保護ペットID + 飼い主メールアドレスで受け渡しを登録(shelter/finder限定)
+            // contact_id を知らなくても直感的に登録できる
+            post("/handovers/by-pet") {
+                val principal = call.principal<JWTPrincipal>()
+                val role = principal?.payload?.getClaim("role")?.asString()
+
+                if (role != "shelter" && role != "finder") {
+                    throw ForbiddenException("この操作には保護団体(shelter)または発見者(finder)権限が必要です")
+                }
+
+                val request = call.receive<HandoverByPetRequest>()
+
+                val contactId = HandoverRepository.resolveContactByPet(request.foundPetId, request.ownerEmail)
+                    ?: throw NoSuchElementException(
+                        "保護ペットID=${request.foundPetId} と メール=${request.ownerEmail} に一致する連絡記録が見つかりません。" +
+                        "先にマッチング・連絡記録が登録されている必要があります。"
+                    )
+
+                val handoverRequest = HandoverRequest(
+                    contactId = contactId,
+                    handoverPlace = request.handoverPlace,
+                    handoverDatetime = request.handoverDatetime,
+                    handedOverTo = request.handedOverTo,
+                    note = request.note
+                )
+                val response = HandoverRepository.insert(handoverRequest)
+                call.respond(HttpStatusCode.Created, response)
+            }
         }
+
 
         get("/matching/test") {
             val specie = call.request.queryParameters["specie"]
@@ -262,22 +658,48 @@ fun Application.configureRouting() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+
+        // 受け渡し記録の取得(認証不要、誰でも確認可)
+        get("/handovers/{contactId}") {
+            val contactId = call.parameters["contactId"]?.toLongOrNull()
+                ?: throw IllegalArgumentException("contactId(数値)をパスパラメータで指定してください")
+
+            val records = HandoverRepository.findByContactId(contactId)
+            call.respond(HttpStatusCode.OK, records)
+        }
+
+        get("/handovers") {
+            val records = HandoverRepository.getAll()
+            call.respond(HttpStatusCode.OK, records)
+        }
         post("/matching/run") {
             val lostPetId = call.request.queryParameters["lostPetId"]?.toLongOrNull()
                 ?: throw IllegalArgumentException("lostPetId(数値)をクエリパラメータで指定してください")
 
-            val results = MatchingService.runMatching(lostPetId)
-
-            call.respond(
-                HttpStatusCode.OK,
-                MatchingRunResponse(
-                    lostPetId = lostPetId,
-                    candidateCount = results.size,
-                    results = results
-                )
-            )
+            call.respond(HttpStatusCode.OK, MatchingService.runMatching(lostPetId))
         }
     }
+}
+
+private fun authenticatedUserId(call: ApplicationCall): Long =
+    call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("userId")
+        ?.asString()
+        ?.toLongOrNull()
+        ?: throw IllegalArgumentException("userId が取得できません")
+
+private fun requireChatRole(call: ApplicationCall): String {
+    val role = call.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim("role")
+        ?.asString()
+
+    if (role == null || role !in setOf("owner", "finder", "shelter")) {
+        throw ForbiddenException("チャット機能には有効な利用者権限が必要です")
+    }
+
+    return role
 }
 
 @Serializable

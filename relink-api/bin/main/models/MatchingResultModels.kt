@@ -12,12 +12,16 @@ data class MatchResultItem(
     val protectedPetId: Long,
     val matchScore: Double,        // 0〜100（×100変換済み）
     val reason: String? = null,    // AIが返してくれた判定理由（あれば）
-    val photoUrls: List<String> = emptyList()  // ← この行を追加
+    val photoUrls: List<String> = emptyList(),
+    val specie: String? = null,    // 犬種
+    val color: String? = null,     // 毛色
+    val foundPlace: String? = null // 発見・保護場所
 )
 
 @Serializable
 data class MatchingRunResponse(
     val lostPetId: Long,
-    val candidateCount: Int,   // SQL絞り込みでヒットした候補の総数
+    val candidateCount: Int,            // SQL絞り込みでヒットした候補の総数
+    val uncomparedCandidateCount: Int,  // AI比較をスキップした候補数（写真なし・エラー等）
     val results: List<MatchResultItem>
 )

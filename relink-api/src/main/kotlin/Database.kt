@@ -31,6 +31,18 @@ fun Application.configureDatabases() {
         )
         exec(
             """
+            ALTER TABLE chat_messages
+                ADD COLUMN IF NOT EXISTS message_type TEXT NOT NULL DEFAULT 'text'
+            """.trimIndent()
+        )
+        exec(
+            """
+            ALTER TABLE chat_messages
+                ADD COLUMN IF NOT EXISTS audio_url TEXT
+            """.trimIndent()
+        )
+        exec(
+            """
             CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
             ON chat_messages (sender_id, receiver_id, created_at)
             """.trimIndent()

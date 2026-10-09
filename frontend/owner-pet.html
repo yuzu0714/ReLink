@@ -22,7 +22,7 @@
       <a class="back" href="owner.html">‹</a>
       <h1>登録したペット</h1>
       <div class="spacer"></div>
-      <span class="role-chip">Owner</span>
+      <span class="role-chip">飼い主</span>
     </div>
 
     <div class="pad stack">
@@ -55,8 +55,35 @@
 
   <script src="scripts/config.js"></script>
   <script src="scripts/common.js"></script>
+  <script src="scripts/location-autocomplete.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/owner.js"></script>
+
+
+  <!-- ★ペット詳細オーバーレイ -->
+  <div id="ownerPetDetailOverlay"
+       style="display:none;position:fixed;inset:0;z-index:9999;
+              align-items:flex-end;justify-content:center;
+              background:rgba(0,0,0,0.45);"
+       onclick="if(event.target===this)closeOwnerPetDetail()">
+    <div style="background:#fff;border-radius:20px 20px 0 0;
+                width:100%;max-width:480px;max-height:90vh;
+                overflow-y:auto;padding:20px 16px 32px;
+                box-sizing:border-box;">
+      <!-- ハンドルバー -->
+      <div style="width:40px;height:4px;background:#ddd;border-radius:2px;
+                  margin:0 auto 16px;"></div>
+      <!-- タイトルバー -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <h2 style="margin:0;font-size:17px;">ペットの詳細</h2>
+        <button onclick="closeOwnerPetDetail()"
+                style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;
+                       line-height:1;padding:4px 8px;">×</button>
+      </div>
+      <!-- 本体（JS が書き換える） -->
+      <div id="ownerPetDetailBody" class="stack" style="gap:12px;"></div>
+    </div>
+  </div>
 
 </body>
 </html>

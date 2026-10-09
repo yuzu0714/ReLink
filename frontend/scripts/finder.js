@@ -77,7 +77,7 @@ const screens = {
           <div class="thumbs" id="thumbs">${renderThumbs()}</div>
 
           <button class="btn btn-ghost btn-sm" id="aiFillBtn" style="width:100%" onclick="aiAutoFill()">
-            🤖 写真からAIで自動入力（未入力の項目のみ）
+            写真からAIで自動入力（未入力の項目のみ）
           </button>
           <div class="footnote" style="padding:0 0 4px">写真を追加した後に押すと、種類・毛色・そのほか欄のうち、まだ入力していない項目だけをAIが推定して埋めます。すでに入力した項目は変更しません。</div>
         </div>
@@ -191,66 +191,6 @@ const screens = {
         <div style="font-size:40px">🐕</div>
         <div style="font-weight:800;font-size:16px;margin-top:8px">次のステップ</div>
         <div class="lede" style="margin-top:6px">マッチ率が高い候補を確認して連絡してください。</div>
-      </div>
-    </div>`;
-  },
-
-  handoverList(){
-    return `
-    ${appbar('受け渡し記録', 'finder', S.role)}
-    <div class="pad stack fade">
-      <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
-        <div class="eyebrow" style="color:var(--navy)">HISTORY</div>
-        <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡し記録</h2>
-        <div class="lede" style="margin-top:0">以下の記録一覧から詳細を確認できます。</div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="go('handoverDetail')" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/17 14:35 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:10px;font-weight:800">引渡し完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="alert('選択可能な情報がサンプルのみです');" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#fca5a5,#f87171);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐈</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">猫・オス（推定2歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/15 09:20 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#fef0e7;color:#b45309;font-size:10px;font-weight:800">調査中</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="padding:16px;border-radius:14px;border:1px solid var(--line);background:#f9fafb;opacity:0.6">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">トイプードル・メス</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/10 16:45 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:10px;font-weight:800">飼い主確認完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
       </div>
     </div>`;
   },
@@ -376,125 +316,107 @@ const screens = {
   },
 
   handoverList(){
+    const canRegister = S.role === 'shelter' || S.role === 'finder';
+    const formHtml = canRegister ? `
+      <div class="card" style="border-color:#dfe9ff">
+        <div class="eyebrow" style="color:var(--navy)">NEW RECORD</div>
+        <h3 style="font-size:15px;font-weight:800;margin:6px 0 4px;color:var(--navy)">新しい受け渡しを記録する</h3>
+        <div class="lede" style="margin-top:0;margin-bottom:14px;font-size:12px">保護ペットIDと飼い主のメールアドレスを入力すると自動で紐付けます。</div>
+        <div id="handoverFormMsg"></div>
+        <div class="field">
+          <label>保護ペットID</label>
+          <input id="hfFoundPetId" class="input" type="number" min="1" placeholder="例: 5" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>飼い主のメールアドレス</label>
+          <input id="hfOwnerEmail" class="input" type="email" placeholder="例: owner@example.com" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>引き渡し場所</label>
+          <input id="hfPlace" class="input" type="text" placeholder="例: 阿南市役所 1F窓口" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>引き渡し日時</label>
+          <input id="hfDatetime" class="input" type="datetime-local" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>引き渡し先</label>
+          <input id="hfTo" class="input" type="text" placeholder="例: 飼い主・山田様" style="width:100%">
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>メモ</label>
+          <textarea id="hfNote" class="input" rows="3" placeholder="補足情報があれば…" style="width:100%;resize:vertical"></textarea>
+        </div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%" id="hfSubmitBtn" onclick="submitHandover()">記録する</button>
+      </div>` : '';
     return `
     ${appbar('受け渡し記録', 'finder', S.role)}
     <div class="pad stack fade">
       <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
         <div class="eyebrow" style="color:var(--navy)">HISTORY</div>
         <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡し記録</h2>
-        <div class="lede" style="margin-top:0">以下の記録一覧から詳細を確認できます。</div>
+        <div class="lede" style="margin-top:0">実際の受け渡し履歴が一覧で確認できます。</div>
       </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="go('handoverDetail')" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/17 14:35 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:10px;font-weight:800">保健所への引渡し完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;transition:background .15s" onclick="alert('選択可能な情報がサンプルのみです');" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#fca5a5,#f87171);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐈</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">猫・オス（推定2歳）</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/15 09:20 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#fef0e7;color:#b45309;font-size:10px;font-weight:800">保護中</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
-      </div>
-
-      <div class="role-item" style="padding:16px;border-radius:14px;border:1px solid var(--line);background:#f9fafb;opacity:0.6">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#ddd6fe,#c4b5fd);display:grid;place-items:center;font-size:28px;flex-shrink:0">🐕</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:800;color:var(--navy)">トイプードル・メス</div>
-              <div class="lede" style="margin-top:4px;font-size:12px">2026/08/10 16:45 保護</div>
-              <div style="margin-top:4px">
-                <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:10px;font-weight:800">飼い主確認完了</span>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:18px;color:var(--muted)">›</div>
-        </div>
+      ${formHtml}
+      <div id="handoverListContainer">
+        <div class="lede" style="text-align:center;padding:24px">読み込み中…</div>
       </div>
     </div>`;
   },
 
   handoverDetail(){
+    const r = S.selectedHandover;
+    if (!r) return `
+    ${appbar('受け渡し記録', 'handoverList', S.role)}
+    <div class="pad stack fade">
+      <div class="card"><div class="lede" style="text-align:center;padding:24px">データが見つかりませんでした。</div></div>
+      <button class="btn btn-primary" onclick="go('handoverList')">記録一覧へ戻る</button>
+    </div>`;
+    const dt = r.handoverDatetime ? r.handoverDatetime.replace('T',' ').slice(0,16) : '—';
+    const created = r.createdAt ? r.createdAt.slice(0,10) : '—';
     return `
     ${appbar('受け渡し記録', 'handoverList', S.role)}
     <div class="pad stack fade">
       <div class="card" style="background:linear-gradient(135deg,#edf5ff,#eefbf9);border-color:#dfe9ff">
         <div class="eyebrow" style="color:var(--navy)">TRANSFER RECORD</div>
-        <h2 class="title" style="font-size:20px;margin-bottom:8px">引き渡しが完了しました</h2>
-        <div class="lede" style="margin-top:0">最終更新: 2026年8月17日 18:20</div>
+        <h2 class="title" style="font-size:20px;margin-bottom:8px">受け渡し記録 #${r.id}</h2>
+        <div class="lede" style="margin-top:0">登録日: ${created}</div>
       </div>
 
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:12px;font-weight:800;letter-spacing:.3px">引渡し完了</span>
-          <span style="font-size:11px;color:var(--muted);font-weight:700">No. F-20260817-104</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
-          <div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#d9f99d,#86efac);display:grid;place-items:center;font-size:36px">🐕</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:18px;font-weight:800;color:var(--navy)">柴犬・メス（約3歳）</div>
-            <div class="lede" style="margin-top:4px">首輪: オレンジ / 迷子札あり</div>
-          </div>
+          <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:12px;font-weight:800;letter-spacing:.3px">${r.status === 'completed' ? '引渡し完了' : r.status}</span>
+          <span style="font-size:11px;color:var(--muted);font-weight:700">contact_id: ${r.contactId}</span>
         </div>
       </div>
 
       <div class="card">
         <div class="eyebrow">基本情報</div>
         <div class="field" style="margin-top:12px">
-          <label>保護場所</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">東京都品川区西五反田 2-16-4</div>
+          <label>引き渡し場所</label>
+          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">${r.handoverPlace || '未記入'}</div>
         </div>
         <div class="field" style="margin-top:12px">
-          <label>保護日時</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">2026/08/17 14:35</div>
+          <label>引き渡し日時</label>
+          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">${dt}</div>
         </div>
         <div class="field" style="margin-top:12px">
           <label>引き渡し先</label>
-          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">飼い主・山田様（連絡先: 090-1234-5678）</div>
+          <div class="input" style="display:flex;align-items:center;background:#fff;color:var(--ink);min-height:46px">${r.handedOverTo || '未記入'}</div>
         </div>
       </div>
 
       <div class="card">
         <div class="eyebrow">補足事項</div>
         <div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid var(--line);line-height:1.7;color:var(--ink)">
-          左耳に傷があります。人懐っこく、散歩中はリードを長く持つと落ち着きます。<br>
-          体調については、当日夕方に少しだけぐったりしていたため、水分補給と休養を取らせてから引き渡しを行いました。
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="eyebrow">写真</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:grid;place-items:center;font-size:28px">🐕</div>
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#fef3c7,#fcd34d);display:grid;place-items:center;font-size:28px">🦴</div>
-          <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#93c5fd);display:grid;place-items:center;font-size:28px">📸</div>
+          ${r.note || 'なし'}
         </div>
       </div>
 
       <button class="btn btn-primary" onclick="go('handoverList')">記録一覧へ戻る</button>
     </div>`;
   },
+
 
   finder(){
     return `
@@ -507,7 +429,8 @@ const screens = {
       </div>
 
       <div class="role-list">
-        <div class="role-item" style="cursor:pointer" onclick="go('register')">
+        // ★修正：ダミーの go('handoverList') をやめて、本物の handover.html へ遷移するように変更
+        <div class="role-item" style="cursor:pointer" onclick="location.href='handover.html'">
           <div class="emo">📸</div>
           <div>
             <div class="title">迷子ペットを登録</div>
@@ -539,6 +462,122 @@ function go(name){
   }
   if (name === 'step2' && typeof initStep2 === 'function') initStep2();
   if (name === 'register' && typeof initLocationAutocomplete === 'function') initLocationAutocomplete('foundPlace');
+  if (name === 'handoverList') loadHandoverList();
+}
+
+// ── 受け渡し記録 非同期ローダー ──
+async function loadHandoverList() {
+  const container = document.getElementById('handoverListContainer');
+  if (!container) return;
+  try {
+    const res = await fetch(`${API_BASE}/handovers`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const records = await res.json();
+    if (!records || records.length === 0) {
+      container.innerHTML = '<div class="lede" style="text-align:center;padding:24px">記録はまだありません。</div>';
+    } else {
+      container.innerHTML = records.map(r => `
+        <div style="cursor:pointer;padding:16px;border-radius:14px;border:1px solid var(--line);background:#fff;margin-bottom:10px;transition:background .15s"
+             onclick="openHandoverDetail(${r.id})"
+             onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='#fff'">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+            <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eafaf3;color:#0f7a4b;font-size:11px;font-weight:800">
+              ${r.status === 'completed' ? '引渡し完了' : escapeHtml(r.status)}
+            </span>
+            <span style="font-size:11px;color:var(--muted)">記録ID: ${r.id} / 連絡ID: ${r.contactId}</span>
+          </div>
+          ${r.handedOverTo ? `<div style="margin-top:8px;font-size:14px;font-weight:700;color:var(--navy)">引き渡し先: ${escapeHtml(r.handedOverTo)}</div>` : ''}
+          ${r.handoverPlace ? `<div style="margin-top:4px;font-size:13px;color:var(--ink)">場所: ${escapeHtml(r.handoverPlace)}</div>` : ''}
+          ${r.handoverDatetime ? `<div style="margin-top:4px;font-size:12px;color:var(--muted)">日時: ${escapeHtml(r.handoverDatetime.replace('T', ' '))}</div>` : ''}
+          <div style="margin-top:6px;font-size:12px;color:var(--muted);text-align:right">詳細 ›</div>
+        </div>`).join('');
+    }
+  } catch (e) {
+    if (container) container.innerHTML = `<div class="lede" style="text-align:center;padding:24px;color:#e53e3e">読み込みに失敗しました: ${e.message}</div>`;
+  }
+
+  // 登録フォームのイベント設定
+  const form = document.getElementById('handoverInlineForm');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('inFormMsg');
+      const btn = form.querySelector('button[type=submit]');
+      const contactId = parseInt(document.getElementById('inContactId').value, 10);
+      const handoverPlace = document.getElementById('inHandoverPlace').value.trim() || null;
+      const handoverDatetime = document.getElementById('inHandoverDatetime').value || null;
+      const handedOverTo = document.getElementById('inHandedOverTo').value.trim() || null;
+      const note = document.getElementById('inNote').value.trim() || null;
+      if (!contactId) { showInlineMsg(msg, '連絡IDは必須です。', 'error'); return; }
+      btn.disabled = true; btn.textContent = '送信中…';
+      try {
+        const token = sessionStorage.getItem('authToken');
+        const res = await fetch(`${API_BASE}/handovers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ contactId, handoverPlace, handoverDatetime, handedOverTo, note })
+        });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `HTTP ${res.status}`); }
+        showInlineMsg(msg, '記録しました！', 'success');
+        form.reset();
+        loadHandoverList();
+      } catch (err) {
+        showInlineMsg(msg, `エラー: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = '記録する';
+      }
+    });
+  }
+}
+
+function openHandoverDetail(id) {
+  // S._handoverCache は loadHandoverList で取得したデータを再利用
+  // ここでは再fetchして確実に最新を使う
+  fetch(`${API_BASE}/handovers`)
+    .then(r => r.json())
+    .then(records => {
+      S.selectedHandover = records.find(r => r.id === id) || null;
+      go('handoverDetail');
+    });
+}
+
+function showInlineMsg(el, text, type) {
+  if (!el) return;
+  el.style.display = '';
+  el.textContent = text;
+  el.style.background = type === 'success' ? '#eafaf3' : '#fff5f5';
+  el.style.color       = type === 'success' ? '#0f7a4b' : '#e53e3e';
+  el.style.border      = `1px solid ${type === 'success' ? '#86efac' : '#fca5a5'}`;
+}
+
+async function submitHandover() {
+  const msg = document.getElementById('handoverFormMsg');
+  const btn = document.getElementById('hfSubmitBtn');
+  const foundPetId = parseInt(document.getElementById('hfFoundPetId')?.value, 10);
+  const ownerEmail  = document.getElementById('hfOwnerEmail')?.value.trim() || '';
+  const handoverPlace    = document.getElementById('hfPlace')?.value.trim() || null;
+  const handoverDatetime = document.getElementById('hfDatetime')?.value || null;
+  const handedOverTo     = document.getElementById('hfTo')?.value.trim() || null;
+  const note             = document.getElementById('hfNote')?.value.trim() || null;
+  if (!foundPetId)  { showInlineMsg(msg, '保護ペットIDは必須です。', 'error'); return; }
+  if (!ownerEmail)  { showInlineMsg(msg, '飼い主のメールアドレスは必須です。', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+  try {
+    const token = sessionStorage.getItem('authToken');
+    const res = await fetch(`${API_BASE}/handovers/by-pet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ foundPetId, ownerEmail, handoverPlace, handoverDatetime, handedOverTo, note })
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `HTTP ${res.status}`); }
+    showInlineMsg(msg, '✅ 記録しました！', 'success');
+    ['hfFoundPetId','hfOwnerEmail','hfPlace','hfDatetime','hfTo','hfNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    loadHandoverList();
+  } catch (err) {
+    showInlineMsg(msg, `エラー: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '記録する'; }
+  }
 }
 
 // 発見場所・発見日時・種類・そのほか欄の入力を S に反映するための関数。
@@ -655,36 +694,28 @@ async function aiAutoFill(){
   }
 }
 
-// AIの解析結果({animalType, breed, coatColor, hasCollar, collarFeatures})を、未入力の項目にだけ反映する
-// (そのほか欄には首輪情報のみを書く。犬種・毛色はセレクト/スウォッチの選択だけに使う)
+// callAiExtractFeatures()が返す共通形式を、未入力の項目にだけ反映する
 function applyAiTags(tags){
-  const notes = [];
-
   if(!S.specie){
-    const guess = guessSpecieOption(tags.animalType, tags.breed);
+    const guess = guessSpecieOption(tags.specie, tags.otherSpecie);
     if(guess){
       S.specie = guess;
       const sel = document.getElementById('specie');
       if(sel) sel.value = guess;
-    } else if(tags.breed && !S.otherSpecie){
+    } else if(tags.otherSpecie && !S.otherSpecie){
       // 選択肢にない犬種はテキスト欄に入れる
-      S.otherSpecie = [tags.animalType, tags.breed].filter(Boolean).join(' ');
+      S.otherSpecie = tags.otherSpecie;
       const inp = document.getElementById('otherSpecie');
       if(inp) inp.value = S.otherSpecie;
     }
   }
 
-  if(S.regColors.length === 0 && tags.coatColor){
-    const idx = colorKeywordIndex(tags.coatColor);
-    if(idx !== -1) pickColor(idx);
+  if(S.regColors.length === 0 && Number.isInteger(tags.colorIndex)){
+    pickColor(tags.colorIndex);
   }
 
-  if(tags.hasCollar){
-    notes.push(`首輪あり${tags.collarFeatures ? '（' + tags.collarFeatures + '）' : ''}`);
-  }
-
-  if(!S.other && notes.length > 0){
-    S.other = notes.join(' / ');
+  if(!S.other && tags.other){
+    S.other = tags.other;
     const ta = document.getElementById('other');
     if(ta) ta.value = S.other;
   }

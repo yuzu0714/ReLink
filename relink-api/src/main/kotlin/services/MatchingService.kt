@@ -2,6 +2,8 @@ package com.services
 
 import com.aiSimilarityService
 import com.db.MatchesTable
+import com.models.AiBatchCandidateItem
+import com.models.MatchingRunResponse
 import com.repositories.MatchCandidateRow
 import com.models.MatchResultItem
 import com.repositories.LostPetRepository
@@ -22,82 +24,162 @@ import java.math.BigDecimal
 // SQL絞り込み(MatchingRepository)→AI類似度判定(AiSimilarityService)
 // →matchesテーブルへの保存、をひとつなぎにするサービス。
 object MatchingService {
+    private val matchingDatabaseSemaphore = Semaphore(2)
 
-    // ★新規追加：AIサーバー(match_api.py)への同時リクエスト数の上限。
-    // 候補が何十件あっても、この数を超えて同時に投げることはしない。
-    // 値が大きいほど全体は速く終わるが、AIサーバー側の負荷(match_api.pyは1プロセスで動作)や
-    // 外部AI APIのレート制限も考慮し、まずは控えめな3から始める。
-    // (実測してみて余裕がありそうなら増やす、遅延やエラーが増えるなら減らす、という調整をする値)
-    private const val MAX_CONCURRENT_AI_CALLS = 3
+    private suspend fun <T> withMatchingDatabaseAccess(block: () -> T): T =
+        matchingDatabaseSemaphore.withPermit {
+            withContext(Dispatchers.IO) { block() }
+        }
 
-    suspend fun runMatching(lostPetId: Long): List<MatchResultItem> {
-        val lostPet = LostPetRepository.findById(lostPetId)
+    private suspend fun <T> measureMatchingStage(
+        lostPetId: Long,
+        stage: String,
+        block: suspend () -> T,
+    ): T {
+        val startedAt = System.nanoTime()
+        var outcome = "error"
+        try {
+            return block().also { outcome = "success" }
+        } finally {
+            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+            println("⏱️ [MatchingTiming] lostPetId=$lostPetId stage=$stage elapsedMs=$elapsedMs outcome=$outcome")
+        }
+    }
+
+    suspend fun runMatching(lostPetId: Long): MatchingRunResponse =
+        measureMatchingStage(lostPetId, "total") {
+            runMatchingInternal(lostPetId)
+        }
+
+    private suspend fun runMatchingInternal(lostPetId: Long): MatchingRunResponse {
+        val lostPet = measureMatchingStage(lostPetId, "load_lost_pet") {
+            withMatchingDatabaseAccess { LostPetRepository.findById(lostPetId) }
+        }
             ?: throw NoSuchElementException("指定されたlostPetIdが見つかりません: $lostPetId")
 
-        val lostPhotoUrls = PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+        val lostPhotoUrls = measureMatchingStage(lostPetId, "load_lost_photos") {
+            withMatchingDatabaseAccess {
+                PetPhotoRepository.findByPet("lost", lostPetId).map { it.photoUrl }
+            }
+        }
         if (lostPhotoUrls.isEmpty()) {
             throw IllegalArgumentException("迷子ペットに写真が登録されていません(lostPetId=$lostPetId)")
         }
 
-        val candidates = MatchingRepository.findCandidates(
-            specie = lostPet.specie,
-            color = lostPet.color,
-            lostPlace = lostPet.lostPlace
-        )
+        println("🔍 [Matching] lostPetId=$lostPetId specie=${lostPet.specie} color=${lostPet.color} lostPlace=${lostPet.lostPlace}")
+        println("🔍 [Matching] 迷子写真枚数: ${lostPhotoUrls.size}")
 
-        // ★修正：for文で1件ずつ順番に処理していたのを、async/awaitAllによる並行処理に変更。
-        // 候補ごとの処理(AI比較→matches保存)を独立したコルーチンとして起動し、
-        // 全部の完了を待ってから結果をまとめる。
-        // Semaphoreで同時実行数をMAX_CONCURRENT_AI_CALLS件までに制限することで、
-        // AIサーバーに一度に大量のリクエストが殺到しないようにしている。
-        val semaphore = Semaphore(MAX_CONCURRENT_AI_CALLS)
+        val candidates = measureMatchingStage(lostPetId, "find_candidates") {
+            withMatchingDatabaseAccess {
+                MatchingRepository.findCandidates(
+                    specie = lostPet.specie,
+                    color = lostPet.color,
+                    lostPlace = lostPet.lostPlace
+                )
+            }
+        }
 
-        val results = coroutineScope {
+        println("🔍 [Matching] SQL絞り込み結果: ${candidates.size}件")
+        candidates.forEach { c -> println("  → source=${c.source} id=${c.id} specie=${c.specie} color=${c.color} place=${c.foundPlace}") }
+
+        // 候補ごとの個別SELECTを避け、petSourceごとにまとめて写真を取得する。
+        // found/rescuedは別々の値なので、区分単位でクエリを1回ずつ実行する。
+        val photosByCandidate = measureMatchingStage(lostPetId, "load_candidate_photos") {
             candidates
-                .map { candidate ->
-                    async {
-                        semaphore.withPermit {
-                            processCandidate(lostPetId, lostPhotoUrls, candidate)
-                        }
+                .groupBy { it.source }
+                .flatMap { (source, sourceCandidates) ->
+                    val photosByPet = withMatchingDatabaseAccess {
+                        PetPhotoRepository.findByPets(
+                            petSource = source,
+                            petIds = sourceCandidates.map { it.id },
+                        )
+                    }
+
+                    sourceCandidates.mapNotNull { candidate ->
+                        photosByPet[candidate.id]
+                            ?.map { it.photoUrl }
+                            ?.takeIf { it.isNotEmpty() }
+                            ?.let { candidateKey(candidate) to it }
                     }
                 }
-                .awaitAll()
-        }.filterNotNull() // AI比較に失敗した候補・写真が無い候補はnullで返ってくるので除外する
+                .toMap()
+        }
 
-        return results.sortedByDescending { it.matchScore }
+        // 一括取得時のDB返却順に依存せず、元の候補順を保ったままAI比較用データを作る。
+        // 写真がない候補は従来どおり比較対象から除外する。
+        val candidatesWithPhotos = candidates.mapNotNull { candidate ->
+            photosByCandidate[candidateKey(candidate)]?.let { candidate to it }
+        }
+
+        println("🔍 [Matching] 写真あり候補: ${candidatesWithPhotos.size}件")
+
+        if (candidatesWithPhotos.isEmpty()) {
+            return MatchingRunResponse(
+                lostPetId = lostPetId,
+                candidateCount = candidates.size,
+                uncomparedCandidateCount = candidates.size,
+                results = emptyList(),
+            )
+        }
+
+        val candidateItems = candidatesWithPhotos.map { (candidate, photoUrls) ->
+            AiBatchCandidateItem(
+                id = candidateKey(candidate),
+                photoUrls = photoUrls,
+            )
+        }
+        val aiResults = measureMatchingStage(lostPetId, "ai_batch") {
+            aiSimilarityService.comparePhotosBatch(lostPhotoUrls, candidateItems).results
+        }
+        val aiResultsByCandidate = aiResults.associateBy { it.id }
+
+        val candidatesWithResults = candidatesWithPhotos.mapNotNull { (candidate, photoUrls) ->
+            val aiResult = aiResultsByCandidate[candidateKey(candidate)]
+            if (aiResult == null) {
+                call_log_skip(candidate.source, candidate.id, "AI一括比較の応答に候補がありません")
+                return@mapNotNull null
+            }
+            if (aiResult.failed || aiResult.reason?.startsWith("比較エラー:") == true) {
+                call_log_skip(candidate.source, candidate.id, aiResult.reason)
+                return@mapNotNull null
+            }
+            Triple(candidate, photoUrls, aiResult)
+        }
+
+        val results = measureMatchingStage(lostPetId, "save_results") {
+            coroutineScope {
+                candidatesWithResults.map { (candidate, photoUrls, aiResult) ->
+                    async {
+                        saveCandidateResult(
+                            lostPetId = lostPetId,
+                            candidate = candidate,
+                            candidatePhotoUrls = photoUrls,
+                            scorePercent = aiResult.similarityScore * 100,
+                            reason = aiResult.reason,
+                        )
+                    }
+                }.awaitAll()
+            }
+        }
+
+        return MatchingRunResponse(
+            lostPetId = lostPetId,
+            candidateCount = candidates.size,
+            uncomparedCandidateCount = candidates.size - candidatesWithResults.size,
+            results = results.sortedByDescending { it.matchScore },
+        )
     }
 
-    // ★新規追加：候補1件分の「写真取得→AI比較→matches保存」をまとめた関数。
-    // 元々for文の中に直接書かれていた処理を、async{}から呼び出しやすいように関数として切り出した。
-    // 失敗時(写真が無い/AI比較エラー)はnullを返し、呼び出し元でスキップ扱いにする。
-    private suspend fun processCandidate(
+    private fun candidateKey(candidate: MatchCandidateRow): String =
+        "${candidate.source}:${candidate.id}"
+
+    private suspend fun saveCandidateResult(
         lostPetId: Long,
-        lostPhotoUrls: List<String>,
         candidate: MatchCandidateRow,
-    ): MatchResultItem? {
-        // ★修正：DBアクセス(transaction{})はブロッキング処理のため、コルーチンの
-        // デフォルトのスレッドを占有しないよう、Dispatchers.IO上で実行するようにwithContextで囲んだ。
-        // (並列実行するコルーチンが増えるほど、ブロッキング処理を専用スレッドに逃がす重要性が増す)
-        val candidatePhotoUrls = withContext(Dispatchers.IO) {
-            PetPhotoRepository.findByPet(candidate.source, candidate.id).map { it.photoUrl }
-        }
-        if (candidatePhotoUrls.isEmpty()) return null
-
-        // AIサーバーへのHTTPリクエストは元々suspend関数(非ブロッキング)なので、そのままでOK
-        val aiResponse =
-            try {
-                aiSimilarityService.comparePhotos(
-                    photoUrls = lostPhotoUrls,
-                    candidatePhotoUrls = candidatePhotoUrls,
-                )
-            } catch (e: AiServiceException) {
-                // この候補だけスキップして、他の候補の処理には影響させない
-                call_log_skip(candidate.source, candidate.id, e.message)
-                return null
-            }
-
-        val scorePercent = aiResponse.similarityScore * 100
-
+        candidatePhotoUrls: List<String>,
+        scorePercent: Double,
+        reason: String?,
+    ): MatchResultItem {
         // ★修正：以前このlostPetId×この候補の組み合わせで既にマッチング済みだった場合、
         // matchesテーブルのDB制約(uq_match: lost_pet_id + protected_source + protected_pet_id の一意制約)
         // に引っかかってINSERTが失敗し、リクエスト全体が500エラーで落ちてしまっていた。
@@ -106,7 +188,7 @@ object MatchingService {
         //   「新規登録」ではなく「既存のレコードを取得して使う」形に切り替える。
         //   それ以外の予期しないDBエラーはそのまま上位に投げて、通常通り500として扱う。
         val (insertedId, resolvedReason) = try {
-            val newId = withContext(Dispatchers.IO) {
+            val newId = withMatchingDatabaseAccess {
                 // ★修正：repetitionAttemptsという名前付き引数は、このプロジェクトで使っている
                 // Exposed 0.55.0には存在しなかった(ビルドエラーになったため)。
                 // リトライ無効化はあくまで速度面のおまけ最適化であり、重複エラー自体の
@@ -122,7 +204,7 @@ object MatchingService {
                     } get MatchesTable.id
                 }
             }
-            newId to aiResponse.reason
+            newId to reason
         } catch (e: ExposedSQLException) {
             if (e.sqlState != "23505") throw e // uq_match以外のDBエラーはそのまま投げる
 
@@ -132,7 +214,7 @@ object MatchingService {
             // Exposedの自動採番列(id)は、値を読み出す際に内部でDB方言の確認が必要で、
             // それにはトランザクションが有効な状態でなければならない。
             // → transaction{}ブロックの中でid(Long)まで取り出し切ってから返すように変更した。
-            val existingId = withContext(Dispatchers.IO) {
+            val existingId = withMatchingDatabaseAccess {
                 transaction {
                     MatchesTable.selectAll().where {
                         (MatchesTable.lostPetId eq lostPetId) and

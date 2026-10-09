@@ -9,7 +9,13 @@ data class LostPetRegisterRequest(
     val specie: String,
     val color: String,
     val other: String? = null,
-    val lostPlace: String
+    // ★修正：事前登録(無事)では紛失場所が無いので null 可に変更
+    val lostPlace: String? = null,
+    val nickname: String? = null,
+    val petName: String? = null,
+    val voiceUrl: String? = null,
+    // ★追加：登録時の状態。"safe"(今は一緒にいる・事前登録) / "lost"(すでに迷子)
+    val petStatus: String = "lost"
 )
 
 // ★修正：本番導線化に伴い、登録直後に自動実行したマッチング結果もレスポンスに含めるようにした

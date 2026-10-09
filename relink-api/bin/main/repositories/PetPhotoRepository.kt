@@ -47,4 +47,46 @@ object PetPhotoRepository {
                 )
             }
     }
+
+    // 指定した複数ペットの写真を1クエリで取得し、petIdごとにsort_order順で返す。
+    // マッチング時に候補ごとにSELECTするN+1クエリを避けるために使う。
+    fun findByPets(petSource: String, petIds: List<Long>): Map<Long, List<PetPhotoItem>> {
+        if (petIds.isEmpty()) return emptyMap()
+
+        return transaction {
+            PetPhotoTable.selectAll()
+                .where {
+                    (PetPhotoTable.petSource eq petSource) and
+                        (PetPhotoTable.petId inList petIds.distinct())
+                }
+                .orderBy(
+                    PetPhotoTable.petId to SortOrder.ASC,
+                    PetPhotoTable.sortOrder to SortOrder.ASC,
+                )
+                .groupBy { it[PetPhotoTable.petId] }
+                .mapValues { (_, rows) ->
+                    rows.map { row ->
+                        PetPhotoItem(
+                            photoUrl = row[PetPhotoTable.photoUrl],
+                            sortOrder = row[PetPhotoTable.sortOrder],
+                        )
+                    }
+                }
+        }
+    }
+
+    // ★新規追加：複数ペットの代表写真（sort_order最小）を一括取得（N+1クエリ回避用）
+    // 戻り値: petId → 代表写真URL のMap（写真なしのペットはMap内に存在しないかnull値）
+    fun findFirstPhotoByPets(petSource: String, petIds: List<Long>): Map<Long, String?> = transaction {
+        if (petIds.isEmpty()) return@transaction emptyMap()
+
+        PetPhotoTable.selectAll()
+            .where {
+                (PetPhotoTable.petSource eq petSource) and
+                (PetPhotoTable.petId inList petIds)
+            }
+            .orderBy(PetPhotoTable.petId to SortOrder.ASC, PetPhotoTable.sortOrder to SortOrder.ASC)
+            .groupBy { it[PetPhotoTable.petId] }
+            .mapValues { (_, rows) -> rows.firstOrNull()?.get(PetPhotoTable.photoUrl) }
+    }
 }

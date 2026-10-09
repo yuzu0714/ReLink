@@ -13,6 +13,7 @@ function initOwnerPage() {
 
   // 直近のマッチング結果
   let ownerMatchResults = [];
+  let ownerMatchUncomparedCandidateCount = 0;
 
   // 飼い主の登録フォームの状態
   let ownerState = {
@@ -26,6 +27,7 @@ function initOwnerPage() {
     nickname: '',     //新規追加：呼び名
     petName: '',      //新規追加：正式名称
     voiceBlob: null,  //新規追加：音声入力
+    petStatus: 'lost', //新規追加：登録時の状態（safe=今は一緒にいる / lost=すでに迷子）
   };
 
 
@@ -44,7 +46,7 @@ function initOwnerPage() {
 
         <div class="spacer"></div>
 
-        <span class="role-chip">Owner</span>
+        <span class="role-chip">飼い主</span>
       </div>
     `;
   }
@@ -61,7 +63,8 @@ function initOwnerPage() {
       otherSpecie: '',
       other: '',
       phone: '',
-      lostPlace: ''
+      lostPlace: '',
+      petStatus: 'lost'
     };
 
     ownerScreen.innerHTML = `
@@ -126,6 +129,23 @@ function initOwnerPage() {
           <!-- 右カラム：フォーム -->
           <div class="register-fields">
 
+            <!-- 新規追加：登録時のペットの状態 -->
+            <div class="field">
+              <label>ペットの今の状態</label>
+
+              <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:400;cursor:pointer;margin-bottom:8px">
+                <input type="radio" name="ownerPetStatus" value="safe"
+                       style="accent-color:#e91e8c;width:18px;height:18px;padding:0;margin:0;flex-shrink:0;">
+                <span>今は一緒にいる（事前登録）</span>
+              </label>
+
+              <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:400;cursor:pointer;margin-bottom:0">
+                <input type="radio" name="ownerPetStatus" value="lost" checked
+                       style="accent-color:#e91e8c;width:18px;height:18px;padding:0;margin:0;flex-shrink:0;">
+                <span>すでに迷子になっている</span>
+              </label>
+            </div>
+
             <div class="field">
               <label>連絡先電話番号</label>
 
@@ -138,7 +158,7 @@ function initOwnerPage() {
             </div>
 
 
-            <div class="field">
+            <div class="field" id="ownerLostPlaceField">
               <label>紛失場所</label>
 
               <input
@@ -385,6 +405,22 @@ function initOwnerPage() {
 
     if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('ownerLostPlace');
 
+    //新規追加：登録時の状態を保存。事前登録（無事）のときは紛失場所欄を隠す
+    const lostPlaceField = document.getElementById('ownerLostPlaceField');
+
+    document
+      .querySelectorAll('input[name="ownerPetStatus"]')
+      .forEach((radio) => {
+        radio.addEventListener('change', () => {
+          ownerState.petStatus = radio.value;
+
+          if (lostPlaceField) {
+            lostPlaceField.style.display =
+              radio.value === 'safe' ? 'none' : '';
+          }
+        });
+      });
+
     //新規追加：ペットの正式名称を保存
     const petNameInput = document.getElementById('ownerPetName');
 
@@ -518,9 +554,27 @@ function initOwnerPage() {
           background-size:cover;
           background-position:center;
         "
-      ></div>
+      >
+        <button
+          class="x"
+          type="button"
+          aria-label="写真を削除"
+          data-owner-action="remove-photo"
+          data-owner-photo-index="${index}"
+        >×</button>
+      </div>
     `).join('');
 
+  }
+
+  function removeOwnerPhoto(index) {
+    const photo = ownerState.photos[index];
+
+    if (!photo) return;
+
+    URL.revokeObjectURL(photo.src);
+    ownerState.photos.splice(index, 1);
+    renderOwnerThumbs();
   }
 
 
@@ -672,7 +726,8 @@ function initOwnerPage() {
     }
 
 
-    if (!ownerState.lostPlace) {
+    // 紛失場所は「すでに迷子」で登録するときだけ必須
+    if (ownerState.petStatus === 'lost' && !ownerState.lostPlace) {
 
       alert('紛失場所を入力してください。');
 
@@ -779,8 +834,14 @@ function initOwnerPage() {
               ownerState.other || null,
 
             lostPlace:
-              ownerState.lostPlace,
-            
+              ownerState.petStatus === 'lost'
+                ? ownerState.lostPlace
+                : null,
+
+            //新規追加：登録時の状態
+            petStatus:
+              ownerState.petStatus,
+
             //新規追加：ペットの呼び名
             nickname: 
               ownerState.nickname || null,
@@ -817,8 +878,14 @@ function initOwnerPage() {
       const lostBody =
         await lostRes.json();
 
-      // 登録後、そのままAIマッチングへ
-      showMatching(lostBody.id);
+      if (ownerState.petStatus === 'lost') {
+        // 迷子として登録した場合は、そのままAIマッチングへ
+        showMatching(lostBody.id);
+      } else {
+        // 事前登録（無事）の場合はマッチングせず、登録したペット一覧へ
+        alert('ペットを登録しました。');
+        window.location.href = 'owner-pet.html';
+      }
 
     } catch (error) {
 
@@ -852,18 +919,50 @@ function initOwnerPage() {
         </div>
 
         <div class="paw-container">
-          <svg
-            class="paw-svg"
-            viewBox="0 0 100 100"
-          >
-            <text
-              x="50"
-              y="60"
-              text-anchor="middle"
-              font-size="45"
-            >
-              🐾
-            </text>
+          <svg class="paw-svg" viewBox="0 0 100 100">
+            <defs>
+              <!-- 肉球全体のシルエットマスク -->
+              <mask id="paw-mask">
+                <g transform="translate(3.8, 90) scale(0.018, -0.018)">
+                  <path d="M1799 4626 c-124 -45 -260 -153 -360 -284 -199 -263 -298 -687 -230
+                  -987 29 -128 67 -247 96 -305 56 -110 206 -235 330 -272 54 -17 95 -22 175
+                  -21 93 0 116 4 195 33 118 42 168 72 237 143 126 128 169 279 172 602 1 234
+                  -14 369 -64 555 -49 186 -87 278 -150 368 -57 81 -103 122 -179 158 -79 37
+                  -141 40 -222 10z" fill="white"/>
+                  <path d="M3085 4626 c-183 -58 -269 -174 -373 -501 -71 -224 -71 -225 -86
+                  -370 -22 -204 0 -521 43 -635 68 -178 192 -281 411 -341 110 -30 256 -32 348
+                  -5 120 36 273 159 326 263 58 115 108 353 107 507 -2 235 -79 512 -206 736
+                  -100 177 -230 291 -389 339 -77 24 -123 25 -181 7z" fill="white"/>
+                  <path d="M598 3326 c-95 -34 -187 -115 -261 -231 -59 -92 -92 -173 -122 -298
+                  -71 -292 -73 -593 -4 -800 61 -183 158 -302 305 -373 145 -71 296 -89 439 -52
+                  66 17 205 99 272 162 140 130 212 392 169 618 -44 235 -199 552 -381 782 -98
+                  124 -166 172 -273 195 -67 14 -98 13 -144 -3z" fill="white"/>
+                  <path d="M4290 3327 c-106 -25 -164 -66 -260 -187 -191 -240 -356 -583 -390
+                  -815 -30 -200 31 -437 145 -563 56 -62 101 -94 210 -151 106 -55 217 -70 349
+                  -48 112 20 236 78 307 144 218 202 285 590 183 1053 -47 211 -127 367 -244
+                  473 -104 93 -188 120 -300 94z" fill="white"/>
+                  <path d="M2379 2616 c-120 -36 -168 -64 -262 -155 -108 -104 -132 -137 -242
+                  -326 -130 -224 -228 -366 -298 -432 -64 -60 -219 -181 -342 -268 -114 -81
+                  -221 -189 -255 -259 -49 -100 -65 -177 -64 -311 0 -229 70 -368 242 -479 246
+                  -159 527 -170 888 -35 170 64 229 71 511 67 269 -5 268 -5 479 -81 334 -122
+                  624 -103 856 54 84 57 133 109 166 176 58 115 67 157 66 303 0 119 -3 145 -27
+                  215 -32 96 -68 156 -133 219 -48 46 -74 66 -308 242 -184 138 -244 199 -339
+                  342 -46 70 -114 181 -152 247 -93 165 -139 227 -238 322 -96 92 -147 121 -273
+                  158 -106 31 -175 31 -275 1z" fill="white"/>
+                </g>
+              </mask>
+            </defs>
+            <g mask="url(#paw-mask)">
+              <rect x="0" y="0" width="100" height="100" fill="var(--line)" />
+              <!-- 下から上がってくるグラデーション（Fill） -->
+              <rect id="paw-fill-rect" x="0" y="100" width="100" height="100" fill="url(#paw-grad)" />
+            </g>
+            <defs>
+              <linearGradient id="paw-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stop-color="var(--magenta)" />
+                <stop offset="100%" stop-color="var(--cyan)" />
+              </linearGradient>
+            </defs>
           </svg>
         </div>
 
@@ -914,49 +1013,32 @@ function initOwnerPage() {
 
     let progress = 0;
 
-
     ownerMatchTimer = setInterval(() => {
+      progress = Math.min(95, progress + 5);
 
-      progress =
-        Math.min(
-          95,
-          progress + 5
-        );
+      const bar = document.getElementById('ownerBar');
+      const pct = document.getElementById('ownerPct');
+      const fillRect = document.getElementById('paw-fill-rect');
 
-      const bar =
-        document.getElementById('ownerBar');
+      if (bar) bar.style.width = `${progress}%`;
+      if (pct) pct.textContent = `${progress}%`;
 
-      const pct =
-        document.getElementById('ownerPct');
-
-
-      if (bar) {
-        bar.style.width =
-          `${progress}%`;
+      // 肉球の下から上へ塗り上げる表示を同期させる
+      if (fillRect) {
+        const bottomY = 85; // 肉球の一番下の位置（SVG座標系に合わせた経験則値）
+        const topY = 7;     // 肉球の一番上の位置
+        const currentY = bottomY - (progress / 100) * (bottomY - topY);
+        fillRect.setAttribute('y', currentY);
       }
-
-      if (pct) {
-        pct.textContent =
-          `${progress}%`;
-      }
-
     }, 200);
-
 
     fetch(
       `${API_BASE}/matching/run?lostPetId=${lostPetId}`,
-      {
-        method: 'POST'
-      }
+      { method: 'POST' }
     )
-
       .then(async (res) => {
-
         if (!res.ok) {
-
-          const body =
-            await res.json().catch(() => null);
-
+          const body = await res.json().catch(() => null);
           throw new Error(
             (body && body.message) ||
             `マッチングに失敗しました。(status ${res.status})`
@@ -964,85 +1046,50 @@ function initOwnerPage() {
         }
 
         return res.json();
-
       })
-
       .then((data) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
 
+        ownerMatchResults = (data && data.results) || [];
+        ownerMatchUncomparedCandidateCount =
+          Number.isInteger(data && data.uncomparedCandidateCount)
+            ? data.uncomparedCandidateCount
+            : 0;
 
-        ownerMatchResults =
-          (data && data.results) || [];
-
-
-        const bar =
-          document.getElementById('ownerBar');
-
-        const pct =
-          document.getElementById('ownerPct');
-
-
-        if (bar) {
-          bar.style.width = '100%';
+        const bar = document.getElementById('ownerBar');
+        const pct = document.getElementById('ownerPct');
+        const fillRect = document.getElementById('paw-fill-rect');
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
+        if (fillRect) {
+          // 最上部にセット
+          const topY = 7;
+          fillRect.setAttribute('y', topY);
         }
 
-        if (pct) {
-          pct.textContent = '100%';
-        }
-
-
-        setTimeout(() => {
-
-          if (
-            myToken === ownerMatchRequestToken
-          ) {
-            showResults(ownerMatchResults);
+        ownerMatchTimer = setTimeout(() => {
+          ownerMatchTimer = null;
+          if (myToken === ownerMatchRequestToken) {
+            showResults(ownerMatchResults, ownerMatchUncomparedCandidateCount);
           }
-
         }, 350);
-
       })
-
       .catch((error) => {
-
-        if (
-          myToken !== ownerMatchRequestToken
-        ) {
-          return;
-        }
-
+        if (myToken !== ownerMatchRequestToken) return;
 
         if (ownerMatchTimer) {
-
           clearInterval(ownerMatchTimer);
           ownerMatchTimer = null;
-
         }
-
 
         console.error(error);
-
-        alert(
-          error.message ||
-          'マッチング処理中にエラーが発生しました。'
-        );
-
-        ownerScreen.innerHTML =
-          homeMarkup;
-
+        alert(error.message || 'マッチング処理中にエラーが発生しました。');
+        ownerScreen.innerHTML = homeMarkup;
       });
 
   }
@@ -1050,7 +1097,7 @@ function initOwnerPage() {
 
   /* ---------------- マッチング結果 ---------------- */
 
-  function showResults(results) {
+  function showResults(results, uncomparedCandidateCount = 0) {
 
     const list = results || [];
 
@@ -1068,9 +1115,22 @@ function initOwnerPage() {
 
     /* ── 0件 ── */
     if (list.length === 0) {
+      const partialFailureNotice = uncomparedCandidateCount > 0
+        ? `
+          <div class="card" style="background:#fff4e5;border-color:#f0c36d">
+            <b style="color:#7a4b00">マッチングを完了できませんでした</b>
+            <div class="lede">
+              ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+              結果に含まれていません。時間をおいて再度お試しください。
+            </div>
+          </div>
+        `
+        : '';
       ownerScreen.innerHTML = `
         ${ownerAppbar('マッチング結果')}
         <div class="pad fade">
+          ${partialFailureNotice}
+          ${uncomparedCandidateCount > 0 ? '' : `
           <div class="card" style="background:#f2f4ff;border-color:#d8ddfb">
             <b style="color:var(--navy)">候補が見つかりませんでした</b>
             <div class="lede">
@@ -1079,6 +1139,7 @@ function initOwnerPage() {
               新しく保護情報が登録された際に改めてお知らせします。
             </div>
           </div>
+          `}
         </div>
       `;
       return;
@@ -1128,6 +1189,16 @@ function initOwnerPage() {
       <div class="mr-page-bg fade">
         <div class="mr-main-card">
 
+          ${uncomparedCandidateCount > 0 ? `
+            <div class="card" style="background:#fff4e5;border-color:#f0c36d;margin-bottom:16px">
+              <b style="color:#7a4b00">一部の候補を比較できませんでした</b>
+              <div class="lede">
+                ${uncomparedCandidateCount}件の候補は写真がない、または比較に失敗したため、
+                以下の結果には含まれていません。
+              </div>
+            </div>
+          ` : ''}
+
           <div class="mr-summary">
             <div class="mr-count">${list.length}件ヒットしました。</div>
             <div class="mr-desc">マッチ率が高い順に表示します。</div>
@@ -1138,7 +1209,8 @@ function initOwnerPage() {
           ${rest.length > 0 ? `<div class="mr-grid">${gridCards}</div>` : ''}
 
           <div style="text-align:center;margin-top:24px">
-            <button class="btn btn-ghost" onclick="location.href='http://localhost:5500/owner.html'">TOPへ戻る</button>
+            <!-- localhost固定を避け、今開いているホストのまま owner.html に移動する -->
+            <button class="btn btn-ghost" onclick="location.href='owner.html'">TOPへ戻る</button>
           </div>
 
         </div>
@@ -1489,6 +1561,20 @@ function initOwnerPage() {
     showRegister();
   }
 
+  // 新規追加：登録したペット一覧の「迷子になりました」から来たときは、そのままAIマッチングへ
+  if (urlParams.get('action') === 'match') {
+
+    const lostPetId =
+      Number(urlParams.get('lostPetId'));
+
+    // 再読み込みでマッチングが再実行されないよう、URLからパラメータを消す
+    history.replaceState(null, '', window.location.pathname);
+
+    if (lostPetId) {
+      showMatching(lostPetId);
+    }
+  }
+
 
   ownerScreen.addEventListener(
     'click',
@@ -1505,6 +1591,12 @@ function initOwnerPage() {
         const name =
           action.dataset.ownerAction;
 
+        if (name === 'remove-photo') {
+          removeOwnerPhoto(
+            Number(action.dataset.ownerPhotoIndex)
+          );
+          return;
+        }
 
         // マッチング中の処理を停止
         if (ownerMatchTimer) {
@@ -1554,7 +1646,8 @@ function initOwnerPage() {
           name === 'results'
         ) {
           showResults(
-            ownerMatchResults
+            ownerMatchResults,
+            ownerMatchUncomparedCandidateCount
           );
         }
 
@@ -1670,27 +1763,318 @@ async function initOwnerPetsPage() {
     observer.observe(sentinel);
   }
 
+  /* ── ペットデータキャッシュ（詳細表示用）── */
+  const petCache = {};
+
+  /* ── ペットの状態バッジ（safe=無事 / lost=迷子）── */
+  function petStatusBadge(petStatus) {
+    return petStatus === 'safe'
+      ? `<span class="pill pet-status-badge" style="background:#e8f5e9;color:#2e7d32">無事</span>`
+      : `<span class="pill mag pet-status-badge">迷子</span>`;
+  }
+
   /* ── ペットカードを追加 ── */
   function renderPets(pets) {
     pets.forEach(pet => {
+      petCache[pet.id] = pet; // 一覧データをキャッシュ
       const card = document.createElement('div');
       card.className = 'card owner-pet-card';
+      card.style.cssText = 'cursor:pointer;position:relative;';
+      card.setAttribute('data-pet-id', pet.id);
+      if (pet.receivedFrom) {
+        card.setAttribute('data-received', '1');
+      }
+      const isReceived = !!pet.receivedFrom;
       card.innerHTML = `
-        <div class="owner-pet-photo">
+        <div class="owner-pet-photo" style="position:relative;">
           ${pet.photoUrl
             ? `<img src="${pet.photoUrl}" alt="${pet.specie || 'ペット'}" loading="lazy">`
             : `<div class="owner-pet-no-photo">写真なし</div>`
           }
+          ${'' /* ★修正：写真の上の「🔍 迷子中」「✅ 受け取り完了」表示を削除 */}
         </div>
         <div class="owner-pet-info">
+          <div>${petStatusBadge(pet.petStatus)}</div>
           <div class="t">${pet.specie || '種類未登録'}</div>
           <div class="d">毛色：${pet.color || '未登録'}</div>
-          <div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>
+          ${pet.petStatus === 'safe' ? '' : `<div class="d">いなくなった場所：${pet.lostPlace || '未登録'}</div>`}
+          ${pet.receivedFrom ? `<div class="d" style="color:#2e7d32;font-weight:600">✅ 受け取り済み：${pet.receivedFrom}</div>` : ''}
         </div>
       `;
+      card.addEventListener('click', () => openOwnerPetDetail(pet.id));
       list.appendChild(card);
     });
   }
+
+  /* ── ペット詳細オーバーレイを開く ── */
+  async function openOwnerPetDetail(petId) {
+    const overlay = document.getElementById('ownerPetDetailOverlay');
+    const body    = document.getElementById('ownerPetDetailBody');
+    if (!overlay || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:32px;color:#888">読み込み中…</div>';
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const res = await fetch(`${API_BASE}/pets/lost/${petId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const pet = await res.json();
+
+      const photosHtml = pet.photoUrls && pet.photoUrls.length > 0
+        ? `<div style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">
+            ${pet.photoUrls.map(url => `
+              <img src="${url}" alt="ペット"
+                style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;
+                       background:#f5f5f5;scroll-snap-align:start;flex-shrink:0;">
+            `).join('')}
+           </div>`
+        : `<div style="height:160px;background:#f5f5f5;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;">🐾</div>`;
+
+      // 無事（飼い主のもとにいる）か、迷子か
+      const isSafe = pet.petStatus === 'safe';
+
+      body.innerHTML = `
+        ${photosHtml}
+
+        ${'' /* ★修正：詳細画面の「無事」「迷子」ステータス表示を削除（一覧カードの表示はそのまま） */}
+
+        <div class="card" style="margin:0">
+          ${pet.petName  ? `<div><span style="color:#888;font-size:12px">正式名称</span><br><b>${pet.petName}</b></div>` : ''}
+          ${pet.nickname ? `<div><span style="color:#888;font-size:12px">呼び名</span><br><b>${pet.nickname}</b></div>` : ''}
+          ${pet.specie   ? `<div><span style="color:#888;font-size:12px">種類</span><br>${pet.specie}</div>` : ''}
+          ${pet.color    ? `<div><span style="color:#888;font-size:12px">毛色</span><br>${pet.color}</div>` : ''}
+          ${!isSafe && pet.lostPlace ? `<div><span style="color:#888;font-size:12px">いなくなった場所</span><br>${pet.lostPlace}</div>` : ''}
+          ${pet.other    ? `<div><span style="color:#888;font-size:12px">その他の特徴</span><br>${pet.other}</div>` : ''}
+        </div>
+
+        ${isSafe
+          ? `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:14px;text-align:center">
+               <div style="font-size:22px;margin-bottom:4px">✅</div>
+               <b style="color:#2e7d32">無事（飼い主のもとにいます）</b>
+               ${pet.receivedFrom ? `<div style="color:#388e3c;font-size:13px;margin-top:4px">受け取り元：${pet.receivedFrom}</div>` : ''}
+             </div>
+             <div id="reportLostSection">
+               <p style="font-size:13px;color:#555;margin:0 0 8px;">ペットがいなくなってしまったら、<br>
+                 いなくなった場所を選んで届け出てください。
+               </p>
+               <input
+                 class="input"
+                 id="reportLostPlace"
+                 type="text"
+               >
+               <button
+                 id="reportLostBtn"
+                 class="btn btn-magenta"
+                 style="margin-top:12px;width:100%;"
+                 onclick="handleReportLost(${petId})"
+               >
+                 🚨 迷子になりました
+               </button>
+             </div>`
+          : `<div id="receiveSection">
+               <p style="font-size:13px;color:#555;margin:0 0 8px;">誰から受け取りましたか？<br>
+                 <span style="font-size:11px;color:#888;">チャットしたことのある相手を選んでください。</span>
+               </p>
+               <div id="contactSelectList" style="display:flex;flex-direction:column;gap:8px;">
+                 <div style="text-align:center;color:#aaa;font-size:13px;padding:12px;">読み込み中…</div>
+               </div>
+               <button
+                 id="receiveBtn"
+                 class="btn btn-magenta"
+                 style="margin-top:12px;width:100%;opacity:0.4;pointer-events:none;"
+                 onclick="handleReceivePet(${petId})"
+                 disabled
+               >
+                 🐾 ペットを受け取りました
+               </button>
+             </div>`
+        }
+      `;
+
+      // グローバルに関数を公開（onclickから呼べるように）
+      window.handleReceivePet = (id) => receivePet(id);
+      window.handleReportLost = (id) => reportLost(id);
+
+      if (isSafe) {
+        if (typeof initLocationAutocomplete === 'function') initLocationAutocomplete('reportLostPlace');
+      } else {
+        // 迷子の場合、チャット済みコンタクト一覧を読み込む
+        loadChatContactsForSelect(petId);
+      }
+
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = `<div style="text-align:center;color:#c00;padding:16px">読み込みに失敗しました</div>`;
+    }
+  }
+
+  /* ── チャット済みコンタクトを選択リストに描画 ── */
+  async function loadChatContactsForSelect(petId) {
+    const listEl = document.getElementById('contactSelectList');
+    if (!listEl) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/chat/contacts`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      const contacts = data.contacts || [];
+
+      if (contacts.length === 0) {
+        listEl.innerHTML = `
+          <div style="background:#f5f5f5;border-radius:10px;padding:14px;text-align:center;color:#888;font-size:13px;">
+            まだチャットした相手がいません。<br>
+            先にチャットで連絡を取ってから記録してください。
+          </div>`;
+        return;
+      }
+
+      const roleLabel = r =>
+        r === 'shelter' ? '保護団体' :
+        r === 'finder'  ? '発見者'  : r;
+
+      listEl.innerHTML = contacts.map(c => `
+        <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+                       border:2px solid #eee;border-radius:12px;cursor:pointer;"
+               class="contact-select-label">
+          <input type="radio" name="receiveContact"
+                 value="${c.id}"
+                 data-name="${c.displayName}"
+                 data-role="${c.role}"
+                 style="accent-color:#e91e8c;width:18px;height:18px;flex-shrink:0;">
+          <div>
+            <div style="font-weight:600;font-size:14px;">${c.displayName}</div>
+            <div style="font-size:12px;color:#888;">${roleLabel(c.role)}</div>
+          </div>
+        </label>
+      `).join('');
+
+      // ラジオを選んだらボタンを有効化
+      listEl.querySelectorAll('input[type=radio]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          const btn = document.getElementById('receiveBtn');
+          if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+          }
+          // 選択中のラベルをハイライト
+          listEl.querySelectorAll('.contact-select-label').forEach(lbl => {
+            lbl.style.borderColor = lbl.querySelector('input').checked ? '#e91e8c' : '#eee';
+            lbl.style.background  = lbl.querySelector('input').checked ? '#fff0f6' : '';
+          });
+        });
+      });
+
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = `<div style="color:#c00;font-size:13px;">コンタクト一覧の読み込みに失敗しました。</div>`;
+    }
+  }
+
+  /* ── 「ペットを受け取りました」を記録 ── */
+  async function receivePet(petId) {
+    const btn = document.getElementById('receiveBtn');
+
+    // 選択されたコンタクトを取得
+    const selected = document.querySelector('input[name="receiveContact"]:checked');
+    if (!selected) {
+      alert('受け取り相手を選択してください。');
+      return;
+    }
+    const roleLabel = r =>
+      r === 'shelter' ? '保護団体' :
+      r === 'finder'  ? '発見者'  : r;
+    const contactName = selected.dataset.name;
+    const contactRole = roleLabel(selected.dataset.role);
+    const receivedFrom = `${contactName}（${contactRole}）`;
+
+    if (btn) { btn.disabled = true; btn.textContent = '記録中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/pets/lost/${petId}/received`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ receivedFrom })
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+
+      // 成功：オーバーレイを閉じてリストを更新
+      closeOwnerPetDetail();
+      // キャッシュを更新
+      if (petCache[petId]) petCache[petId].receivedFrom = receivedFrom;
+      // カードの表示を更新（ステータスバッジ＋受け取り元ラベル）
+      const cards = list.querySelectorAll('.owner-pet-card');
+      cards.forEach(card => {
+        if (card.getAttribute('data-pet-id') === String(petId)) {
+          // ★修正：写真の上に「✅ 受け取り完了」バッジを出す処理を削除
+          const info = card.querySelector('.owner-pet-info');
+          if (info && !info.querySelector('.received-from-label')) {
+            const lbl = document.createElement('div');
+            lbl.className = 'd received-from-label';
+            lbl.textContent = `受け取り元：${receivedFrom}`;
+            info.appendChild(lbl);
+          }
+        }
+      });
+      alert(`受け取り情報を記録しました。`);
+    } catch (err) {
+      console.error(err);
+      alert('記録に失敗しました。もう一度お試しください。');
+      if (btn) { btn.disabled = false; btn.textContent = '🐾 ペットを受け取りました'; }
+    }
+  }
+
+  /* ── 「迷子になりました」を届け出て、AIマッチングへ ── */
+  async function reportLost(petId) {
+    const btn = document.getElementById('reportLostBtn');
+    const placeInput = document.getElementById('reportLostPlace');
+    const lostPlace = placeInput ? placeInput.value.trim() : '';
+
+    if (!lostPlace) {
+      alert('いなくなった場所を入力してください。');
+      return;
+    }
+    if (!confirm('このペットを「迷子」として届け出ます。よろしいですか？')) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = '届け出中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/pets/lost/${petId}/lost`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ lostPlace })
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+
+      // 成功：飼い主ホームのAIマッチング画面へ
+      window.location.href = `owner.html?action=match&lostPetId=${petId}`;
+    } catch (err) {
+      console.error(err);
+      alert('届け出に失敗しました。もう一度お試しください。');
+      if (btn) { btn.disabled = false; btn.textContent = '🚨 迷子になりました'; }
+    }
+  }
+
+  /* ── 詳細オーバーレイを閉じる ── */
+  function closeOwnerPetDetail() {
+    const overlay = document.getElementById('ownerPetDetailOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // グローバルに公開
+  window.closeOwnerPetDetail = closeOwnerPetDetail;
 
   /* ── エラー表示（既存カードは消さない）── */
   function showError() {

@@ -35,7 +35,7 @@
             </span>
             <span style="font-size:11px;color:var(--muted)">ID: ${r.id} / 連絡ID: ${r.contactId}</span>
           </div>
-          ${r.handedOverTo ? `<div style="margin-top:10px;font-size:14px;font-weight:700;color:var(--navy)">引き渡し先: ${r.handedOverTo}</div>` : ''}
+          ${r.handedOverTo ? `<div style="margin-top:10px;font-size:14px;font-weight:700;color:var(--navy)">引き渡し先: ${escapeHtml(r.handedOverTo)}</div>` : ''}
           ${r.handoverPlace ? `<div style="margin-top:4px;font-size:13px;color:var(--ink)">場所: ${r.handoverPlace}</div>` : ''}
           ${r.handoverDatetime ? `<div style="margin-top:4px;font-size:12px;color:var(--muted)">日時: ${r.handoverDatetime.replace('T', ' ')}</div>` : ''}
           ${r.note ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:6px">備考: ${r.note}</div>` : ''}
