@@ -46,6 +46,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -53,7 +54,38 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import common
 
-app = FastAPI(title="Pet Feature Extraction API", version="2.0.0")
+
+# SigLIP2 モデルの準備状態を追跡するフラグ
+_siglip_ready = False
+_siglip_loading = False
+
+
+def _preload_siglip_sync():
+    """バックグラウンドスレッドでモデルをロードし、完了フラグを立てる。"""
+    global _siglip_ready, _siglip_loading
+    _siglip_loading = True
+    try:
+        common._get_siglip()
+        _siglip_ready = True
+        print("[startup] SigLIP2 モデルのロード完了。/batch-compare-photos が利用可能になりました。", flush=True)
+    except Exception as e:
+        print(f"[startup] SigLIP2 のロードに失敗しました: {e}", flush=True)
+    finally:
+        _siglip_loading = False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """SigLIP2 モデルをバックグラウンドでロード。サーバー起動はブロックしない。
+    モデルロード中も /health は即応し、/batch-compare-photos はロード完了後に処理する。"""
+    print("[startup] SigLIP2 モデルのバックグラウンドロードを開始します...", flush=True)
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, _preload_siglip_sync)
+    print("[startup] サーバーのリクエスト受付を開始しました（SigLIP2 ロード中）。", flush=True)
+    yield
+
+
+app = FastAPI(title="Pet Feature Extraction API", version="2.0.0", lifespan=lifespan)
 
 
 class ExtractedFeatures(BaseModel):
@@ -80,7 +112,11 @@ class ComparePhotosResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "siglip_ready": _siglip_ready,
+        "siglip_loading": _siglip_loading,
+    }
 
 
 @app.post("/extract-features", response_model=ExtractedFeatures)
@@ -171,6 +207,12 @@ async def batch_compare_photos(request: BatchCompareRequest):
     """迷子ペットの写真URLと複数の候補写真URLを受け取り、
     候補ごとの類似度スコアを並列AI呼び出しで一括返却する。
     候補1件ずつ /compare-photos を逐次呼ぶより大幅に高速。"""
+    if not _siglip_ready:
+        status = "ロード中" if _siglip_loading else "ロード未開始"
+        raise HTTPException(
+            status_code=503,
+            detail=f"SigLIP2 モデルが準備中です（{status}）。しばらく待ってから再試行してください。",
+        )
     if not request.photo_urls:
         raise HTTPException(status_code=400, detail="photoUrls が1枚も指定されていません。")
     if not request.candidates:
