@@ -46,6 +46,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -53,7 +54,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import common
 
-app = FastAPI(title="Pet Feature Extraction API", version="2.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """サーバー起動時に SigLIP2 モデルをプリロードしてタイムアウトを防ぐ。"""
+    print("[startup] SigLIP2 モデルのプリロードを開始します...", flush=True)
+    loop = asyncio.get_running_loop()
+    try:
+        await loop.run_in_executor(None, common._get_siglip)
+        print("[startup] SigLIP2 モデルのプリロード完了。リクエスト受付を開始します。", flush=True)
+    except Exception as e:
+        print(f"[startup] SigLIP2 のプリロードに失敗しました（処理は続行）: {e}", flush=True)
+    yield
+
+
+app = FastAPI(title="Pet Feature Extraction API", version="2.0.0", lifespan=lifespan)
 
 
 class ExtractedFeatures(BaseModel):
