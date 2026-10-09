@@ -1791,10 +1791,7 @@ async function initOwnerPetsPage() {
             ? `<img src="${pet.photoUrl}" alt="${pet.specie || 'ペット'}" loading="lazy">`
             : `<div class="owner-pet-no-photo">写真なし</div>`
           }
-          ${isReceived
-            ? `<span class="pet-status-badge pet-status-received">✅ 受け取り完了</span>`
-            : '' /* ★修正：写真の上の「🔍 迷子中」表示を削除 */
-          }
+          ${'' /* ★修正：写真の上の「🔍 迷子中」「✅ 受け取り完了」表示を削除 */}
         </div>
         <div class="owner-pet-info">
           <div>${petStatusBadge(pet.petStatus)}</div>
@@ -2017,18 +2014,7 @@ async function initOwnerPetsPage() {
       const cards = list.querySelectorAll('.owner-pet-card');
       cards.forEach(card => {
         if (card.getAttribute('data-pet-id') === String(petId)) {
-          // ★修正：写真の上のバッジだけを対象にする（「迷子中」バッジが無くなったため、
-          //   無ければ新しく作る。下の「迷子」ピルを書き換えないように範囲を限定）
-          const photoBox = card.querySelector('.owner-pet-photo');
-          let badge = photoBox && photoBox.querySelector('.pet-status-badge');
-          if (!badge && photoBox) {
-            badge = document.createElement('span');
-            photoBox.appendChild(badge);
-          }
-          if (badge) {
-            badge.className = 'pet-status-badge pet-status-received';
-            badge.textContent = '✅ 受け取り完了';
-          }
+          // ★修正：写真の上に「✅ 受け取り完了」バッジを出す処理を削除
           const info = card.querySelector('.owner-pet-info');
           if (info && !info.querySelector('.received-from-label')) {
             const lbl = document.createElement('div');
