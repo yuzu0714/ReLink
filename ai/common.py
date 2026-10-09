@@ -296,6 +296,52 @@ def compare_photo_urls(photo_urls: list, candidate_photo_urls: list) -> dict:
     return {"similarity_score": score, "reason": ""}
 
 
+def download_photo_urls(photo_urls: list):
+    """迷子ペットの写真URLをダウンロードし、SigLIP2の平均埋め込みベクトルを返す。
+    バッチ比較の際に迷子側写真を一度だけダウンロード・計算して使い回すために使う。
+    戻り値は _average_embeddings が返す Tensor（shape: (1, 768)）。"""
+
+    def _download(url: str) -> bytes:
+        with PHOTO_DOWNLOAD_SEMAPHORE:
+            resp = requests.get(url, timeout=60)
+        if resp.status_code >= 300:
+            raise RuntimeError(
+                f"写真のダウンロードに失敗しました (status={resp.status_code}): {url}"
+            )
+        return resp.content
+
+    with ThreadPoolExecutor(max_workers=min(len(photo_urls), 8)) as executor:
+        all_bytes = list(executor.map(_download, photo_urls))
+
+    return _average_embeddings([_get_image_embedding(b) for b in all_bytes])
+
+
+def compare_photo_urls_with_encoded_lost(lost_emb, candidate_photo_urls: list) -> dict:
+    """事前計算済みの迷子ペット埋め込みベクトル（download_photo_urls の戻り値）と
+    候補写真URLからコサイン類似度を返す。
+    バッチ比較の際に迷子側の再ダウンロード・再計算を省くために使う。"""
+    import torch
+
+    def _download(url: str) -> bytes:
+        with PHOTO_DOWNLOAD_SEMAPHORE:
+            resp = requests.get(url, timeout=60)
+        if resp.status_code >= 300:
+            raise RuntimeError(
+                f"写真のダウンロードに失敗しました (status={resp.status_code}): {url}"
+            )
+        return resp.content
+
+    with ThreadPoolExecutor(max_workers=min(len(candidate_photo_urls), 8)) as executor:
+        cand_bytes = list(executor.map(_download, candidate_photo_urls))
+
+    cand_emb = _average_embeddings([_get_image_embedding(b) for b in cand_bytes])
+
+    cos_sim = float(torch.dot(lost_emb.squeeze(), cand_emb.squeeze()).item())
+    score = max(0.0, min(1.0, (cos_sim + 1.0) / 2.0))
+
+    return {"similarity_score": score, "reason": ""}
+
+
 # --- Supabase (REST API経由) ---
 
 SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
