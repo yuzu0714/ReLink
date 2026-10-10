@@ -146,7 +146,7 @@ def extract_tags_from_encoded(encoded_images: list) -> tuple:
                 {"role": "user", "content": content},
             ],
             temperature=0,
-            max_tokens=4096,
+            max_tokens=400,
         )
     )
 
